@@ -1,0 +1,79 @@
+// 替代的初始化方法 - 如果標準方法失敗，請嘗試此方法
+
+// 在 Form1.cs 的 btnInit_Click 方法中，替換 AxMMMarkx64 的創建方式：
+
+// === 原始方法（可能失敗）===
+// m_MMMark[i] = new AxMMMarkx64();
+
+// === 替代方法 1：使用 CreateControl ===
+try
+{
+    m_MMMark[i] = new AxMMMarkx64();
+    m_MMMark[i].BeginInit();  // 開始初始化
+
+    // 設置控件位置和大小
+    m_MMMark[i].Left = 0;
+    m_MMMark[i].Top = 0;
+    m_MMMark[i].Width = m_Panels[i].Width;
+    m_MMMark[i].Height = m_Panels[i].Height;
+
+    // 添加到面板
+    m_Panels[i].Controls.Add(m_MMMark[i]);
+
+    m_MMMark[i].EndInit();    // 結束初始化
+
+    // 創建底層控件
+    ((System.ComponentModel.ISupportInitialize)(m_MMMark[i])).BeginInit();
+    ((System.ComponentModel.ISupportInitialize)(m_MMMark[i])).EndInit();
+}
+catch (Exception ex)
+{
+    MessageBox.Show($"板 {i+1} 初始化失敗: {ex.Message}\n\n" +
+                    $"請確認：\n" +
+                    $"1. 已執行 RegisterOCX.bat（以管理員身分）\n" +
+                    $"2. MarkingMate 已正確安裝\n" +
+                    $"3. 專案平台設定為 x64",
+                    "初始化錯誤",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+    return;
+}
+
+// === 替代方法 2：檢查 OCX 註冊狀態 ===
+// 在 Form1_Load 中添加檢查：
+
+private bool CheckOCXRegistration()
+{
+    try
+    {
+        // 嘗試創建一個臨時實例來測試
+        using (var testControl = new AxMMMarkx64())
+        {
+            return true;
+        }
+    }
+    catch (System.Runtime.InteropServices.COMException)
+    {
+        MessageBox.Show(
+            "MarkingMate OCX 控件未註冊！\n\n" +
+            "請執行以下步驟：\n" +
+            "1. 以系統管理員身分執行 RegisterOCX.bat\n" +
+            "2. 或手動執行：regsvr32 MMMarkx64Lib.dll\n" +
+            "3. 重新啟動應用程式",
+            "OCX 未註冊",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Error);
+        return false;
+    }
+}
+
+// 在 Form1_Load 中調用：
+private void Form1_Load(object sender, EventArgs e)
+{
+    if (!CheckOCXRegistration())
+    {
+        btnInit.Enabled = false;
+        btnDrawLine.Enabled = false;
+        btnMark.Enabled = false;
+    }
+}
