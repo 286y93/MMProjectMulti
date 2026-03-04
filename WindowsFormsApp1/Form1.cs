@@ -72,38 +72,52 @@ namespace WindowsFormsApp1
 
             int successCount = 0;
             string failInfo = "";
+            int boardCount = (int)numBoardCount.Value;
 
-            for (int i = 0; i < 4; i++)
+            // 第一階段：建立所有控件並加入容器
+            for (int i = 0; i < boardCount; i++)
             {
                 try
                 {
-                    // 創建多系統控件實例
                     m_MMMark[i] = new AxMMMarkx641();
                     m_MMEdit[i] = new AxMMEditx641();
 
-                    // 設置 MMMark 控件位置和大小
                     m_MMMark[i].Left = 0;
                     m_MMMark[i].Top = 0;
                     m_MMMark[i].Width = m_Panels[i].Width;
                     m_MMMark[i].Height = m_Panels[i].Height;
 
-                    // 添加到對應的面板
                     m_Panels[i].Controls.Add(m_MMMark[i]);
 
-                    // 添加編輯控件（隱藏）
+                    // MMEdit 加入 Form 層級（非 Panel），與官方單系統範例一致
+                    // 這樣 MMEdit 的原生 COM 程式碼才能在表單層級找到 MMMark
                     this.Controls.Add(m_MMEdit[i]);
                     m_MMEdit[i].Visible = false;
+                }
+                catch (Exception ex)
+                {
+                    failInfo += $"晶片板 {i + 1} (建立控件)：{ex.Message}\n";
+                }
+            }
 
-                    // 使用多系統初始化方法，每個板有獨立的配置
+            Application.DoEvents();
+
+            // 第二階段：初始化所有 MMMark
+            for (int i = 0; i < boardCount; i++)
+            {
+                if (m_MMMark[i] == null)
+                    continue;
+
+                try
+                {
                     m_MMMark[i].InitialExt(m_ConfigPaths[i]);
-                    m_MMEdit[i].InitialExt(m_ConfigPaths[i]);
 
-                    // 設置工作區域
                     m_MMMark[i].SetDesktopCenter(0, 0);
                     m_MMMark[i].SetDesktopSize(100, 100);
                     m_MMMark[i].SetActiveDB(0);
                     m_MMMark[i].MarkStandBy();
                     m_MMMark[i].SetCurEditFun(2);
+                    m_MMMark[i].Redraw();
 
                     m_bBoardInit[i] = true;
                     successCount++;
@@ -111,21 +125,37 @@ namespace WindowsFormsApp1
                 catch (Exception ex)
                 {
                     m_bBoardInit[i] = false;
-                    failInfo += $"晶片板 {i + 1}：{ex.Message}\n";
+                    failInfo += $"晶片板 {i + 1} (MMMark)：{ex.Message}\n";
+                }
+            }
+
+            Application.DoEvents();
+
+            // 第三階段：MMMark 全部就緒後，再初始化 MMEdit
+            for (int i = 0; i < boardCount; i++)
+            {
+                if (!m_bBoardInit[i] || m_MMEdit[i] == null)
+                    continue;
+
+                try
+                {
+                    m_MMEdit[i].InitialExt(m_ConfigPaths[i]);
+                }
+                catch (Exception ex)
+                {
+                    failInfo += $"晶片板 {i + 1} (MMEdit)：{ex.Message}\n";
                 }
             }
 
             m_bInit = successCount > 0;
 
-            if (successCount == 4)
+            if (successCount == boardCount)
             {
-                MessageBox.Show("四個晶片板全部初始化完成！", "初始化", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show($"{successCount} 個晶片板全部初始化完成！", "初始化", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             else if (successCount > 0)
             {
-                MessageBox.Show($"已成功初始化 {successCount}/4 個晶片板。\n\n以下晶片板初始化失敗：\n{failInfo}\n" +
-                    "提示：MarkingMate MultiMM 預設只支援 MM1、MM2。\n" +
-                    "若需要 MM3、MM4，請在 MarkingMate 中建立對應的配置。",
+                MessageBox.Show($"已成功初始化 {successCount}/{boardCount} 個晶片板。\n\n以下晶片板初始化失敗：\n{failInfo}",
                     "部分初始化", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             else

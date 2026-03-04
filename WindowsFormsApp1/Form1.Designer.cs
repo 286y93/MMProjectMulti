@@ -40,6 +40,8 @@
             this.groupBox4 = new System.Windows.Forms.GroupBox();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPageConnect = new System.Windows.Forms.TabPage();
+            this.lblBoardCount = new System.Windows.Forms.Label();
+            this.numBoardCount = new System.Windows.Forms.NumericUpDown();
             this.btnInit = new System.Windows.Forms.Button();
             this.groupBoxIP = new System.Windows.Forms.GroupBox();
             this.lblIP1 = new System.Windows.Forms.Label();
@@ -75,6 +77,7 @@
             this.groupBox4.SuspendLayout();
             this.tabControl1.SuspendLayout();
             this.tabPageConnect.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numBoardCount)).BeginInit();
             this.groupBoxIP.SuspendLayout();
             this.tabPageDraw.SuspendLayout();
             this.groupBox5.SuspendLayout();
@@ -182,6 +185,8 @@
             // 
             // tabPageConnect
             // 
+            this.tabPageConnect.Controls.Add(this.lblBoardCount);
+            this.tabPageConnect.Controls.Add(this.numBoardCount);
             this.tabPageConnect.Controls.Add(this.btnInit);
             this.tabPageConnect.Controls.Add(this.groupBoxIP);
             this.tabPageConnect.Controls.Add(this.btnTestConnect);
@@ -193,13 +198,32 @@
             this.tabPageConnect.TabIndex = 0;
             this.tabPageConnect.Text = "連接設定";
             this.tabPageConnect.UseVisualStyleBackColor = true;
-            // 
+            //
+            // lblBoardCount
+            //
+            this.lblBoardCount.AutoSize = true;
+            this.lblBoardCount.Location = new System.Drawing.Point(8, 15);
+            this.lblBoardCount.Name = "lblBoardCount";
+            this.lblBoardCount.Size = new System.Drawing.Size(70, 15);
+            this.lblBoardCount.TabIndex = 10;
+            this.lblBoardCount.Text = "系統數量:";
+            //
+            // numBoardCount
+            //
+            this.numBoardCount.Location = new System.Drawing.Point(85, 13);
+            this.numBoardCount.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+            this.numBoardCount.Maximum = new decimal(new int[] { 4, 0, 0, 0 });
+            this.numBoardCount.Name = "numBoardCount";
+            this.numBoardCount.Size = new System.Drawing.Size(50, 25);
+            this.numBoardCount.TabIndex = 11;
+            this.numBoardCount.Value = new decimal(new int[] { 2, 0, 0, 0 });
+            //
             // btnInit
-            // 
-            this.btnInit.Location = new System.Drawing.Point(25, 20);
+            //
+            this.btnInit.Location = new System.Drawing.Point(145, 8);
             this.btnInit.Margin = new System.Windows.Forms.Padding(4);
             this.btnInit.Name = "btnInit";
-            this.btnInit.Size = new System.Drawing.Size(190, 50);
+            this.btnInit.Size = new System.Drawing.Size(80, 35);
             this.btnInit.TabIndex = 0;
             this.btnInit.Text = "初始化";
             this.btnInit.UseVisualStyleBackColor = true;
@@ -522,6 +546,7 @@
             this.groupBox2.ResumeLayout(false);
             this.groupBox3.ResumeLayout(false);
             this.groupBox4.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.numBoardCount)).EndInit();
             this.tabControl1.ResumeLayout(false);
             this.tabPageConnect.ResumeLayout(false);
             this.groupBoxIP.ResumeLayout(false);
@@ -575,6 +600,8 @@
         private System.Windows.Forms.Button btnMark;
         private System.Windows.Forms.Button btnStop;
         private System.Windows.Forms.Button btnExit;
+        private System.Windows.Forms.Label lblBoardCount;
+        private System.Windows.Forms.NumericUpDown numBoardCount;
         private System.Windows.Forms.Timer timerMark;
     }
 }
