@@ -1,0 +1,16 @@
+C:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\WindowsFormsApp1\bin\x64\Debug\WindowsFormsApp1.exe.config
+C:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\WindowsFormsApp1\bin\x64\Debug\WindowsFormsApp1.exe
+C:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\WindowsFormsApp1\bin\x64\Debug\WindowsFormsApp1.pdb
+C:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\WindowsFormsApp1\bin\x64\Debug\AxMMEdit_x64_1.dll
+C:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\WindowsFormsApp1\bin\x64\Debug\AxMMMark_x64_1.dll
+C:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\WindowsFormsApp1\bin\x64\Debug\MMEditx641Lib.dll
+C:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\WindowsFormsApp1\bin\x64\Debug\MMMarkx641Lib.dll
+C:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\WindowsFormsApp1\obj\x64\Debug\WindowsFormsApp1.csproj.AssemblyReference.cache
+C:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\WindowsFormsApp1\obj\x64\Debug\WindowsFormsApp1.Form1.resources
+C:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\WindowsFormsApp1\obj\x64\Debug\WindowsFormsApp1.Properties.Resources.resources
+C:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\WindowsFormsApp1\obj\x64\Debug\WindowsFormsApp1.csproj.GenerateResource.cache
+C:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\WindowsFormsApp1\obj\x64\Debug\WindowsFormsApp1.csproj.CoreCompileInputs.cache
+C:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\WindowsFormsApp1\obj\x64\Debug\WindowsF.A1EEDF9B.Up2Date
+C:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\WindowsFormsApp1\obj\x64\Debug\WindowsFormsApp1.exe
+C:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\WindowsFormsApp1\obj\x64\Debug\WindowsFormsApp1.pdb
+C:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\WindowsFormsApp1\obj\x64\Debug\WindowsFormsApp1.exe.config

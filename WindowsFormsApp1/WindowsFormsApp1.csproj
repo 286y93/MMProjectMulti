@@ -49,23 +49,17 @@
     <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AxMMEditx64Lib">
-      <HintPath>C:\Program Files (x86)\MarkingMate\sdk\ocx\CSharp_example\VS2017\LoadFile\LoadFile\bin\x64\Release\AxMMEdit_x64.dll</HintPath>
+    <Reference Include="AxMMMark_x64_1">
+      <HintPath>C:\Program Files (x86)\MarkingMate\MmAssembly\AxMMMark_x64_1.dll</HintPath>
     </Reference>
-    <Reference Include="AxMMMarkx64Lib">
-      <HintPath>C:\Program Files (x86)\MarkingMate\sdk\ocx\CSharp_example\VS2017\LoadFile\LoadFile\bin\x64\Release\AxMMMark_x64.dll</HintPath>
+    <Reference Include="AxMMEdit_x64_1">
+      <HintPath>C:\Program Files (x86)\MarkingMate\MmAssembly\AxMMEdit_x64_1.dll</HintPath>
     </Reference>
-    <Reference Include="AxMMStatusx64Lib">
-      <HintPath>C:\Program Files (x86)\MarkingMate\sdk\ocx\CSharp_example\VS2017\LoadFile\LoadFile\bin\x64\Release\AxMMStatus_x64.dll</HintPath>
+    <Reference Include="MMMarkx641Lib">
+      <HintPath>C:\Program Files (x86)\MarkingMate\MmAssembly\MMMarkx641Lib.dll</HintPath>
     </Reference>
-    <Reference Include="MMEditx64Lib">
-      <HintPath>C:\Program Files (x86)\MarkingMate\sdk\ocx\CSharp_example\VS2017\LoadFile\LoadFile\bin\x64\Release\MMEditx64Lib.dll</HintPath>
-    </Reference>
-    <Reference Include="MMMarkx64Lib">
-      <HintPath>C:\Program Files (x86)\MarkingMate\sdk\ocx\CSharp_example\VS2017\LoadFile\LoadFile\bin\x64\Release\MMMarkx64Lib.dll</HintPath>
-    </Reference>
-    <Reference Include="MMStatusx64Lib">
-      <HintPath>C:\Program Files (x86)\MarkingMate\sdk\ocx\CSharp_example\VS2017\LoadFile\LoadFile\bin\x64\Release\MMStatusx64Lib.dll</HintPath>
+    <Reference Include="MMEditx641Lib">
+      <HintPath>C:\Program Files (x86)\MarkingMate\MmAssembly\MMEditx641Lib.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
