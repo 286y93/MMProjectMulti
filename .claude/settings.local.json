@@ -8,7 +8,15 @@
       "Bash(findstr:*)",
       "Bash(powershell:*)",
       "Bash(test:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(dotnet build:*)",
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Enterprise\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"C:\\\\Users\\\\AlexYang_VW\\\\source\\\\repos\\\\MMProject\\\\MMProjectMulti\\\\WindowsFormsApp1\\\\MarkingMateMulti.csproj\" /p:Configuration=Debug /p:Platform=x64 /t:Build /verbosity:minimal)",
+      "Bash(\"C:/Program Files/Microsoft Visual Studio/2022/Enterprise/MSBuild/Current/Bin/MSBuild.exe\" \"C:/Users/AlexYang_VW/source/repos/MMProject/MMProjectMulti/WindowsFormsApp1/MarkingMateMulti.csproj\" /p:Configuration=Debug /p:Platform=x64 /t:Build /verbosity:minimal)",
+      "Bash(\"C:/Program Files/Microsoft Visual Studio/2022/Enterprise/MSBuild/Current/Bin/MSBuild.exe\" \"C:/Users/AlexYang_VW/source/repos/MMProject/MMProjectMulti/WindowsFormsApp1/MarkingMateMulti.csproj\" -p:Configuration=Debug -p:Platform=x64 -t:Build -verbosity:minimal)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git rm -r --cached WindowsFormsApp1/.vs/ WindowsFormsApp1/bin/ WindowsFormsApp1/obj/ nul)",
+      "Bash(git rm:*)"
     ]
   }
 }
