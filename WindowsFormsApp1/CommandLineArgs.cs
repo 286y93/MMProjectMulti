@@ -14,6 +14,7 @@ namespace WindowsFormsApp1
         public List<LineSegment> Lines { get; private set; }
         public bool AutoMark { get; private set; }
         public bool ShowHelp { get; private set; }
+        public string DxfPath { get; private set; }
 
         public CommandLineArgs()
         {
@@ -23,6 +24,7 @@ namespace WindowsFormsApp1
             Lines = new List<LineSegment>();
             AutoMark = false;
             ShowHelp = false;
+            DxfPath = null;
         }
 
         /// <summary>
@@ -104,6 +106,16 @@ namespace WindowsFormsApp1
                         }
                         break;
 
+                    case "--dxf":
+                    case "-d":
+                        if (i + 1 < args.Length)
+                        {
+                            result.DxfPath = args[i + 1];
+                            i++;
+                            result.IsAutoMode = true;
+                        }
+                        break;
+
                     case "--mark":
                     case "-m":
                         result.AutoMark = true;
@@ -132,6 +144,7 @@ namespace WindowsFormsApp1
   --config <path>, -c <path>            指定配置路徑 (預設: /cfg_config_MM1)
   --line <x1,y1,x2,y2>, -l <x1,y1,x2,y2>  新增單一線段
   --lines <線段列表>                    新增多條線段 (以分號分隔)
+  --dxf <path>, -d <path>              載入 DXF 檔案（手動解析線段）
   --mark, -m                            自動執行打標
 
 範例：
@@ -140,6 +153,9 @@ namespace WindowsFormsApp1
 
   # 在板 1 上畫多條線
   MarkingMateMulti.exe --board 1 --lines ""0,0,50,50;10,10,40,40"" --mark
+
+  # 載入 DXF 檔案並打標
+  MarkingMateMulti.exe --board 0 --dxf ""File\上翼板-2.dxf"" --mark
 
   # 使用自訂配置
   MarkingMateMulti.exe --board 2 --config /cfg_config_MM3 --line 0,0,100,100
@@ -164,9 +180,9 @@ namespace WindowsFormsApp1
                 return false;
             }
 
-            if (Lines.Count == 0 && AutoMark)
+            if (Lines.Count == 0 && string.IsNullOrEmpty(DxfPath) && AutoMark)
             {
-                errorMessage = "自動打標模式至少需要一條線段";
+                errorMessage = "自動打標模式至少需要一條線段或指定 DXF 檔案";
                 return false;
             }
 

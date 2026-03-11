@@ -468,8 +468,17 @@ namespace WindowsFormsApp1
                     return;
                 }
 
-                // 步驟 2: 繪製所有線段
-                if (m_AutoModeArgs.Lines.Count > 0)
+                // 步驟 2: 載入 DXF 檔案或繪製手動線段
+                if (!string.IsNullOrEmpty(m_AutoModeArgs.DxfPath))
+                {
+                    if (!LoadDxfAuto(m_AutoModeArgs.BoardIndex, m_AutoModeArgs.DxfPath))
+                    {
+                        ExitCode = 2; // DXF 載入失敗
+                        this.Close();
+                        return;
+                    }
+                }
+                else if (m_AutoModeArgs.Lines.Count > 0)
                 {
                     foreach (var line in m_AutoModeArgs.Lines)
                     {
@@ -484,7 +493,7 @@ namespace WindowsFormsApp1
                     // 所有線段繪製完成後，確保全部載入
                     m_MMMark[m_AutoModeArgs.BoardIndex].Redraw();
                     Application.DoEvents();
-                    System.Threading.Thread.Sleep(300); // 給予更多時間讓多條線段載入
+                    System.Threading.Thread.Sleep(300);
                     System.Diagnostics.Debug.WriteLine($"已繪製 {m_AutoModeArgs.Lines.Count} 條線段");
                 }
 
@@ -586,6 +595,84 @@ namespace WindowsFormsApp1
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"繪製線段失敗：{ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 自動模式：載入 DXF 檔案（使用 ParseDXFFile 解析線段）
+        /// </summary>
+        private bool LoadDxfAuto(int boardIndex, string dxfPath)
+        {
+            try
+            {
+                // 如果是相對路徑，轉換為絕對路徑
+                if (!Path.IsPathRooted(dxfPath))
+                {
+                    string exeDir = Path.GetDirectoryName(Application.ExecutablePath);
+                    dxfPath = Path.Combine(exeDir, dxfPath);
+                }
+
+                if (!File.Exists(dxfPath))
+                {
+                    System.Diagnostics.Debug.WriteLine($"找不到 DXF 檔案：{dxfPath}");
+                    return false;
+                }
+
+                var lines = ParseDXFFile(dxfPath);
+
+                if (lines.Count == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"DXF 檔案中沒有找到線段：{dxfPath}");
+                    return false;
+                }
+
+                // 計算座標範圍並自動縮放
+                double minX = double.MaxValue, maxX = double.MinValue;
+                double minY = double.MaxValue, maxY = double.MinValue;
+
+                foreach (var line in lines)
+                {
+                    minX = Math.Min(minX, Math.Min(line.X1, line.X2));
+                    maxX = Math.Max(maxX, Math.Max(line.X1, line.X2));
+                    minY = Math.Min(minY, Math.Min(line.Y1, line.Y2));
+                    maxY = Math.Max(maxY, Math.Max(line.Y1, line.Y2));
+                }
+
+                double origWidth = maxX - minX;
+                double origHeight = maxY - minY;
+                double origCenterX = (minX + maxX) / 2.0;
+                double origCenterY = (minY + maxY) / 2.0;
+
+                const double WORKSPACE_SIZE = 150.0;
+                const double MARGIN_PERCENT = 0.9;
+                double maxSpan = Math.Max(origWidth, origHeight);
+                double scaleFactor = (WORKSPACE_SIZE * MARGIN_PERCENT) / maxSpan;
+
+                System.Diagnostics.Debug.WriteLine($"DXF 解析完成：{lines.Count} 條線段，縮放比例：{scaleFactor:F4}");
+
+                // 轉換座標並加入到 MMEdit
+                foreach (var line in lines)
+                {
+                    double tx1 = (line.X1 - origCenterX) * scaleFactor;
+                    double ty1 = (line.Y1 - origCenterY) * scaleFactor;
+                    double tx2 = (line.X2 - origCenterX) * scaleFactor;
+                    double ty2 = (line.Y2 - origCenterY) * scaleFactor;
+
+                    m_MMEdit[boardIndex].AddLine(tx1, ty1, tx2, ty2, "", "");
+                }
+
+                Application.DoEvents();
+                Thread.Sleep(100);
+                m_MMMark[boardIndex].Redraw();
+                Thread.Sleep(300);
+
+                System.Diagnostics.Debug.WriteLine($"DXF 載入完成：{lines.Count} 條線段已加入晶片板 {boardIndex + 1}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DXF 載入失敗：{ex.Message}");
                 return false;
             }
         }
