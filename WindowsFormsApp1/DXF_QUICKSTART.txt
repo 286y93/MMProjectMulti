@@ -1,0 +1,74 @@
+===========================================
+DXF 功能快速入門
+===========================================
+
+STEP 1: Build the project
+===========================================
+1. Open project in Visual Studio
+2. Select x64 platform
+3. Build solution (Ctrl+Shift+B)
+4. Verify File\上翼板-2.dxf is copied to bin\x64\Debug\File\
+
+STEP 2: Initialize system
+===========================================
+1. Run WindowsFormsApp1.exe
+2. Go to "連接設定" tab
+3. Set board count (default: 2)
+4. Click "初始化" button
+5. Wait for initialization success
+
+STEP 3: Load DXF file
+===========================================
+1. Go to "DXF" tab
+2. DXF path is pre-filled: File\上翼板-2.dxf
+3. Select board (default: 板 1)
+4. Click "載入 DXF" button
+5. Wait for success message
+6. Check preview window for DXF content
+
+STEP 4: Mark the DXF
+===========================================
+1. Click "打標" button
+2. Wait for marking to complete
+3. Check "打標完成" message
+
+===========================================
+UI Controls
+===========================================
+
+DXF Tab contains:
+- txtDXFPath: DXF file path (relative or absolute)
+- comboBoardDXF: Board selector (1-4)
+- btnLoadDXF: Load DXF file
+- btnMarkDXF: Execute marking (enabled after load)
+
+===========================================
+File Path Examples
+===========================================
+
+Relative path (recommended):
+  File\上翼板-2.dxf
+
+Absolute path:
+  C:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\WindowsFormsApp1\File\上翼板-2.dxf
+
+===========================================
+Troubleshooting
+===========================================
+
+"請先在「連接設定」頁簽初始化！"
+→ Go to "連接設定" tab and click "初始化"
+
+"找不到 DXF 檔案"
+→ Check if File\上翼板-2.dxf exists in exe directory
+→ Rebuild project to copy DXF file
+
+"載入 DXF 檔案失敗"
+→ Check DXF file format
+→ Try loading in MarkingMate software first
+
+"打標啟動失敗"
+→ Use "測試連接" to check hardware
+→ Check laser parameters in MarkingMate
+
+===========================================

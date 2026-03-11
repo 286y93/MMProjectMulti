@@ -1,0 +1,110 @@
+========================================
+QUICK REFERENCE - Command Line Usage
+========================================
+
+IMPORTANT: Must add --mark to actually fire the laser!
+
+SINGLE LINE
+========================================
+WindowsFormsApp1.exe --board 0 --line 0,0,10,10 --mark
+
+Format: --line x1,y1,x2,y2
+
+
+MULTIPLE LINES
+========================================
+WindowsFormsApp1.exe --board 0 --lines "0,0,10,10;20,20,30,30" --mark
+
+Format: --lines "x1,y1,x2,y2;x1,y1,x2,y2;..."
+Note: Use QUOTES around the lines parameter!
+
+
+COMMON SHAPES
+========================================
+
+Small Square (20x20mm):
+--lines "-10,-10,10,-10;10,-10,10,10;10,10,-10,10;-10,10,-10,-10"
+
+Large Square (60x60mm):
+--lines "-30,-30,30,-30;30,-30,30,30;30,30,-30,30;-30,30,-30,-30"
+
+Triangle:
+--lines "0,0,10,0;10,0,5,10;5,10,0,0"
+
+Cross:
+--lines "-20,0,20,0;0,-20,0,20"
+
+Diagonal Lines:
+--lines "-20,-20,20,20;-20,20,20,-20"
+
+
+COMPLETE EXAMPLES
+========================================
+
+# Single line on board 0
+WindowsFormsApp1.exe --board 0 --line 0,0,50,50 --mark
+
+# Two lines on board 1
+WindowsFormsApp1.exe --board 1 --lines "0,0,50,50;10,10,40,40" --mark
+
+# Square on board 0
+WindowsFormsApp1.exe --board 0 --lines "-20,-20,20,-20;20,-20,20,20;20,20,-20,20;-20,20,-20,-20" --mark
+
+# Custom config
+WindowsFormsApp1.exe --board 2 --config /cfg_config_MM3 --line 0,0,100,100 --mark
+
+
+EXIT CODES
+========================================
+0 = Success
+1 = Initialization failed
+2 = Drawing failed
+3 = Marking failed
+4 = Parameter error
+
+
+TROUBLESHOOTING
+========================================
+
+No laser but Exit Code 0:
+1. Did you add --mark parameter?
+2. Check laser power in MarkingMate software
+3. Compare with GUI mode - does that work?
+
+Exit Code 1:
+- MarkingMate SDK not installed
+- Hardware not connected
+
+Exit Code 2:
+- Invalid coordinates (must be -75 to +75)
+- Wrong format
+
+Exit Code 3:
+- Control card connection issue
+- Laser power off
+- Check with GUI "Test Connection"
+
+Exit Code 4:
+- Board number not 0-3
+- Missing required parameters
+
+
+COORDINATE SYSTEM
+========================================
+Origin: (0, 0) at center
+X-axis: Right = positive
+Y-axis: Down = positive
+Unit: Millimeters
+Range: -75 to +75
+Workspace: 150mm x 150mm
+
+
+BATCH FILES
+========================================
+Build.bat              - Compile the project
+TestCommandLine_Debug.bat - Basic tests
+TestMultipleLines.bat  - Test multiple lines
+CommandLineExamples.bat - Usage examples
+CompareTest.bat        - Compare execution methods
+
+========================================

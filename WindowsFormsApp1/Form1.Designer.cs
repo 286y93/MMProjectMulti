@@ -56,9 +56,9 @@
             this.btnSaveIP = new System.Windows.Forms.Button();
             this.btnTestConnect = new System.Windows.Forms.Button();
             this.tabPageDraw = new System.Windows.Forms.TabPage();
-            this.groupBox5 = new System.Windows.Forms.GroupBox();
-            this.label5 = new System.Windows.Forms.Label();
             this.comboBoard = new System.Windows.Forms.ComboBox();
+            this.label5 = new System.Windows.Forms.Label();
+            this.groupBox5 = new System.Windows.Forms.GroupBox();
             this.label1 = new System.Windows.Forms.Label();
             this.txtX1 = new System.Windows.Forms.TextBox();
             this.label4 = new System.Windows.Forms.Label();
@@ -70,6 +70,17 @@
             this.btnDrawLine = new System.Windows.Forms.Button();
             this.btnMark = new System.Windows.Forms.Button();
             this.btnStop = new System.Windows.Forms.Button();
+            this.tabPage1 = new System.Windows.Forms.TabPage();
+            this.lblDXFInfo = new System.Windows.Forms.Label();
+            this.txtDXFInfo = new System.Windows.Forms.TextBox();
+            this.btnBrowseDXF = new System.Windows.Forms.Button();
+            this.lblBoardDXF = new System.Windows.Forms.Label();
+            this.comboBoardDXF = new System.Windows.Forms.ComboBox();
+            this.lblDXFPath = new System.Windows.Forms.Label();
+            this.txtDXFPath = new System.Windows.Forms.TextBox();
+            this.btnMarkDXF = new System.Windows.Forms.Button();
+            this.btnLoadDXF = new System.Windows.Forms.Button();
+            this.btnLoadDXFFile = new System.Windows.Forms.Button();
             this.btnExit = new System.Windows.Forms.Button();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
@@ -81,6 +92,7 @@
             this.groupBoxIP.SuspendLayout();
             this.tabPageDraw.SuspendLayout();
             this.groupBox5.SuspendLayout();
+            this.tabPage1.SuspendLayout();
             this.SuspendLayout();
             // 
             // timerMark
@@ -176,6 +188,7 @@
             // 
             this.tabControl1.Controls.Add(this.tabPageConnect);
             this.tabControl1.Controls.Add(this.tabPageDraw);
+            this.tabControl1.Controls.Add(this.tabPage1);
             this.tabControl1.Location = new System.Drawing.Point(1185, 15);
             this.tabControl1.Margin = new System.Windows.Forms.Padding(4);
             this.tabControl1.Name = "tabControl1";
@@ -198,28 +211,40 @@
             this.tabPageConnect.TabIndex = 0;
             this.tabPageConnect.Text = "連接設定";
             this.tabPageConnect.UseVisualStyleBackColor = true;
-            //
+            // 
             // lblBoardCount
-            //
+            // 
             this.lblBoardCount.AutoSize = true;
             this.lblBoardCount.Location = new System.Drawing.Point(8, 15);
             this.lblBoardCount.Name = "lblBoardCount";
-            this.lblBoardCount.Size = new System.Drawing.Size(70, 15);
+            this.lblBoardCount.Size = new System.Drawing.Size(71, 15);
             this.lblBoardCount.TabIndex = 10;
             this.lblBoardCount.Text = "系統數量:";
-            //
+            // 
             // numBoardCount
-            //
+            // 
             this.numBoardCount.Location = new System.Drawing.Point(85, 13);
-            this.numBoardCount.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
-            this.numBoardCount.Maximum = new decimal(new int[] { 4, 0, 0, 0 });
+            this.numBoardCount.Maximum = new decimal(new int[] {
+            4,
+            0,
+            0,
+            0});
+            this.numBoardCount.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
             this.numBoardCount.Name = "numBoardCount";
             this.numBoardCount.Size = new System.Drawing.Size(50, 25);
             this.numBoardCount.TabIndex = 11;
-            this.numBoardCount.Value = new decimal(new int[] { 2, 0, 0, 0 });
-            //
+            this.numBoardCount.Value = new decimal(new int[] {
+            2,
+            0,
+            0,
+            0});
+            // 
             // btnInit
-            //
+            // 
             this.btnInit.Location = new System.Drawing.Point(145, 8);
             this.btnInit.Margin = new System.Windows.Forms.Padding(4);
             this.btnInit.Name = "btnInit";
@@ -362,6 +387,31 @@
             this.tabPageDraw.Text = "繪圖操作";
             this.tabPageDraw.UseVisualStyleBackColor = true;
             // 
+            // comboBoard
+            // 
+            this.comboBoard.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboBoard.FormattingEnabled = true;
+            this.comboBoard.Items.AddRange(new object[] {
+            "晶片板 1",
+            "晶片板 2",
+            "晶片板 3",
+            "晶片板 4"});
+            this.comboBoard.Location = new System.Drawing.Point(8, 32);
+            this.comboBoard.Margin = new System.Windows.Forms.Padding(4);
+            this.comboBoard.Name = "comboBoard";
+            this.comboBoard.Size = new System.Drawing.Size(156, 23);
+            this.comboBoard.TabIndex = 9;
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Location = new System.Drawing.Point(8, 13);
+            this.label5.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(56, 15);
+            this.label5.TabIndex = 8;
+            this.label5.Text = "選擇板:";
+            // 
             // groupBox5
             // 
             this.groupBox5.Controls.Add(this.label1);
@@ -380,31 +430,6 @@
             this.groupBox5.TabIndex = 0;
             this.groupBox5.TabStop = false;
             this.groupBox5.Text = "線段參數";
-            // 
-            // label5
-            // 
-            this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(8, 13);
-            this.label5.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(56, 15);
-            this.label5.TabIndex = 8;
-            this.label5.Text = "選擇板:";
-            // 
-            // comboBoard
-            // 
-            this.comboBoard.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.comboBoard.FormattingEnabled = true;
-            this.comboBoard.Items.AddRange(new object[] {
-            "晶片板 1",
-            "晶片板 2",
-            "晶片板 3",
-            "晶片板 4"});
-            this.comboBoard.Location = new System.Drawing.Point(8, 32);
-            this.comboBoard.Margin = new System.Windows.Forms.Padding(4);
-            this.comboBoard.Name = "comboBoard";
-            this.comboBoard.Size = new System.Drawing.Size(156, 23);
-            this.comboBoard.TabIndex = 9;
             // 
             // label1
             // 
@@ -515,6 +540,129 @@
             this.btnStop.UseVisualStyleBackColor = true;
             this.btnStop.Click += new System.EventHandler(this.btnStop_Click);
             // 
+            // tabPage1
+            // 
+            this.tabPage1.Controls.Add(this.lblDXFInfo);
+            this.tabPage1.Controls.Add(this.txtDXFInfo);
+            this.tabPage1.Controls.Add(this.btnBrowseDXF);
+            this.tabPage1.Controls.Add(this.lblBoardDXF);
+            this.tabPage1.Controls.Add(this.comboBoardDXF);
+            this.tabPage1.Controls.Add(this.lblDXFPath);
+            this.tabPage1.Controls.Add(this.txtDXFPath);
+            this.tabPage1.Controls.Add(this.btnMarkDXF);
+            this.tabPage1.Controls.Add(this.btnLoadDXFFile);
+            this.tabPage1.Controls.Add(this.btnLoadDXF);
+            this.tabPage1.Location = new System.Drawing.Point(4, 25);
+            this.tabPage1.Name = "tabPage1";
+            this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage1.Size = new System.Drawing.Size(237, 761);
+            this.tabPage1.TabIndex = 2;
+            this.tabPage1.Text = "DXF";
+            this.tabPage1.UseVisualStyleBackColor = true;
+            // 
+            // lblDXFInfo
+            // 
+            this.lblDXFInfo.AutoSize = true;
+            this.lblDXFInfo.Location = new System.Drawing.Point(20, 355);
+            this.lblDXFInfo.Name = "lblDXFInfo";
+            this.lblDXFInfo.Size = new System.Drawing.Size(82, 15);
+            this.lblDXFInfo.TabIndex = 8;
+            this.lblDXFInfo.Text = "線段資訊：";
+            // 
+            // txtDXFInfo
+            // 
+            this.txtDXFInfo.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtDXFInfo.Location = new System.Drawing.Point(20, 373);
+            this.txtDXFInfo.Multiline = true;
+            this.txtDXFInfo.Name = "txtDXFInfo";
+            this.txtDXFInfo.ReadOnly = true;
+            this.txtDXFInfo.ScrollBars = System.Windows.Forms.ScrollBars.Both;
+            this.txtDXFInfo.Size = new System.Drawing.Size(191, 367);
+            this.txtDXFInfo.TabIndex = 7;
+            this.txtDXFInfo.WordWrap = false;
+            // 
+            // btnBrowseDXF
+            // 
+            this.btnBrowseDXF.Location = new System.Drawing.Point(20, 121);
+            this.btnBrowseDXF.Name = "btnBrowseDXF";
+            this.btnBrowseDXF.Size = new System.Drawing.Size(75, 23);
+            this.btnBrowseDXF.TabIndex = 6;
+            this.btnBrowseDXF.Text = "瀏覽...";
+            this.btnBrowseDXF.UseVisualStyleBackColor = true;
+            this.btnBrowseDXF.Click += new System.EventHandler(this.btnBrowseDXF_Click);
+            // 
+            // lblBoardDXF
+            // 
+            this.lblBoardDXF.AutoSize = true;
+            this.lblBoardDXF.Location = new System.Drawing.Point(20, 150);
+            this.lblBoardDXF.Name = "lblBoardDXF";
+            this.lblBoardDXF.Size = new System.Drawing.Size(67, 15);
+            this.lblBoardDXF.TabIndex = 5;
+            this.lblBoardDXF.Text = "選擇板：";
+            // 
+            // comboBoardDXF
+            // 
+            this.comboBoardDXF.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboBoardDXF.FormattingEnabled = true;
+            this.comboBoardDXF.Items.AddRange(new object[] {
+            "板 1",
+            "板 2",
+            "板 3",
+            "板 4"});
+            this.comboBoardDXF.Location = new System.Drawing.Point(90, 147);
+            this.comboBoardDXF.Name = "comboBoardDXF";
+            this.comboBoardDXF.Size = new System.Drawing.Size(121, 23);
+            this.comboBoardDXF.TabIndex = 4;
+            // 
+            // lblDXFPath
+            // 
+            this.lblDXFPath.AutoSize = true;
+            this.lblDXFPath.Location = new System.Drawing.Point(20, 30);
+            this.lblDXFPath.Name = "lblDXFPath";
+            this.lblDXFPath.Size = new System.Drawing.Size(84, 15);
+            this.lblDXFPath.TabIndex = 3;
+            this.lblDXFPath.Text = "DXF 路徑：";
+            // 
+            // txtDXFPath
+            // 
+            this.txtDXFPath.Location = new System.Drawing.Point(20, 55);
+            this.txtDXFPath.Multiline = true;
+            this.txtDXFPath.Name = "txtDXFPath";
+            this.txtDXFPath.Size = new System.Drawing.Size(191, 60);
+            this.txtDXFPath.TabIndex = 2;
+            this.txtDXFPath.Text = "File\\上翼板-2.dxf";
+            // 
+            // btnMarkDXF
+            // 
+            this.btnMarkDXF.Enabled = false;
+            this.btnMarkDXF.Location = new System.Drawing.Point(23, 278);
+            this.btnMarkDXF.Name = "btnMarkDXF";
+            this.btnMarkDXF.Size = new System.Drawing.Size(91, 35);
+            this.btnMarkDXF.TabIndex = 1;
+            this.btnMarkDXF.Text = "打標";
+            this.btnMarkDXF.UseVisualStyleBackColor = true;
+            this.btnMarkDXF.Click += new System.EventHandler(this.btnMarkDXF_Click);
+            // 
+            // btnLoadDXF
+            // 
+            this.btnLoadDXF.Location = new System.Drawing.Point(20, 190);
+            this.btnLoadDXF.Name = "btnLoadDXF";
+            this.btnLoadDXF.Size = new System.Drawing.Size(118, 35);
+            this.btnLoadDXF.TabIndex = 0;
+            this.btnLoadDXF.Text = "載入 DXF 線段";
+            this.btnLoadDXF.UseVisualStyleBackColor = true;
+            this.btnLoadDXF.Click += new System.EventHandler(this.btnLoadDXF_Click);
+            //
+            // btnLoadDXFFile
+            //
+            this.btnLoadDXFFile.Location = new System.Drawing.Point(20, 233);
+            this.btnLoadDXFFile.Name = "btnLoadDXFFile";
+            this.btnLoadDXFFile.Size = new System.Drawing.Size(118, 35);
+            this.btnLoadDXFFile.TabIndex = 9;
+            this.btnLoadDXFFile.Text = "載入 DXF";
+            this.btnLoadDXFFile.UseVisualStyleBackColor = true;
+            this.btnLoadDXFFile.Click += new System.EventHandler(this.btnLoadDXFFile_Click);
+            // 
             // btnExit
             // 
             this.btnExit.Location = new System.Drawing.Point(1200, 812);
@@ -546,15 +694,18 @@
             this.groupBox2.ResumeLayout(false);
             this.groupBox3.ResumeLayout(false);
             this.groupBox4.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.numBoardCount)).EndInit();
             this.tabControl1.ResumeLayout(false);
             this.tabPageConnect.ResumeLayout(false);
+            this.tabPageConnect.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numBoardCount)).EndInit();
             this.groupBoxIP.ResumeLayout(false);
             this.groupBoxIP.PerformLayout();
             this.tabPageDraw.ResumeLayout(false);
             this.tabPageDraw.PerformLayout();
             this.groupBox5.ResumeLayout(false);
             this.groupBox5.PerformLayout();
+            this.tabPage1.ResumeLayout(false);
+            this.tabPage1.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -603,5 +754,16 @@
         private System.Windows.Forms.Label lblBoardCount;
         private System.Windows.Forms.NumericUpDown numBoardCount;
         private System.Windows.Forms.Timer timerMark;
+        private System.Windows.Forms.TabPage tabPage1;
+        private System.Windows.Forms.Button btnLoadDXF;
+        private System.Windows.Forms.Button btnMarkDXF;
+        private System.Windows.Forms.TextBox txtDXFPath;
+        private System.Windows.Forms.Label lblDXFPath;
+        private System.Windows.Forms.ComboBox comboBoardDXF;
+        private System.Windows.Forms.Label lblBoardDXF;
+        private System.Windows.Forms.Button btnBrowseDXF;
+        private System.Windows.Forms.TextBox txtDXFInfo;
+        private System.Windows.Forms.Label lblDXFInfo;
+        private System.Windows.Forms.Button btnLoadDXFFile;
     }
 }

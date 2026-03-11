@@ -1,0 +1,252 @@
+===========================================
+疑難排解：初始化異常
+===========================================
+
+常見初始化問題診斷
+===========================================
+
+問題 1：編譯錯誤
+------------------------------------------
+症狀：
+- 無法編譯
+- 出現紅色錯誤訊息
+
+可能原因：
+1. DXFLine 類別定義錯誤
+2. 缺少 using 語句
+3. 語法錯誤
+
+解決方案：
+1. 開啟 Visual Studio 的「錯誤清單」視窗
+2. 查看具體錯誤訊息
+3. 雙擊錯誤跳轉到問題位置
+
+常見錯誤：
+- "類型或命名空間名稱 'List' 找不到"
+  → 在 Form1.cs 開頭加入：using System.Collections.Generic;
+
+- "類型 'DXFLine' 已經定義"
+  → DXFLine 類別重複定義，刪除多餘的
+
+
+問題 2：執行時異常 - 控件初始化失敗
+------------------------------------------
+症狀：
+- 程式啟動時就出錯
+- "物件參考未設定為物件的執行個體"
+
+可能原因：
+1. txtDXFInfo 或 lblDXFInfo 未正確加入 Designer
+2. comboBoardDXF 初始化時索引錯誤
+
+解決方案：
+1. 重新建置專案（Ctrl+Shift+B）
+2. 如果還是錯誤，檢查 Form1.Designer.cs
+3. 確認 txtDXFInfo 和 lblDXFInfo 有在 InitializeComponent() 中
+
+
+問題 3：MMMark 初始化失敗
+------------------------------------------
+症狀：
+- 點擊「初始化」後顯示失敗訊息
+- "晶片板 X 初始化失敗"
+
+可能原因：
+1. MarkingMate SDK 未安裝
+2. OCX 控件未註冊
+3. DLL 檔案缺失
+4. 硬體未連接
+
+解決方案：
+1. 確認 MarkingMate SDK 已安裝
+   路徑：C:\Program Files (x86)\MarkingMate\
+
+2. 註冊 OCX 控件（以管理員執行）：
+   regsvr32 "C:\Program Files (x86)\MarkingMate\MmOcx\MMMark_x64.ocx"
+
+3. 複製必要的 DLL 到輸出目錄
+   執行 CopyDlls.bat
+
+4. 檢查硬體連接
+   - 網路線連接正常
+   - 控制卡電源開啟
+   - IP 設定正確
+
+
+問題 4：comboBoardDXF 初始化錯誤
+------------------------------------------
+症狀：
+- "索引超出範圍"
+- "物件參考未設定"
+
+可能原因：
+comboBoardDXF.SelectedIndex = 0 時，Items 還沒加入
+
+解決方案：
+檢查 Form1 建構子中的順序應該是：
+1. InitializeComponent();  // 這會建立 comboBoardDXF 並加入 Items
+2. comboBoardDXF.SelectedIndex = 0;  // 然後才設定索引
+
+
+問題 5：DXF 相關控件異常
+------------------------------------------
+症狀：
+- 找不到 txtDXFInfo
+- 找不到 lblDXFInfo
+
+可能原因：
+Designer 檔案更新不完整
+
+解決方案：
+1. 清理方案（Clean Solution）
+2. 重新建置（Rebuild Solution）
+3. 如果還是失敗，手動檢查 Form1.Designer.cs
+
+
+===========================================
+快速診斷步驟
+===========================================
+
+步驟 1：檢查編譯
+□ 開啟 Visual Studio
+□ 建置 → 重建方案
+□ 查看「輸出」視窗
+□ 有無錯誤訊息？
+
+步驟 2：檢查 Designer
+□ 在方案總管中找到 Form1.Designer.cs
+□ 搜尋 "txtDXFInfo"
+□ 搜尋 "lblDXFInfo"
+□ 搜尋 "comboBoardDXF"
+□ 確認都有定義
+
+步驟 3：檢查建構子
+□ 開啟 Form1.cs
+□ 找到 public Form1() 建構子
+□ 確認順序：
+  1. InitializeComponent();
+  2. 其他初始化程式碼
+
+步驟 4：執行測試
+□ 啟動程式（F5）
+□ 程式能否正常開啟？
+□ 如果失敗，記下錯誤訊息
+
+
+===========================================
+常見錯誤訊息對照
+===========================================
+
+錯誤訊息："未將物件參考設定為物件的執行個體"
+位置：Form1 建構子
+原因：某個控件未正確初始化
+解決：重新建置，確認 InitializeComponent() 有執行
+
+錯誤訊息："索引超出範圍"
+位置：comboBoardDXF.SelectedIndex = 0
+原因：Items 尚未加入
+解決：確認 InitializeComponent() 在設定 SelectedIndex 之前
+
+錯誤訊息："找不到類型或命名空間名稱 'List'"
+位置：ParseDXFFile 方法
+原因：缺少 using System.Collections.Generic;
+解決：在 Form1.cs 開頭加入此 using
+
+錯誤訊息："類型 'DXFLine' 已經定義"
+位置：Form1.cs 底部
+原因：DXFLine 類別重複定義
+解決：確保只有一個 DXFLine 類別定義
+
+
+===========================================
+詳細檢查清單
+===========================================
+
+檢查 1：Form1.cs 開頭的 using 語句
+應該包含：
+using System;
+using System.Collections.Generic;  ← 必須有這個！
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using AxMMMarkx641Lib;
+using AxMMEditx641Lib;
+
+檢查 2：Form1.Designer.cs 中的控件宣告
+搜尋以下內容，確認都存在：
+private System.Windows.Forms.TextBox txtDXFInfo;
+private System.Windows.Forms.Label lblDXFInfo;
+private System.Windows.Forms.Button btnBrowseDXF;
+
+檢查 3：Form1.cs 中的 DXFLine 類別
+確認在 namespace WindowsFormsApp1 內，但在 Form1 類別外：
+namespace WindowsFormsApp1
+{
+    public partial class Form1 : Form
+    {
+        // Form1 的成員
+    }
+
+    // DXFLine 應該在這裡
+    public class DXFLine
+    {
+        // ...
+    }
+}
+
+檢查 4：Form1.cs 中的 ParseDXFFile 方法
+確認回傳類型是 List<DXFLine>：
+private List<DXFLine> ParseDXFFile(string filePath)
+
+
+===========================================
+如果以上都檢查過還是異常
+===========================================
+
+請提供以下資訊：
+
+1. 完整的錯誤訊息：
+   （複製貼上完整錯誤文字）
+
+2. 錯誤發生的位置：
+   □ 編譯時
+   □ 程式啟動時
+   □ 點擊初始化時
+   □ 載入 DXF 時
+
+3. Visual Studio 輸出視窗的訊息：
+   （查看 View → Output）
+
+4. 是否有修改過程式碼：
+   □ 是，修改了 ___________
+   □ 否，完全按照指示
+
+5. 之前的版本能否正常運作：
+   □ 是，加入 DXF 功能前可以
+   □ 否，一直都有問題
+
+
+===========================================
+緊急恢復方案
+===========================================
+
+如果實在無法修復，可以暫時還原到之前的版本：
+
+方案 1：使用 Git 還原
+git checkout HEAD~1
+
+方案 2：手動移除 DXF 解析功能
+1. 在 Form1.cs 中，將 btnLoadDXF_Click 改回使用 LoadFile()
+2. 註解掉 ParseDXFFile 和 DXFLine 類別
+3. 移除 txtDXFInfo 和 lblDXFInfo 的參考
+
+方案 3：重新套用修改
+從備份或之前的版本重新開始
+
+
+===========================================

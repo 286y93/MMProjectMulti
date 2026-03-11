@@ -1,0 +1,346 @@
+===========================================
+MarkingMateMulti 命令列模式實作說明
+===========================================
+
+實作日期：2026-03-10
+修改範圍：在不破壞原有 GUI 功能的前提下，新增命令列參數支援
+
+===========================================
+一、新增的檔案
+===========================================
+
+1. WindowsFormsApp1\CommandLineArgs.cs
+   - 命令列參數解析器
+   - 包含 CommandLineArgs 類別
+   - 包含 LineSegment 類別（線段資料結構）
+   - 提供參數驗證和說明文字
+
+2. WindowsFormsApp1\Build.bat
+   - 自動建置批次檔
+   - 自動偵測 Visual Studio 安裝路徑
+   - 呼叫 MSBuild 編譯專案
+
+3. WindowsFormsApp1\CommandLineExamples.bat
+   - 命令列模式範例批次檔
+   - 包含 5 個使用範例
+   - 可直接執行測試
+
+4. 命令列模式使用說明.txt
+   - 完整的使用說明文件
+   - 包含參數說明、範例、疑難排解等
+
+5. 命令列模式實作說明.txt（本檔案）
+   - 技術實作細節
+   - 變更摘要
+
+===========================================
+二、修改的檔案
+===========================================
+
+1. WindowsFormsApp1\Program.cs
+   變更內容：
+   - Main() 方法簽章改為 Main(string[] args)
+   - Main() 回傳類型改為 int（用於結束代碼）
+   - 新增命令列參數解析邏輯
+   - 根據參數決定啟動 GUI 模式或自動模式
+   - 自動模式建立隱藏、透明的 Form
+
+   關鍵程式碼：
+   ```csharp
+   [STAThread]
+   static int Main(string[] args)
+   {
+       var cmdArgs = CommandLineArgs.Parse(args);
+
+       if (cmdArgs.IsAutoMode)
+       {
+           // 自動模式：隱藏視窗
+           var form = new Form1(cmdArgs);
+           form.WindowState = FormWindowState.Minimized;
+           form.ShowInTaskbar = false;
+           form.Opacity = 0;
+           Application.Run(form);
+           return form.ExitCode;
+       }
+       else
+       {
+           // GUI 模式
+           Application.Run(new Form1());
+           return 0;
+       }
+   }
+   ```
+
+2. WindowsFormsApp1\Form1.cs
+   變更內容：
+   - 新增 m_AutoModeArgs 成員（儲存命令列參數）
+   - 新增 m_IsAutoMode 成員（標記是否為自動模式）
+   - 新增 ExitCode 屬性（儲存結束代碼）
+   - 新增帶參數的建構子 Form1(CommandLineArgs args)
+   - 修改 Form1_Load()，自動模式時啟動自動執行
+   - 新增 ExecuteAutoMode() 方法（自動執行流程）
+   - 新增 InitializeBoardAuto() 方法（自動初始化板）
+   - 新增 DrawLineAuto() 方法（自動繪製線段）
+   - 新增 ExecuteMarkingAuto() 方法（自動執行打標）
+
+   關鍵程式碼：
+   ```csharp
+   // 自動模式建構子
+   public Form1(CommandLineArgs args) : this()
+   {
+       m_AutoModeArgs = args;
+       m_IsAutoMode = true;
+   }
+
+   // 自動執行流程
+   private void ExecuteAutoMode()
+   {
+       // 1. 初始化
+       if (!InitializeBoardAuto(...)) { ExitCode = 1; Close(); return; }
+
+       // 2. 繪製線段
+       foreach (var line in m_AutoModeArgs.Lines)
+       {
+           if (!DrawLineAuto(...)) { ExitCode = 2; Close(); return; }
+       }
+
+       // 3. 打標
+       if (m_AutoModeArgs.AutoMark)
+       {
+           if (!ExecuteMarkingAuto(...)) { ExitCode = 3; Close(); return; }
+       }
+
+       ExitCode = 0;
+       Close();
+   }
+   ```
+
+3. WindowsFormsApp1\MarkingMateMulti.csproj
+   變更內容：
+   - 在 <ItemGroup> 中新增 CommandLineArgs.cs 編譯項目
+
+   變更位置：
+   ```xml
+   <ItemGroup>
+     <Compile Include="CommandLineArgs.cs" />  <!-- 新增這一行 -->
+     <Compile Include="Form1.cs">
+       <SubType>Form</SubType>
+     </Compile>
+     ...
+   </ItemGroup>
+   ```
+
+===========================================
+三、技術實作細節
+===========================================
+
+1. 為何不能改成 Console 應用？
+   --------------------------------------
+   原因：
+   - 專案使用 ActiveX/OCX 控件（AxMMMarkx641, AxMMEditx641）
+   - ActiveX 控件必須被加入到 Form.Controls 才能正確初始化
+   - ActiveX 需要 Windows 訊息迴圈（Message Loop）
+   - 需要 STA 執行緒模型 ([STAThread])
+
+   解決方案：
+   - 保持 WinExe 類型
+   - 建立隱藏的 Form 作為 ActiveX 宿主
+   - 使用透明度和最小化來隱藏視窗
+
+2. 如何隱藏視窗？
+   --------------------------------------
+   三種設定組合：
+   - WindowState = FormWindowState.Minimized（最小化）
+   - ShowInTaskbar = false（不顯示在工作列）
+   - Opacity = 0（完全透明）
+
+   結果：
+   - 使用者看不到視窗
+   - 視窗仍然存在，提供 ActiveX 運作環境
+   - 訊息迴圈正常運作
+
+3. 如何傳遞結束代碼？
+   --------------------------------------
+   流程：
+   Form1.ExecuteAutoMode()
+     → 設定 Form1.ExitCode
+     → Form1.Close()
+     → Program.Main() 接收 form.ExitCode
+     → Main() return exitCode
+     → 外部系統取得結束代碼
+
+   結束代碼定義：
+   - 0: 成功
+   - 1: 初始化失敗
+   - 2: 繪圖失敗
+   - 3: 打標失敗
+   - 4: 參數錯誤
+
+4. 自動模式與 GUI 模式如何共存？
+   --------------------------------------
+   設計：
+   - Form1 提供兩個建構子
+     * Form1()：GUI 模式
+     * Form1(CommandLineArgs)：自動模式
+
+   - Form1_Load() 檢查模式
+     * GUI 模式：正常載入 UI
+     * 自動模式：啟動自動執行
+
+   - 所有原有功能保持不變
+     * btnInit_Click, btnDrawLine_Click 等方法完全保留
+     * 自動模式使用獨立的方法（InitializeBoardAuto 等）
+
+5. 打標如何等待完成？
+   --------------------------------------
+   GUI 模式（非同步）：
+   - StartMarking(4)：非阻塞模式
+   - 使用 Timer 輪詢 IsMarking()
+   - UI 保持響應
+
+   自動模式（同步）：
+   - StartMarking(4)：仍是非阻塞
+   - 使用 while 迴圈輪詢 IsMarking()
+   - 迴圈內呼叫 Application.DoEvents() 保持訊息迴圈
+   - 等待完成後才繼續
+
+   關鍵程式碼：
+   ```csharp
+   m_MMMark[boardIndex].StartMarking(4);
+
+   while (m_MMMark[boardIndex].IsMarking() != 0)
+   {
+       Application.DoEvents();  // 處理訊息
+       Thread.Sleep(100);       // 避免 CPU 100%
+   }
+
+   m_MMMark[boardIndex].MarkShutdown();
+   ```
+
+6. 參數解析設計
+   --------------------------------------
+   CommandLineArgs.Parse() 特點：
+   - 支援長短參數（--board 和 -b）
+   - 支援單一線段（--line）和多線段（--lines）
+   - 參數不分大小寫
+   - 有參數即進入自動模式
+   - 無參數則啟動 GUI 模式
+
+   LineSegment.Parse() 設計：
+   - 格式：x1,y1,x2,y2
+   - 使用逗號分隔
+   - 自動轉換為 double
+   - 解析失敗回傳 null
+
+===========================================
+四、相容性和限制
+===========================================
+
+相容性：
+✓ 完全向下相容，不帶參數啟動與原版相同
+✓ 所有原有 GUI 功能保持不變
+✓ 可在同一台機器上混用 GUI 和命令列模式
+✓ 支援多個實例同時執行（操作不同板時）
+
+限制：
+✗ 必須在 Windows 環境執行（需要視窗系統）
+✗ 必須安裝 MarkingMate SDK
+✗ 必須是 x64 平台
+✗ 需要 .NET Framework 4.7.2
+✗ 每次呼叫只能操作一塊板
+✗ 僅支援繪製線段（未來可擴充其他圖形）
+
+===========================================
+五、測試建議
+===========================================
+
+1. 單元測試（手動）
+   ✓ 測試參數解析：--help
+   ✓ 測試無效參數：--board 5（應回傳錯誤碼 4）
+   ✓ 測試單線段：--board 0 --line 0,0,10,10
+   ✓ 測試多線段：--lines "0,0,10,10;20,20,30,30"
+
+2. 整合測試（需硬體）
+   ✓ 測試初始化：是否能成功連接控制卡
+   ✓ 測試繪圖：線段是否正確繪製
+   ✓ 測試打標：是否能完成打標流程
+   ✓ 測試結束代碼：各種情況是否回傳正確代碼
+
+3. 壓力測試
+   ✓ 測試連續呼叫：快速連續執行多次
+   ✓ 測試多板操作：同時操作不同板
+   ✓ 測試異常情況：硬體斷線時的處理
+
+4. 外部系統整合測試
+   ✓ C# 程式呼叫
+   ✓ Python 程式呼叫
+   ✓ 批次檔呼叫
+   ✓ PowerShell 呼叫
+
+===========================================
+六、未來可擴充功能
+===========================================
+
+建議的擴充方向：
+
+1. 圖形功能擴充
+   - 支援圓形、矩形、文字等
+   - 支援從檔案載入圖形
+   - 支援 DXF/PLT 格式
+
+2. 參數擴充
+   - 支援雷射功率、速度等參數
+   - 支援多板同時操作
+   - 支援輸出日誌檔
+
+3. 回傳資訊擴充
+   - 輸出執行時間
+   - 輸出詳細錯誤訊息到檔案
+   - 支援 JSON 格式輸出
+
+4. 安全性增強
+   - 參數驗證更嚴格
+   - 座標範圍限制
+   - 執行權限檢查
+
+===========================================
+七、常見問題
+===========================================
+
+Q: 為何不使用 COM Interop 而要建立 Form？
+A: ActiveX 控件需要視窗容器，純 COM Interop 無法提供完整的 ActiveX 宿主環境。
+
+Q: 能否改成 Windows Service？
+A: 不建議。ActiveX 控件在 Session 0 隔離環境下可能無法正常運作。
+
+Q: 執行時會不會閃現視窗？
+A: 在極快的機器上可能會看到一瞬間，但大部分情況下不會被注意到。
+
+Q: 可以多個實例同時執行嗎？
+A: 可以，只要操作不同的板。操作相同板時需要序列化執行。
+
+Q: 命令列模式的效能如何？
+A: 與 GUI 模式相同，主要時間花在硬體初始化和打標上。
+
+===========================================
+八、變更摘要
+===========================================
+
+新增檔案數：5
+修改檔案數：3
+新增程式碼行數：約 400 行
+刪除程式碼行數：0
+
+影響範圍：
+- 不影響現有功能
+- 新增命令列模式
+- 完全向下相容
+
+風險評估：低
+- 原有程式碼幾乎未改動
+- 新功能使用獨立程式碼路徑
+- 經過充分測試後可安全部署
+
+===========================================
+結束
+===========================================

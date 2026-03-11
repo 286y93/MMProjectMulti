@@ -74,6 +74,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CommandLineArgs.cs" />
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -94,6 +95,7 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <None Include="File\上翼板-2.dxf" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -107,6 +109,11 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="CopyDlls.bat" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="File\上翼板-2.dxf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <!-- PostBuildEvent removed - DLLs should be referenced or copied manually -->
   <!-- Use CopyDlls.bat to copy required DLLs to output directories -->
