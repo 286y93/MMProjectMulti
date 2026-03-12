@@ -15,6 +15,7 @@ namespace WindowsFormsApp1
         public bool AutoMark { get; private set; }
         public bool ShowHelp { get; private set; }
         public string DxfPath { get; private set; }
+        public double WorkspaceSize { get; private set; }
 
         public CommandLineArgs()
         {
@@ -25,6 +26,7 @@ namespace WindowsFormsApp1
             AutoMark = false;
             ShowHelp = false;
             DxfPath = null;
+            WorkspaceSize = 150.0;
         }
 
         /// <summary>
@@ -36,46 +38,48 @@ namespace WindowsFormsApp1
         {
             var result = new CommandLineArgs();
 
-            if (args == null || args.Length == 0)
+            if (args != null && args.Length > 0)
             {
-                return result; // GUI 模式
+                result.IsAutoMode = true; // 只要有參數就設為 AutoMode
+            }
+            else
+            {
+                // 無參數則為 GUI 模式
+                result.IsAutoMode = false;
+                return result; 
             }
 
             for (int i = 0; i < args.Length; i++)
             {
-                string arg = args[i].ToLower();
+                string arg = args[i]; // 不要轉小寫，因為 --lines 可能包含 DxfPath 或其他大小寫敏感參數嗎？不，參數名轉小寫，值不轉
+                string argLower = arg.ToLower();
 
-                switch (arg)
+                if (argLower == "--help" || argLower == "-h" || argLower == "/?") 
                 {
-                    case "--help":
-                    case "-h":
-                    case "/?":
                         result.ShowHelp = true;
                         result.IsAutoMode = true;
                         return result;
-
-                    case "--board":
-                    case "-b":
+                }
+                else if (argLower == "--board" || argLower == "-b")
+                {
                         if (i + 1 < args.Length && int.TryParse(args[i + 1], out int board))
                         {
                             result.BoardIndex = board;
                             i++;
                             result.IsAutoMode = true;
                         }
-                        break;
-
-                    case "--config":
-                    case "-c":
+                }
+                else if (argLower == "--config" || argLower == "-c")
+                {
                         if (i + 1 < args.Length)
                         {
                             result.ConfigPath = args[i + 1];
                             i++;
                             result.IsAutoMode = true;
                         }
-                        break;
-
-                    case "--line":
-                    case "-l":
+                }
+                else if (argLower == "--line" || argLower == "-l")
+                {
                         if (i + 1 < args.Length)
                         {
                             var line = LineSegment.Parse(args[i + 1]);
@@ -84,11 +88,11 @@ namespace WindowsFormsApp1
                                 result.Lines.Add(line);
                             }
                             i++;
-                            result.IsAutoMode = true;
+                            result.IsAutoMode = true; // 確保設置為 true
                         }
-                        break;
-
-                    case "--lines":
+                }
+                else if (argLower == "--lines")
+                {
                         if (i + 1 < args.Length)
                         {
                             // 支援多條線段，以分號分隔：x1,y1,x2,y2;x1,y1,x2,y2;...
@@ -104,23 +108,28 @@ namespace WindowsFormsApp1
                             i++;
                             result.IsAutoMode = true;
                         }
-                        break;
-
-                    case "--dxf":
-                    case "-d":
+                }
+                else if (argLower == "--dxf" || argLower == "-d")
+                {
                         if (i + 1 < args.Length)
                         {
                             result.DxfPath = args[i + 1];
                             i++;
                             result.IsAutoMode = true;
                         }
-                        break;
-
-                    case "--mark":
-                    case "-m":
+                }
+                else if (argLower == "--workspace" || argLower == "-w")
+                {
+                        if (i + 1 < args.Length && double.TryParse(args[i + 1], out double ws))
+                        {
+                            result.WorkspaceSize = ws;
+                            i++;
+                        }
+                }
+                else if (argLower == "--mark" || argLower == "-m")
+                {
                         result.AutoMark = true;
                         result.IsAutoMode = true;
-                        break;
                 }
             }
 
@@ -145,6 +154,7 @@ namespace WindowsFormsApp1
   --line <x1,y1,x2,y2>, -l <x1,y1,x2,y2>  新增單一線段
   --lines <線段列表>                    新增多條線段 (以分號分隔)
   --dxf <path>, -d <path>              載入 DXF 檔案（手動解析線段）
+  --workspace <size>, -w <size>        工作區大小 mm (預設: 150)
   --mark, -m                            自動執行打標
 
 範例：
@@ -156,6 +166,9 @@ namespace WindowsFormsApp1
 
   # 載入 DXF 檔案並打標
   MarkingMateMulti.exe --board 0 --dxf ""File\上翼板-2.dxf"" --mark
+
+  # 指定工作區大小 200mm 載入 DXF
+  MarkingMateMulti.exe --board 0 --workspace 200 --dxf ""File\上翼板-2.dxf"" --mark
 
   # 使用自訂配置
   MarkingMateMulti.exe --board 2 --config /cfg_config_MM3 --line 0,0,100,100

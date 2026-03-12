@@ -49,6 +49,10 @@ namespace WindowsFormsApp1
 
         private TextBox[] m_txtIPs;
 
+        // 工作區大小設定（mm），影響 SetDesktopSize 和 DXF 縮放
+        private double m_WorkspaceSize = 150.0;
+        private double m_MarginPercent = 0.9;
+
         // 自動模式相關
         private CommandLineArgs m_AutoModeArgs = null;
         private bool m_IsAutoMode = false;
@@ -64,13 +68,28 @@ namespace WindowsFormsApp1
             comboBoard.SelectedIndex = 0;
             comboBoardDXF.SelectedIndex = 0;
             m_IsAutoMode = false;
+
+            // 同步 UI 顯示初始值
+            txtWorkspace.Text = m_WorkspaceSize.ToString();
+            txtMargin.Text = (m_MarginPercent * 100).ToString();
+
+            this.btnPreviewDXF.Visible = false;
+            this.btnClearDXF.Visible = false;
         }
 
         // 自動模式建構子
         public Form1(CommandLineArgs args) : this()
         {
             m_AutoModeArgs = args;
-            m_IsAutoMode = true;
+            // 改為依據 args.IsAutoMode 來設定，而非強制設為 true
+            m_IsAutoMode = args.IsAutoMode; 
+            m_WorkspaceSize = args.WorkspaceSize;
+
+            if (m_IsAutoMode)
+            {
+               // Debug: 確認確實進入 AutoMode
+               // MessageBox.Show($"Auto Mode: {m_IsAutoMode}, Lines: {args.Lines.Count}, DXF: {args.DxfPath}");
+            }
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -80,6 +99,10 @@ namespace WindowsFormsApp1
             // 如果是自動模式，啟動自動執行
             if (m_IsAutoMode && m_AutoModeArgs != null)
             {
+                // 自動模式下，為了避免顯示不必要的視窗，可以設定 Opacity = 0 或WindowState = Minimized
+                // 但不能 Hide，否則 Handle 不會建立，導致 OCX 初始化異常
+                // this.WindowState = FormWindowState.Minimized; // 可選
+                
                 // 使用 Timer 延遲執行，確保 Form 完全載入
                 System.Windows.Forms.Timer startTimer = new System.Windows.Forms.Timer();
                 startTimer.Interval = 100;
@@ -90,6 +113,29 @@ namespace WindowsFormsApp1
                 };
                 startTimer.Start();
             }
+
+            // 如果是自動模式，最小化視窗以減少干擾，但不能隱藏（OCX 需要 Window Handle）
+            if (m_IsAutoMode)
+            {
+               this.WindowState = FormWindowState.Minimized;
+               this.ShowInTaskbar = false;
+            }
+        }
+
+        /// <summary>
+        /// 從 UI 讀取工作區參數
+        /// </summary>
+        private void ReadWorkspaceSettings()
+        {
+            if (double.TryParse(txtWorkspace.Text.Trim(), out double ws) && ws > 0)
+            {
+                m_WorkspaceSize = ws;
+            }
+
+            if (double.TryParse(txtMargin.Text.Trim(), out double mg) && mg > 0 && mg <= 100)
+            {
+                m_MarginPercent = mg / 100.0;
+            }
         }
 
         private void btnInit_Click(object sender, EventArgs e)
@@ -99,6 +145,40 @@ namespace WindowsFormsApp1
                 MessageBox.Show("已經初始化過了！", "初始化", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
+
+            // 檢查是否還有 MM27Dx64.exe 在背景執行，若有則強制結束
+            // 這是為了避免與 MarkingMate 主程式衝突，導致初始化失敗
+            try
+            {
+                System.Diagnostics.Process[] processes = System.Diagnostics.Process.GetProcessesByName("MM27Dx64");
+                if (processes.Length > 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"發現 {processes.Length} 個 MM27Dx64.exe 背景進程，正在結束...");
+
+                    foreach (System.Diagnostics.Process proc in processes)
+                    {
+                        try
+                        {
+                            proc.Kill();
+                            // proc.WaitForExit(1000); // 等待進程結束
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"結束 MM27Dx64.exe 失敗 (PID: {proc.Id}): {ex.Message}");
+                        }
+                    }
+
+                    // 確保資源完全釋放
+                    System.Threading.Thread.Sleep(500); // 縮短等待時間
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"檢查背景程序失敗: {ex.Message}");
+            }
+
+            // 讀取 UI 工作區參數
+            ReadWorkspaceSettings();
 
             // 重要：清理可能存在的舊控件（防止殘留）
             CleanupOldControls();
@@ -123,12 +203,12 @@ namespace WindowsFormsApp1
                     m_Panels[i].Controls.Add(m_MMMark[i]);
 
                     Application.DoEvents();
-                    System.Threading.Thread.Sleep(100);
+                    // System.Threading.Thread.Sleep(100); // 減少不必要的等待
 
                     // 步驟 2：立即初始化 MMMark
                     m_MMMark[i].InitialExt(m_ConfigPaths[i]);
                     m_MMMark[i].SetDesktopCenter(0, 0);
-                    m_MMMark[i].SetDesktopSize(100, 100);
+                    m_MMMark[i].SetDesktopSize(m_WorkspaceSize, m_WorkspaceSize);
                     m_MMMark[i].SetActiveDB(0);
                     m_MMMark[i].MarkStandBy();
                     m_MMMark[i].SetCurEditFun(2);
@@ -137,7 +217,7 @@ namespace WindowsFormsApp1
                     m_bBoardInit[i] = true;
 
                     Application.DoEvents();
-                    System.Threading.Thread.Sleep(200);
+                    // System.Threading.Thread.Sleep(200); // 減少初始化後的長時間等待
 
                     // 步驟 3：建立並初始化 MMEdit
                     m_MMEdit[i] = new AxMMEditx641();
@@ -145,12 +225,12 @@ namespace WindowsFormsApp1
                     m_MMEdit[i].Visible = false;
 
                     Application.DoEvents();
-                    System.Threading.Thread.Sleep(100);
+                    // System.Threading.Thread.Sleep(100);
 
                     m_MMEdit[i].InitialExt(m_ConfigPaths[i]);
 
                     Application.DoEvents();
-                    System.Threading.Thread.Sleep(100);
+                    System.Threading.Thread.Sleep(50); // 保留極短的等待確保穩定
 
                     successCount++;
 
@@ -312,20 +392,32 @@ namespace WindowsFormsApp1
 
         private void timerMark_Tick(object sender, EventArgs e)
         {
+            // 取得目前操作的板索引
             int boardIndex = (int)timerMark.Tag;
 
+            // 檢查打標/預覽是否已完成 (IsMarking 回傳 0 表示已停止)
             if (m_MMMark[boardIndex].IsMarking() == 0)
             {
+                // 停止計時器
                 timerMark.Stop();
+
+                // 重要：打標或預覽結束後，必須將預覽模式轉回正常模式 (Mode 0)
+                // 這樣下一次執行打標 (btnMarkDXF_Click) 時，才會正常的射出雷射
+                m_MMMark[boardIndex].SetPreviewMode(0);
+
+                // 關閉打標引擎
                 m_MMMark[boardIndex].MarkShutdown();
 
+                // 恢復 UI 按鈕狀態
                 btnMark.Enabled = true;
                 btnMarkDXF.Enabled = true;
+                btnPreviewDXF.Enabled = true;
                 btnLoadDXF.Enabled = true;
                 btnLoadDXFFile.Enabled = true;
+                btnClearDXF.Enabled = true;
                 btnStop.Enabled = false;
 
-                MessageBox.Show($"晶片板 {boardIndex + 1} 打標完成！", "完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show($"晶片板 {boardIndex + 1} 完成！", "完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
@@ -460,30 +552,94 @@ namespace WindowsFormsApp1
         {
             try
             {
+                // 檢查是否還有 MM27Dx64.exe 在背景執行，若有則強制結束
+                try
+                {
+                    System.Diagnostics.Process[] processes = System.Diagnostics.Process.GetProcessesByName("MM27Dx64");
+                    if (processes.Length > 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"發現 {processes.Length} 個 MM27Dx64.exe 背景進程，正在結束...");
+                        foreach (System.Diagnostics.Process proc in processes)
+                        {
+                            try
+                            {
+                                proc.Kill();
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"結束 MM27Dx64.exe 失敗 (PID: {proc.Id}): {ex.Message}");
+                            }
+                        }
+                        System.Threading.Thread.Sleep(500); // 確保資源釋放
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"檢查背景程序失敗: {ex.Message}");
+                }
+
                 // 步驟 1: 初始化指定的板
                 if (!InitializeBoardAuto(m_AutoModeArgs.BoardIndex, m_AutoModeArgs.ConfigPath))
                 {
-                    ExitCode = 1; // 初始化失敗
+                    // ExitCode = 1; // 初始化失敗
+                    // this.Close();
+                    // 改為：不立刻關閉，讓使用者看到錯誤訊息，或者 Log 後再關閉
+                    // 如要在 CLI 靜默模式下，應該輸出到 StdErr 並關閉
+                    Console.Error.WriteLine("Error: Failed to initialize board.");
+                    ExitCode = 1;
                     this.Close();
-                    return;
+                    return; // 重要 return
                 }
 
                 // 步驟 2: 載入 DXF 檔案或繪製手動線段
+                bool hasContent = false;
                 if (!string.IsNullOrEmpty(m_AutoModeArgs.DxfPath))
                 {
                     if (!LoadDxfAuto(m_AutoModeArgs.BoardIndex, m_AutoModeArgs.DxfPath))
                     {
+                        Console.Error.WriteLine("Error: Failed to load DXF.");
                         ExitCode = 2; // DXF 載入失敗
                         this.Close();
                         return;
                     }
+                    hasContent = true;
                 }
-                else if (m_AutoModeArgs.Lines.Count > 0)
+                else if (m_AutoModeArgs.Lines != null && m_AutoModeArgs.Lines.Count > 0)
                 {
+                    // 先計算所有線段的範圍，然後進行整體自動置中（類似 DXF 載入行為）
+                    double minX = double.MaxValue, maxX = double.MinValue;
+                    double minY = double.MaxValue, maxY = double.MinValue;
+
                     foreach (var line in m_AutoModeArgs.Lines)
                     {
-                        if (!DrawLineAuto(m_AutoModeArgs.BoardIndex, line))
+                        minX = Math.Min(minX, Math.Min(line.X1, line.X2));
+                        maxX = Math.Max(maxX, Math.Max(line.X1, line.X2));
+                        minY = Math.Min(minY, Math.Min(line.Y1, line.Y2));
+                        maxY = Math.Max(maxY, Math.Max(line.Y1, line.Y2));
+                    }
+
+                    double centerX = (minX + maxX) / 2.0;
+                    double centerY = (minY + maxY) / 2.0;
+                    
+                    // 計算偏移量，使圖形中心對齊工作區原點 (0,0)
+                    double offsetX = -centerX;
+                    double offsetY = -centerY;
+                    
+                    Console.WriteLine($"Auto-Centering Lines: Center=({centerX:F2}, {centerY:F2}) Offset=({offsetX:F2}, {offsetY:F2})");
+
+                    foreach (var line in m_AutoModeArgs.Lines)
+                    {
+                        // 建立平移後的線段版本（不直接修改原始物件，避免副作用）
+                        var centeredLine = new LineSegment(
+                            line.X1 + offsetX, 
+                            line.Y1 + offsetY, 
+                            line.X2 + offsetX, 
+                            line.Y2 + offsetY
+                        );
+
+                        if (!DrawLineAuto(m_AutoModeArgs.BoardIndex, centeredLine))
                         {
+                            Console.Error.WriteLine("Error: Failed to draw line.");
                             ExitCode = 2; // 繪圖失敗
                             this.Close();
                             return;
@@ -493,28 +649,48 @@ namespace WindowsFormsApp1
                     // 所有線段繪製完成後，確保全部載入
                     m_MMMark[m_AutoModeArgs.BoardIndex].Redraw();
                     Application.DoEvents();
-                    System.Threading.Thread.Sleep(300);
+                    System.Threading.Thread.Sleep(300); // 等待繪圖完成
                     System.Diagnostics.Debug.WriteLine($"已繪製 {m_AutoModeArgs.Lines.Count} 條線段");
+                    hasContent = true;
+                }
+
+                if (!hasContent)
+                {
+                    // 如果沒有內容，是否需要打標？
+                    Console.WriteLine("Warning: No content to mark.");
                 }
 
                 // 步驟 3: 如果需要自動打標
-                if (m_AutoModeArgs.AutoMark)
+                if (m_AutoModeArgs.AutoMark && hasContent)
                 {
+                    // 確保 MarkStandBy 狀態
+                    // m_MMMark[m_AutoModeArgs.BoardIndex].MarkStandBy(); // InitializeAuto 已經設定過了
+
                     if (!ExecuteMarkingAuto(m_AutoModeArgs.BoardIndex))
                     {
+                        Console.Error.WriteLine("Error: Marking failed.");
                         ExitCode = 3; // 打標失敗
                         this.Close();
                         return;
                     }
                 }
+                else
+                {
+                    // 如果不打標，可以選擇保持開啟，或是直接結束
+                    // 如果是純測試 DXF 解析，可能希望看到結果
+                }
 
                 // 成功
                 ExitCode = 0;
+                // 注意：如果只是載入而不打標，可能希望使用者查看，所以不 Close？
+                // 目前邏輯是如果執行了 AutoMark 就 Close，否則... 也 Close？
+                // 原本邏輯是全都 Close
                 this.Close();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"自動模式執行失敗：{ex.Message}");
+                Console.Error.WriteLine($"Error: Exception in AutoMode - {ex.Message}");
                 ExitCode = 1;
                 this.Close();
             }
@@ -546,7 +722,7 @@ namespace WindowsFormsApp1
                 // 初始化 MMMark
                 m_MMMark[boardIndex].InitialExt(configPath);
                 m_MMMark[boardIndex].SetDesktopCenter(0, 0);
-                m_MMMark[boardIndex].SetDesktopSize(100, 100);
+                m_MMMark[boardIndex].SetDesktopSize(m_WorkspaceSize, m_WorkspaceSize);
                 m_MMMark[boardIndex].SetActiveDB(0);
                 m_MMMark[boardIndex].MarkStandBy();
                 m_MMMark[boardIndex].SetCurEditFun(2);
@@ -577,7 +753,42 @@ namespace WindowsFormsApp1
             try
             {
                 // 使用 MMEdit 的 AddLine 方法新增線段
-                int result = m_MMEdit[boardIndex].AddLine(line.X1, line.Y1, line.X2, line.Y2, "", "");
+                // 座標轉換：MarkingMate 的原點 (0,0) 是鏡頭中心
+                // CLI 傳入的座標如果是基於左上角(0,0)，需要轉換成中心為(0,0)
+                // 假設 workspaceSize = 150，範圍是 [-75, 75]
+                // 如果傳入的是 [0, 150]，則需要平移 -75
+
+                double halfSize = m_WorkspaceSize / 2.0;
+                
+                // 先套用一個簡單的平移修正：將輸入座標視為以左下角為(0,0)的絕對座標，轉換為以中心為(0,0)的相對座標
+                // 但是！如果使用者已經提供了負座標（例如 -111, 50），這表示他們可能已經使用了中心原點座標
+                // 我們應該檢查輸入座標的範圍
+                bool isCenterBased = false;
+                if (line.X1 < 0 || line.X2 < 0 || line.Y1 < 0 || line.Y2 < 0)
+                {
+                   isCenterBased = true;
+                }
+
+                double x1, y1, x2, y2;
+                if (isCenterBased)
+                {
+                   // 已包含負數，假設已經是中心座標，不進行平移
+                   x1 = line.X1;
+                   y1 = line.Y1;
+                   x2 = line.X2;
+                   y2 = line.Y2;
+                }
+                else
+                {
+                   // 全正數，假設是 Corner 原點，進行平移
+                   x1 = line.X1 - halfSize;
+                   y1 = line.Y1 - halfSize;
+                   x2 = line.X2 - halfSize;
+                   y2 = line.Y2 - halfSize;
+                }
+                
+                // 改用轉換後的座標
+                int result = m_MMEdit[boardIndex].AddLine(x1, y1, x2, y2, "", "");
 
                 if (result == 0)
                 {
@@ -644,12 +855,10 @@ namespace WindowsFormsApp1
                 double origCenterX = (minX + maxX) / 2.0;
                 double origCenterY = (minY + maxY) / 2.0;
 
-                const double WORKSPACE_SIZE = 150.0;
-                const double MARGIN_PERCENT = 0.9;
                 double maxSpan = Math.Max(origWidth, origHeight);
-                double scaleFactor = (WORKSPACE_SIZE * MARGIN_PERCENT) / maxSpan;
+                double scaleFactor = (m_WorkspaceSize * m_MarginPercent) / maxSpan;
 
-                System.Diagnostics.Debug.WriteLine($"DXF 解析完成：{lines.Count} 條線段，縮放比例：{scaleFactor:F4}");
+                System.Diagnostics.Debug.WriteLine($"DXF 解析完成：{lines.Count} 條線段，工作區：{m_WorkspaceSize}，縮放比例：{scaleFactor:F4}");
 
                 // 轉換座標並加入到 MMEdit
                 foreach (var line in lines)
@@ -667,7 +876,7 @@ namespace WindowsFormsApp1
                 m_MMMark[boardIndex].Redraw();
                 Thread.Sleep(300);
 
-                System.Diagnostics.Debug.WriteLine($"DXF 載入完成：{lines.Count} 條線段已加入晶片板 {boardIndex + 1}");
+                System.Diagnostics.Debug.WriteLine($"DXF 載入完成：{lines.Count} 梡線段已加入晶片板 {boardIndex + 1}");
                 return true;
             }
             catch (Exception ex)
@@ -693,21 +902,25 @@ namespace WindowsFormsApp1
                 m_MMMark[boardIndex].MarkStandBy();
                 Application.DoEvents();
 
-                // 啟動打標（模式 4 = 非阻塞）
+                // 啟動打標（模式 4 = 非阻塞，但 MarkingMate 建議使用模式 4）
+                // 這裡使用模式 1 (同步) 可能更適合 CLI，但為了相容性保持模式 4 並手動等待
                 int startResult = m_MMMark[boardIndex].StartMarking(4);
                 if (startResult != 0)
                 {
                     System.Diagnostics.Debug.WriteLine($"打標啟動失敗，錯誤碼：{startResult}");
+                    Console.Error.WriteLine($"Error: StartMarking failed with code {startResult}");
                     return false;
                 }
 
                 System.Diagnostics.Debug.WriteLine("打標已啟動，等待完成...");
+                Console.WriteLine("Marking started... Waiting for completion.");
 
                 // 同步等待打標完成
                 int loopCount = 0;
+                // 注意：IsMarking() 返回非 0 表示正在打標
                 while (m_MMMark[boardIndex].IsMarking() != 0)
                 {
-                    Application.DoEvents();
+                    Application.DoEvents(); // 讓 UI 保持響應，這對 OCX 很重要
                     System.Threading.Thread.Sleep(100);
                     loopCount++;
 
@@ -764,6 +977,9 @@ namespace WindowsFormsApp1
                 return;
             }
 
+            // 讀取 UI 工作區參數
+            ReadWorkspaceSettings();
+
             try
             {
                 int boardIndex = comboBoardDXF.SelectedIndex;
@@ -816,12 +1032,9 @@ namespace WindowsFormsApp1
                 double origCenterX = (minX + maxX) / 2.0;
                 double origCenterY = (minY + maxY) / 2.0;
 
-                // 自動縮放和平移到工作區 (-75 到 +75)
-                const double WORKSPACE_SIZE = 150.0; // -75 到 +75
-                const double MARGIN_PERCENT = 0.9;   // 使用 90% 空間，留 10% 邊距
-
+                // 自動縮放和平移到工作區
                 double maxSpan = Math.Max(origWidth, origHeight);
-                double scaleFactor = (WORKSPACE_SIZE * MARGIN_PERCENT) / maxSpan;
+                double scaleFactor = (m_WorkspaceSize * m_MarginPercent) / maxSpan;
 
                 // 轉換座標
                 var transformedLines = new List<DXFLine>();
@@ -846,7 +1059,7 @@ namespace WindowsFormsApp1
                 System.Text.StringBuilder sb = new System.Text.StringBuilder();
                 sb.AppendLine($"已解析 DXF 檔案");
                 sb.AppendLine($"路徑：{dxfPath}");
-                sb.AppendLine($"共找到 {lines.Count} 條線段\n");
+                sb.AppendLine($"共找到 {lines.Count} 梊線段\n");
                 sb.AppendLine("=== 座標轉換資訊 ===");
                 sb.AppendLine($"原始範圍：X[{minX:F2}, {maxX:F2}] Y[{minY:F2}, {maxY:F2}]");
                 sb.AppendLine($"原始大小：{origWidth:F2} x {origHeight:F2} mm");
@@ -869,7 +1082,7 @@ namespace WindowsFormsApp1
 
                 if (transformedLines.Count > displayCount)
                 {
-                    sb.AppendLine($"... 還有 {transformedLines.Count - displayCount} 條線段");
+                    sb.AppendLine($"... 還有 {transformedLines.Count - displayCount} 梡線段");
                 }
 
                 txtDXFInfo.Text = sb.ToString();
@@ -889,7 +1102,7 @@ namespace WindowsFormsApp1
                 btnMarkDXF.Enabled = true;
 
                 MessageBox.Show($"已在晶片板 {boardIndex + 1} 載入並解析 DXF 檔案！\n\n" +
-                    $"共解析出 {lines.Count} 條線段\n" +
+                    $"共解析出 {lines.Count} 梡線段\n" +
                     $"原始大小：{origWidth:F2} x {origHeight:F2} mm\n" +
                     $"縮放比例：{scaleFactor:F4}\n" +
                     $"已自動調整到工作區範圍內\n\n" +
@@ -1017,6 +1230,22 @@ namespace WindowsFormsApp1
         }
 
         /// <summary>
+        /// DXF: 預覽結果（紅光標示，不打雷射）
+        /// </summary>
+        private void btnPreviewDXF_Click(object sender, EventArgs e)
+        {
+            // 此功能已移除
+        }
+
+        /// <summary>
+        /// DXF: 清除畫面（刪除所有繪圖物件）
+        /// </summary>
+        private void btnClearDXF_Click(object sender, EventArgs e)
+        {
+            // 此功能已移除
+        }
+
+        /// <summary>
         /// 解析 DXF 檔案，提取線段
         /// </summary>
         private List<DXFLine> ParseDXFFile(string filePath)
@@ -1126,7 +1355,7 @@ namespace WindowsFormsApp1
                     }
                 }
 
-                System.Diagnostics.Debug.WriteLine($"解析 DXF 完成，共找到 {lines.Count} 條線段");
+                System.Diagnostics.Debug.WriteLine($"解析 DXF 完成，共找到 {lines.Count} 梊線段");
             }
             catch (Exception ex)
             {

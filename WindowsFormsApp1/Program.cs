@@ -38,45 +38,28 @@ namespace WindowsFormsApp1
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
 
-            // 解析命令列參數
-            var cmdArgs = CommandLineArgs.Parse(args);
+                try
+                {
+                    // 解析命令列參數
+                    CommandLineArgs cmdArgs = CommandLineArgs.Parse(args);
 
-            // 如果是顯示說明
-            if (cmdArgs.ShowHelp)
-            {
-                MessageBox.Show(CommandLineArgs.GetHelpText(), "使用說明",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    // 如果是顯示說明
+                    if (cmdArgs.ShowHelp)
+                    {
+                        MessageBox.Show(CommandLineArgs.GetHelpText(), "使用說明",
+                            MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        return 0; // 顯示幫助後正常結束
+                    }
+
+                    Application.Run(new Form1(cmdArgs));
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"執行錯誤: {ex.Message}\n\n{ex.StackTrace}", "程式錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return -1;
+                }
+
                 return 0;
-            }
-
-            // 如果是自動模式（有命令列參數）
-            if (cmdArgs.IsAutoMode)
-            {
-                // 驗證參數
-                if (!cmdArgs.Validate(out string errorMessage))
-                {
-                    MessageBox.Show($"參數錯誤：{errorMessage}\n\n使用 --help 查看說明。",
-                        "參數錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return 4; // 參數錯誤
-                }
-
-                // 建立隱藏的 Form 來執行自動模式
-                var form = new Form1(cmdArgs);
-                form.WindowState = FormWindowState.Minimized;
-                form.ShowInTaskbar = false;
-                form.Opacity = 0; // 完全透明
-
-                Application.Run(form);
-
-                // 回傳結束代碼
-                return form.ExitCode;
-            }
-                else
-                {
-                    // GUI 模式
-                    Application.Run(new Form1());
-                    return 0;
-                }
             } // Mutex will be released here
         }
     }

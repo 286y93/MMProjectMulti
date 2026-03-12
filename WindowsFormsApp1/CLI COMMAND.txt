@@ -1,0 +1,13 @@
+WindowsFormsApp1.exe --board 0 --lines "0,0,10,10;30,30,10,10" --mark
+
+
+
+WindowsFormsApp1.exe --board 0 --dxf "C:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\WindowsFormsApp1\bin\x64\Debug\File\上翼板-2.dxf" --mark
+
+WindowsFormsApp1.exe --board 0 --lines "80,80,-80,80;-80,80,-80,-80;-80,-80,80,-80,80,-80,80,80" --mark
+
+
+
+
+
+MM27Dx64.exe

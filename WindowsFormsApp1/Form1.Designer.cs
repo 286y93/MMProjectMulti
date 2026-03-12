@@ -43,17 +43,6 @@
             this.lblBoardCount = new System.Windows.Forms.Label();
             this.numBoardCount = new System.Windows.Forms.NumericUpDown();
             this.btnInit = new System.Windows.Forms.Button();
-            this.groupBoxIP = new System.Windows.Forms.GroupBox();
-            this.lblIP1 = new System.Windows.Forms.Label();
-            this.txtIP1 = new System.Windows.Forms.TextBox();
-            this.lblIP2 = new System.Windows.Forms.Label();
-            this.txtIP2 = new System.Windows.Forms.TextBox();
-            this.lblIP3 = new System.Windows.Forms.Label();
-            this.txtIP3 = new System.Windows.Forms.TextBox();
-            this.lblIP4 = new System.Windows.Forms.Label();
-            this.txtIP4 = new System.Windows.Forms.TextBox();
-            this.btnReadIP = new System.Windows.Forms.Button();
-            this.btnSaveIP = new System.Windows.Forms.Button();
             this.btnTestConnect = new System.Windows.Forms.Button();
             this.tabPageDraw = new System.Windows.Forms.TabPage();
             this.comboBoard = new System.Windows.Forms.ComboBox();
@@ -79,8 +68,26 @@
             this.lblDXFPath = new System.Windows.Forms.Label();
             this.txtDXFPath = new System.Windows.Forms.TextBox();
             this.btnMarkDXF = new System.Windows.Forms.Button();
-            this.btnLoadDXF = new System.Windows.Forms.Button();
+            this.btnPreviewDXF = new System.Windows.Forms.Button();
+            this.btnClearDXF = new System.Windows.Forms.Button();
             this.btnLoadDXFFile = new System.Windows.Forms.Button();
+            this.btnLoadDXF = new System.Windows.Forms.Button();
+            this.tabPageParams = new System.Windows.Forms.TabPage();
+            this.lblWorkspace = new System.Windows.Forms.Label();
+            this.txtWorkspace = new System.Windows.Forms.TextBox();
+            this.lblMargin = new System.Windows.Forms.Label();
+            this.txtMargin = new System.Windows.Forms.TextBox();
+            this.groupBoxIP = new System.Windows.Forms.GroupBox();
+            this.lblIP1 = new System.Windows.Forms.Label();
+            this.txtIP1 = new System.Windows.Forms.TextBox();
+            this.lblIP2 = new System.Windows.Forms.Label();
+            this.txtIP2 = new System.Windows.Forms.TextBox();
+            this.lblIP3 = new System.Windows.Forms.Label();
+            this.txtIP3 = new System.Windows.Forms.TextBox();
+            this.lblIP4 = new System.Windows.Forms.Label();
+            this.txtIP4 = new System.Windows.Forms.TextBox();
+            this.btnReadIP = new System.Windows.Forms.Button();
+            this.btnSaveIP = new System.Windows.Forms.Button();
             this.btnExit = new System.Windows.Forms.Button();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
@@ -89,10 +96,11 @@
             this.tabControl1.SuspendLayout();
             this.tabPageConnect.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numBoardCount)).BeginInit();
-            this.groupBoxIP.SuspendLayout();
             this.tabPageDraw.SuspendLayout();
             this.groupBox5.SuspendLayout();
             this.tabPage1.SuspendLayout();
+            this.tabPageParams.SuspendLayout();
+            this.groupBoxIP.SuspendLayout();
             this.SuspendLayout();
             // 
             // timerMark
@@ -187,8 +195,9 @@
             // tabControl1
             // 
             this.tabControl1.Controls.Add(this.tabPageConnect);
-            this.tabControl1.Controls.Add(this.tabPageDraw);
+            this.tabControl1.Controls.Add(this.tabPageParams);
             this.tabControl1.Controls.Add(this.tabPage1);
+            this.tabControl1.Controls.Add(this.tabPageDraw);
             this.tabControl1.Location = new System.Drawing.Point(1185, 15);
             this.tabControl1.Margin = new System.Windows.Forms.Padding(4);
             this.tabControl1.Name = "tabControl1";
@@ -201,7 +210,6 @@
             this.tabPageConnect.Controls.Add(this.lblBoardCount);
             this.tabPageConnect.Controls.Add(this.numBoardCount);
             this.tabPageConnect.Controls.Add(this.btnInit);
-            this.tabPageConnect.Controls.Add(this.groupBoxIP);
             this.tabPageConnect.Controls.Add(this.btnTestConnect);
             this.tabPageConnect.Location = new System.Drawing.Point(4, 25);
             this.tabPageConnect.Margin = new System.Windows.Forms.Padding(4);
@@ -209,7 +217,7 @@
             this.tabPageConnect.Padding = new System.Windows.Forms.Padding(4);
             this.tabPageConnect.Size = new System.Drawing.Size(237, 761);
             this.tabPageConnect.TabIndex = 0;
-            this.tabPageConnect.Text = "連接設定";
+            this.tabPageConnect.Text = "1. 連接設定";
             this.tabPageConnect.UseVisualStyleBackColor = true;
             // 
             // lblBoardCount
@@ -254,114 +262,9 @@
             this.btnInit.UseVisualStyleBackColor = true;
             this.btnInit.Click += new System.EventHandler(this.btnInit_Click);
             // 
-            // groupBoxIP
-            // 
-            this.groupBoxIP.Controls.Add(this.lblIP1);
-            this.groupBoxIP.Controls.Add(this.txtIP1);
-            this.groupBoxIP.Controls.Add(this.lblIP2);
-            this.groupBoxIP.Controls.Add(this.txtIP2);
-            this.groupBoxIP.Controls.Add(this.lblIP3);
-            this.groupBoxIP.Controls.Add(this.txtIP3);
-            this.groupBoxIP.Controls.Add(this.lblIP4);
-            this.groupBoxIP.Controls.Add(this.txtIP4);
-            this.groupBoxIP.Controls.Add(this.btnReadIP);
-            this.groupBoxIP.Controls.Add(this.btnSaveIP);
-            this.groupBoxIP.Location = new System.Drawing.Point(8, 85);
-            this.groupBoxIP.Margin = new System.Windows.Forms.Padding(4);
-            this.groupBoxIP.Name = "groupBoxIP";
-            this.groupBoxIP.Padding = new System.Windows.Forms.Padding(4);
-            this.groupBoxIP.Size = new System.Drawing.Size(213, 170);
-            this.groupBoxIP.TabIndex = 1;
-            this.groupBoxIP.TabStop = false;
-            this.groupBoxIP.Text = "EMC6 IP 設定";
-            // 
-            // lblIP1
-            // 
-            this.lblIP1.AutoSize = true;
-            this.lblIP1.Location = new System.Drawing.Point(8, 25);
-            this.lblIP1.Name = "lblIP1";
-            this.lblIP1.Size = new System.Drawing.Size(44, 15);
-            this.lblIP1.TabIndex = 0;
-            this.lblIP1.Text = "MM1:";
-            // 
-            // txtIP1
-            // 
-            this.txtIP1.Location = new System.Drawing.Point(55, 22);
-            this.txtIP1.Name = "txtIP1";
-            this.txtIP1.Size = new System.Drawing.Size(145, 25);
-            this.txtIP1.TabIndex = 1;
-            // 
-            // lblIP2
-            // 
-            this.lblIP2.AutoSize = true;
-            this.lblIP2.Location = new System.Drawing.Point(8, 55);
-            this.lblIP2.Name = "lblIP2";
-            this.lblIP2.Size = new System.Drawing.Size(44, 15);
-            this.lblIP2.TabIndex = 2;
-            this.lblIP2.Text = "MM2:";
-            // 
-            // txtIP2
-            // 
-            this.txtIP2.Location = new System.Drawing.Point(55, 52);
-            this.txtIP2.Name = "txtIP2";
-            this.txtIP2.Size = new System.Drawing.Size(145, 25);
-            this.txtIP2.TabIndex = 3;
-            // 
-            // lblIP3
-            // 
-            this.lblIP3.AutoSize = true;
-            this.lblIP3.Location = new System.Drawing.Point(8, 85);
-            this.lblIP3.Name = "lblIP3";
-            this.lblIP3.Size = new System.Drawing.Size(44, 15);
-            this.lblIP3.TabIndex = 4;
-            this.lblIP3.Text = "MM3:";
-            // 
-            // txtIP3
-            // 
-            this.txtIP3.Location = new System.Drawing.Point(55, 82);
-            this.txtIP3.Name = "txtIP3";
-            this.txtIP3.Size = new System.Drawing.Size(145, 25);
-            this.txtIP3.TabIndex = 5;
-            // 
-            // lblIP4
-            // 
-            this.lblIP4.AutoSize = true;
-            this.lblIP4.Location = new System.Drawing.Point(8, 115);
-            this.lblIP4.Name = "lblIP4";
-            this.lblIP4.Size = new System.Drawing.Size(44, 15);
-            this.lblIP4.TabIndex = 6;
-            this.lblIP4.Text = "MM4:";
-            // 
-            // txtIP4
-            // 
-            this.txtIP4.Location = new System.Drawing.Point(55, 112);
-            this.txtIP4.Name = "txtIP4";
-            this.txtIP4.Size = new System.Drawing.Size(145, 25);
-            this.txtIP4.TabIndex = 7;
-            // 
-            // btnReadIP
-            // 
-            this.btnReadIP.Location = new System.Drawing.Point(10, 142);
-            this.btnReadIP.Name = "btnReadIP";
-            this.btnReadIP.Size = new System.Drawing.Size(90, 23);
-            this.btnReadIP.TabIndex = 8;
-            this.btnReadIP.Text = "讀取IP";
-            this.btnReadIP.UseVisualStyleBackColor = true;
-            this.btnReadIP.Click += new System.EventHandler(this.btnReadIP_Click);
-            // 
-            // btnSaveIP
-            // 
-            this.btnSaveIP.Location = new System.Drawing.Point(110, 142);
-            this.btnSaveIP.Name = "btnSaveIP";
-            this.btnSaveIP.Size = new System.Drawing.Size(90, 23);
-            this.btnSaveIP.TabIndex = 9;
-            this.btnSaveIP.Text = "儲存IP";
-            this.btnSaveIP.UseVisualStyleBackColor = true;
-            this.btnSaveIP.Click += new System.EventHandler(this.btnSaveIP_Click);
-            // 
             // btnTestConnect
             // 
-            this.btnTestConnect.Location = new System.Drawing.Point(25, 270);
+            this.btnTestConnect.Location = new System.Drawing.Point(25, 60);
             this.btnTestConnect.Margin = new System.Windows.Forms.Padding(4);
             this.btnTestConnect.Name = "btnTestConnect";
             this.btnTestConnect.Size = new System.Drawing.Size(190, 50);
@@ -384,7 +287,7 @@
             this.tabPageDraw.Padding = new System.Windows.Forms.Padding(4);
             this.tabPageDraw.Size = new System.Drawing.Size(237, 761);
             this.tabPageDraw.TabIndex = 1;
-            this.tabPageDraw.Text = "繪圖操作";
+            this.tabPageDraw.Text = "4. 手動繪圖";
             this.tabPageDraw.UseVisualStyleBackColor = true;
             // 
             // comboBoard
@@ -550,6 +453,8 @@
             this.tabPage1.Controls.Add(this.lblDXFPath);
             this.tabPage1.Controls.Add(this.txtDXFPath);
             this.tabPage1.Controls.Add(this.btnMarkDXF);
+            this.tabPage1.Controls.Add(this.btnPreviewDXF);
+            this.tabPage1.Controls.Add(this.btnClearDXF);
             this.tabPage1.Controls.Add(this.btnLoadDXFFile);
             this.tabPage1.Controls.Add(this.btnLoadDXF);
             this.tabPage1.Location = new System.Drawing.Point(4, 25);
@@ -557,27 +462,27 @@
             this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
             this.tabPage1.Size = new System.Drawing.Size(237, 761);
             this.tabPage1.TabIndex = 2;
-            this.tabPage1.Text = "DXF";
+            this.tabPage1.Text = "3. DXF 操作";
             this.tabPage1.UseVisualStyleBackColor = true;
             // 
             // lblDXFInfo
             // 
             this.lblDXFInfo.AutoSize = true;
-            this.lblDXFInfo.Location = new System.Drawing.Point(20, 355);
+            this.lblDXFInfo.Location = new System.Drawing.Point(20, 395);
             this.lblDXFInfo.Name = "lblDXFInfo";
             this.lblDXFInfo.Size = new System.Drawing.Size(82, 15);
             this.lblDXFInfo.TabIndex = 8;
             this.lblDXFInfo.Text = "線段資訊：";
-            // 
+            //
             // txtDXFInfo
-            // 
+            //
             this.txtDXFInfo.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txtDXFInfo.Location = new System.Drawing.Point(20, 373);
+            this.txtDXFInfo.Location = new System.Drawing.Point(20, 413);
             this.txtDXFInfo.Multiline = true;
             this.txtDXFInfo.Name = "txtDXFInfo";
             this.txtDXFInfo.ReadOnly = true;
             this.txtDXFInfo.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.txtDXFInfo.Size = new System.Drawing.Size(191, 367);
+            this.txtDXFInfo.Size = new System.Drawing.Size(191, 327);
             this.txtDXFInfo.TabIndex = 7;
             this.txtDXFInfo.WordWrap = false;
             // 
@@ -637,31 +542,205 @@
             this.btnMarkDXF.Enabled = false;
             this.btnMarkDXF.Location = new System.Drawing.Point(23, 278);
             this.btnMarkDXF.Name = "btnMarkDXF";
-            this.btnMarkDXF.Size = new System.Drawing.Size(91, 35);
+            this.btnMarkDXF.Size = new System.Drawing.Size(188, 35);
             this.btnMarkDXF.TabIndex = 1;
             this.btnMarkDXF.Text = "打標";
             this.btnMarkDXF.UseVisualStyleBackColor = true;
             this.btnMarkDXF.Click += new System.EventHandler(this.btnMarkDXF_Click);
             // 
+            // btnLoadDXFFile
+            // 
+            this.btnLoadDXFFile.Location = new System.Drawing.Point(20, 233);
+            this.btnLoadDXFFile.Name = "btnLoadDXFFile";
+            this.btnLoadDXFFile.Size = new System.Drawing.Size(191, 35);
+            this.btnLoadDXFFile.TabIndex = 9;
+            this.btnLoadDXFFile.Text = "載入 DXF";
+            this.btnLoadDXFFile.UseVisualStyleBackColor = true;
+            this.btnLoadDXFFile.Click += new System.EventHandler(this.btnLoadDXFFile_Click);
+            // 
             // btnLoadDXF
             // 
             this.btnLoadDXF.Location = new System.Drawing.Point(20, 190);
             this.btnLoadDXF.Name = "btnLoadDXF";
-            this.btnLoadDXF.Size = new System.Drawing.Size(118, 35);
+            this.btnLoadDXF.Size = new System.Drawing.Size(191, 35);
             this.btnLoadDXF.TabIndex = 0;
             this.btnLoadDXF.Text = "載入 DXF 線段";
             this.btnLoadDXF.UseVisualStyleBackColor = true;
             this.btnLoadDXF.Click += new System.EventHandler(this.btnLoadDXF_Click);
             //
-            // btnLoadDXFFile
+            // btnPreviewDXF
             //
-            this.btnLoadDXFFile.Location = new System.Drawing.Point(20, 233);
-            this.btnLoadDXFFile.Name = "btnLoadDXFFile";
-            this.btnLoadDXFFile.Size = new System.Drawing.Size(118, 35);
-            this.btnLoadDXFFile.TabIndex = 9;
-            this.btnLoadDXFFile.Text = "載入 DXF";
-            this.btnLoadDXFFile.UseVisualStyleBackColor = true;
-            this.btnLoadDXFFile.Click += new System.EventHandler(this.btnLoadDXFFile_Click);
+            this.btnPreviewDXF.Location = new System.Drawing.Point(20, 320);
+            this.btnPreviewDXF.Name = "btnPreviewDXF";
+            this.btnPreviewDXF.Size = new System.Drawing.Size(95, 30);
+            this.btnPreviewDXF.TabIndex = 10;
+            this.btnPreviewDXF.Text = "紅光預覽";
+            this.btnPreviewDXF.UseVisualStyleBackColor = true;
+            this.btnPreviewDXF.Click += new System.EventHandler(this.btnPreviewDXF_Click);
+            //
+            // btnClearDXF
+            //
+            this.btnClearDXF.Location = new System.Drawing.Point(120, 320);
+            this.btnClearDXF.Name = "btnClearDXF";
+            this.btnClearDXF.Size = new System.Drawing.Size(91, 30);
+            this.btnClearDXF.TabIndex = 11;
+            this.btnClearDXF.Text = "清除畫面";
+            this.btnClearDXF.UseVisualStyleBackColor = true;
+            this.btnClearDXF.Click += new System.EventHandler(this.btnClearDXF_Click);
+            //
+            // tabPageParams
+            // 
+            this.tabPageParams.Controls.Add(this.lblWorkspace);
+            this.tabPageParams.Controls.Add(this.txtWorkspace);
+            this.tabPageParams.Controls.Add(this.lblMargin);
+            this.tabPageParams.Controls.Add(this.txtMargin);
+            this.tabPageParams.Controls.Add(this.groupBoxIP);
+            this.tabPageParams.Location = new System.Drawing.Point(4, 25);
+            this.tabPageParams.Name = "tabPageParams";
+            this.tabPageParams.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPageParams.Size = new System.Drawing.Size(237, 761);
+            this.tabPageParams.TabIndex = 3;
+            this.tabPageParams.Text = "2. 雷射參數";
+            this.tabPageParams.UseVisualStyleBackColor = true;
+            // 
+            // lblWorkspace
+            // 
+            this.lblWorkspace.AutoSize = true;
+            this.lblWorkspace.Location = new System.Drawing.Point(20, 20);
+            this.lblWorkspace.Name = "lblWorkspace";
+            this.lblWorkspace.Size = new System.Drawing.Size(88, 15);
+            this.lblWorkspace.TabIndex = 0;
+            this.lblWorkspace.Text = "工作區(mm):";
+            // 
+            // txtWorkspace
+            // 
+            this.txtWorkspace.Location = new System.Drawing.Point(120, 17);
+            this.txtWorkspace.Name = "txtWorkspace";
+            this.txtWorkspace.Size = new System.Drawing.Size(80, 25);
+            this.txtWorkspace.TabIndex = 1;
+            this.txtWorkspace.Text = "150";
+            // 
+            // lblMargin
+            // 
+            this.lblMargin.AutoSize = true;
+            this.lblMargin.Location = new System.Drawing.Point(20, 55);
+            this.lblMargin.Name = "lblMargin";
+            this.lblMargin.Size = new System.Drawing.Size(63, 15);
+            this.lblMargin.TabIndex = 2;
+            this.lblMargin.Text = "邊距(%):";
+            // 
+            // txtMargin
+            // 
+            this.txtMargin.Location = new System.Drawing.Point(120, 52);
+            this.txtMargin.Name = "txtMargin";
+            this.txtMargin.Size = new System.Drawing.Size(80, 25);
+            this.txtMargin.TabIndex = 3;
+            this.txtMargin.Text = "90";
+            // 
+            // groupBoxIP
+            // 
+            this.groupBoxIP.Controls.Add(this.lblIP1);
+            this.groupBoxIP.Controls.Add(this.txtIP1);
+            this.groupBoxIP.Controls.Add(this.lblIP2);
+            this.groupBoxIP.Controls.Add(this.txtIP2);
+            this.groupBoxIP.Controls.Add(this.lblIP3);
+            this.groupBoxIP.Controls.Add(this.txtIP3);
+            this.groupBoxIP.Controls.Add(this.lblIP4);
+            this.groupBoxIP.Controls.Add(this.txtIP4);
+            this.groupBoxIP.Controls.Add(this.btnReadIP);
+            this.groupBoxIP.Controls.Add(this.btnSaveIP);
+            this.groupBoxIP.Location = new System.Drawing.Point(8, 90);
+            this.groupBoxIP.Margin = new System.Windows.Forms.Padding(4);
+            this.groupBoxIP.Name = "groupBoxIP";
+            this.groupBoxIP.Padding = new System.Windows.Forms.Padding(4);
+            this.groupBoxIP.Size = new System.Drawing.Size(213, 170);
+            this.groupBoxIP.TabIndex = 1;
+            this.groupBoxIP.TabStop = false;
+            this.groupBoxIP.Text = "EMC6 IP 設定";
+            // 
+            // lblIP1
+            // 
+            this.lblIP1.AutoSize = true;
+            this.lblIP1.Location = new System.Drawing.Point(8, 25);
+            this.lblIP1.Name = "lblIP1";
+            this.lblIP1.Size = new System.Drawing.Size(44, 15);
+            this.lblIP1.TabIndex = 0;
+            this.lblIP1.Text = "MM1:";
+            // 
+            // txtIP1
+            // 
+            this.txtIP1.Location = new System.Drawing.Point(55, 22);
+            this.txtIP1.Name = "txtIP1";
+            this.txtIP1.Size = new System.Drawing.Size(145, 25);
+            this.txtIP1.TabIndex = 1;
+            // 
+            // lblIP2
+            // 
+            this.lblIP2.AutoSize = true;
+            this.lblIP2.Location = new System.Drawing.Point(8, 55);
+            this.lblIP2.Name = "lblIP2";
+            this.lblIP2.Size = new System.Drawing.Size(44, 15);
+            this.lblIP2.TabIndex = 2;
+            this.lblIP2.Text = "MM2:";
+            // 
+            // txtIP2
+            // 
+            this.txtIP2.Location = new System.Drawing.Point(55, 52);
+            this.txtIP2.Name = "txtIP2";
+            this.txtIP2.Size = new System.Drawing.Size(145, 25);
+            this.txtIP2.TabIndex = 3;
+            // 
+            // lblIP3
+            // 
+            this.lblIP3.AutoSize = true;
+            this.lblIP3.Location = new System.Drawing.Point(8, 85);
+            this.lblIP3.Name = "lblIP3";
+            this.lblIP3.Size = new System.Drawing.Size(44, 15);
+            this.lblIP3.TabIndex = 4;
+            this.lblIP3.Text = "MM3:";
+            // 
+            // txtIP3
+            // 
+            this.txtIP3.Location = new System.Drawing.Point(55, 82);
+            this.txtIP3.Name = "txtIP3";
+            this.txtIP3.Size = new System.Drawing.Size(145, 25);
+            this.txtIP3.TabIndex = 5;
+            // 
+            // lblIP4
+            // 
+            this.lblIP4.AutoSize = true;
+            this.lblIP4.Location = new System.Drawing.Point(8, 115);
+            this.lblIP4.Name = "lblIP4";
+            this.lblIP4.Size = new System.Drawing.Size(44, 15);
+            this.lblIP4.TabIndex = 6;
+            this.lblIP4.Text = "MM4:";
+            // 
+            // txtIP4
+            // 
+            this.txtIP4.Location = new System.Drawing.Point(55, 112);
+            this.txtIP4.Name = "txtIP4";
+            this.txtIP4.Size = new System.Drawing.Size(145, 25);
+            this.txtIP4.TabIndex = 7;
+            // 
+            // btnReadIP
+            // 
+            this.btnReadIP.Location = new System.Drawing.Point(10, 142);
+            this.btnReadIP.Name = "btnReadIP";
+            this.btnReadIP.Size = new System.Drawing.Size(90, 23);
+            this.btnReadIP.TabIndex = 8;
+            this.btnReadIP.Text = "讀取IP";
+            this.btnReadIP.UseVisualStyleBackColor = true;
+            this.btnReadIP.Click += new System.EventHandler(this.btnReadIP_Click);
+            // 
+            // btnSaveIP
+            // 
+            this.btnSaveIP.Location = new System.Drawing.Point(110, 142);
+            this.btnSaveIP.Name = "btnSaveIP";
+            this.btnSaveIP.Size = new System.Drawing.Size(90, 23);
+            this.btnSaveIP.TabIndex = 9;
+            this.btnSaveIP.Text = "儲存IP";
+            this.btnSaveIP.UseVisualStyleBackColor = true;
+            this.btnSaveIP.Click += new System.EventHandler(this.btnSaveIP_Click);
             // 
             // btnExit
             // 
@@ -678,16 +757,17 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1440, 900);
+            this.ClientSize = new System.Drawing.Size(1443, 820);
             this.Controls.Add(this.tabControl1);
-            this.Controls.Add(this.btnExit);
             this.Controls.Add(this.groupBox4);
             this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
+            this.Controls.Add(this.btnExit);
             this.Margin = new System.Windows.Forms.Padding(4);
             this.Name = "Form1";
-            this.Text = "四晶片板雷射打標系統";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
+            this.Text = "MarkingMate 多晶片板控制系統 v1.1";
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.Form1_FormClosed);
             this.Load += new System.EventHandler(this.Form1_Load);
             this.groupBox1.ResumeLayout(false);
@@ -698,15 +778,18 @@
             this.tabPageConnect.ResumeLayout(false);
             this.tabPageConnect.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numBoardCount)).EndInit();
-            this.groupBoxIP.ResumeLayout(false);
-            this.groupBoxIP.PerformLayout();
             this.tabPageDraw.ResumeLayout(false);
             this.tabPageDraw.PerformLayout();
             this.groupBox5.ResumeLayout(false);
             this.groupBox5.PerformLayout();
             this.tabPage1.ResumeLayout(false);
             this.tabPage1.PerformLayout();
+            this.tabPageParams.ResumeLayout(false);
+            this.tabPageParams.PerformLayout();
+            this.groupBoxIP.ResumeLayout(false);
+            this.groupBoxIP.PerformLayout();
             this.ResumeLayout(false);
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
 
         }
 
@@ -765,5 +848,12 @@
         private System.Windows.Forms.TextBox txtDXFInfo;
         private System.Windows.Forms.Label lblDXFInfo;
         private System.Windows.Forms.Button btnLoadDXFFile;
+        private System.Windows.Forms.Button btnPreviewDXF;
+        private System.Windows.Forms.Button btnClearDXF;
+        private System.Windows.Forms.TabPage tabPageParams;
+        private System.Windows.Forms.Label lblWorkspace;
+        private System.Windows.Forms.TextBox txtWorkspace;
+        private System.Windows.Forms.Label lblMargin;
+        private System.Windows.Forms.TextBox txtMargin;
     }
 }
