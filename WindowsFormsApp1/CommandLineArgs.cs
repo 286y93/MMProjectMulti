@@ -17,6 +17,13 @@ namespace WindowsFormsApp1
         public string DxfPath { get; private set; }
         public double WorkspaceSize { get; private set; }
 
+        // 雷射參數（null 表示不設定，使用預設值）
+        public double? Power { get; private set; }
+        public double? Speed { get; private set; }
+        public double? Frequency { get; private set; }
+        public double? PulseWidth { get; private set; }
+        public int? MarkRepeat { get; private set; }
+
         public CommandLineArgs()
         {
             IsAutoMode = false;
@@ -27,6 +34,11 @@ namespace WindowsFormsApp1
             ShowHelp = false;
             DxfPath = null;
             WorkspaceSize = 150.0;
+            Power = null;
+            Speed = null;
+            Frequency = null;
+            PulseWidth = null;
+            MarkRepeat = null;
         }
 
         /// <summary>
@@ -126,6 +138,46 @@ namespace WindowsFormsApp1
                             i++;
                         }
                 }
+                else if (argLower == "--power" || argLower == "-p")
+                {
+                        if (i + 1 < args.Length && double.TryParse(args[i + 1], out double power))
+                        {
+                            result.Power = power;
+                            i++;
+                        }
+                }
+                else if (argLower == "--speed" || argLower == "-s")
+                {
+                        if (i + 1 < args.Length && double.TryParse(args[i + 1], out double speed))
+                        {
+                            result.Speed = speed;
+                            i++;
+                        }
+                }
+                else if (argLower == "--freq" || argLower == "-f")
+                {
+                        if (i + 1 < args.Length && double.TryParse(args[i + 1], out double freq))
+                        {
+                            result.Frequency = freq;
+                            i++;
+                        }
+                }
+                else if (argLower == "--pulse-width" || argLower == "--pw")
+                {
+                        if (i + 1 < args.Length && double.TryParse(args[i + 1], out double pw))
+                        {
+                            result.PulseWidth = pw;
+                            i++;
+                        }
+                }
+                else if (argLower == "--repeat" || argLower == "-r")
+                {
+                        if (i + 1 < args.Length && int.TryParse(args[i + 1], out int repeat))
+                        {
+                            result.MarkRepeat = repeat;
+                            i++;
+                        }
+                }
                 else if (argLower == "--mark" || argLower == "-m")
                 {
                         result.AutoMark = true;
@@ -155,17 +207,22 @@ namespace WindowsFormsApp1
   --lines <線段列表>                    新增多條線段 (以分號分隔)
   --dxf <path>, -d <path>              載入 DXF 檔案（手動解析線段）
   --workspace <size>, -w <size>        工作區大小 mm (預設: 150)
+  --power <0-100>, -p <0-100>          雷射功率 % (不指定則使用預設值)
+  --speed <mm/s>, -s <mm/s>            打標速度 mm/s (不指定則使用預設值)
+  --freq <kHz>, -f <kHz>               脈衝頻率 kHz (不指定則使用預設值)
+  --pulse-width <val>, --pw <val>      脈波寬度 (不指定則使用預設值)
+  --repeat <n>, -r <n>                 雷射次數 (不指定則使用預設值)
   --mark, -m                            自動執行打標
 
 範例：
   # 在板 0 上畫一條線並打標
   MarkingMateMulti.exe --board 0 --line 0,0,50,50 --mark
 
+  # 載入 DXF 並指定雷射參數
+  MarkingMateMulti.exe --board 0 --dxf ""File\test.dxf"" --power 50 --speed 800 --freq 20 --pw 5 --repeat 1 --mark
+
   # 在板 1 上畫多條線
   MarkingMateMulti.exe --board 1 --lines ""0,0,50,50;10,10,40,40"" --mark
-
-  # 載入 DXF 檔案並打標
-  MarkingMateMulti.exe --board 0 --dxf ""File\上翼板-2.dxf"" --mark
 
   # 指定工作區大小 200mm 載入 DXF
   MarkingMateMulti.exe --board 0 --workspace 200 --dxf ""File\上翼板-2.dxf"" --mark

@@ -67,6 +67,8 @@ namespace WindowsFormsApp1
             m_txtIPs = new TextBox[] { txtIP1, txtIP2, txtIP3, txtIP4 };
             comboBoard.SelectedIndex = 0;
             comboBoardDXF.SelectedIndex = 0;
+            comboBoardLaser.SelectedIndex = 0;
+            // txtPulseWidth 預設值 5 (在 Designer 中設定)
             m_IsAutoMode = false;
 
             // 同步 UI 顯示初始值
@@ -660,6 +662,14 @@ namespace WindowsFormsApp1
                     Console.WriteLine("Warning: No content to mark.");
                 }
 
+                // 步驟 2.5: 套用雷射參數（如有指定）
+                if (hasContent && (m_AutoModeArgs.Power.HasValue || m_AutoModeArgs.Speed.HasValue ||
+                    m_AutoModeArgs.Frequency.HasValue || m_AutoModeArgs.PulseWidth.HasValue ||
+                    m_AutoModeArgs.MarkRepeat.HasValue))
+                {
+                    ApplyLaserParamsAuto(m_AutoModeArgs.BoardIndex);
+                }
+
                 // 步驟 3: 如果需要自動打標
                 if (m_AutoModeArgs.AutoMark && hasContent)
                 {
@@ -947,6 +957,59 @@ namespace WindowsFormsApp1
             {
                 System.Diagnostics.Debug.WriteLine($"打標失敗：{ex.Message}");
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// 自動模式：套用雷射參數到所有物件
+        /// </summary>
+        private void ApplyLaserParamsAuto(int boardIndex)
+        {
+            try
+            {
+                m_MMMark[boardIndex].SelectAllObjects();
+                long objCount = m_MMMark[boardIndex].SelectGetCount();
+
+                if (objCount == 0)
+                {
+                    Console.WriteLine("Warning: No objects to apply laser params.");
+                    return;
+                }
+
+                for (int i = 0; i < objCount; i++)
+                {
+                    string objName = "";
+                    m_MMMark[boardIndex].SelectEnum(i, ref objName);
+
+                    if (string.IsNullOrEmpty(objName))
+                        continue;
+
+                    if (m_AutoModeArgs.Power.HasValue)
+                        m_MMMark[boardIndex].SetPower(objName, m_AutoModeArgs.Power.Value);
+
+                    if (m_AutoModeArgs.Speed.HasValue)
+                        m_MMMark[boardIndex].SetSpeed(objName, m_AutoModeArgs.Speed.Value);
+
+                    if (m_AutoModeArgs.Frequency.HasValue)
+                        m_MMMark[boardIndex].SetFrequency(objName, m_AutoModeArgs.Frequency.Value);
+
+                    if (m_AutoModeArgs.PulseWidth.HasValue)
+                        m_MMMark[boardIndex].SetPulseWidth(objName, m_AutoModeArgs.PulseWidth.Value);
+
+                    if (m_AutoModeArgs.MarkRepeat.HasValue)
+                        m_MMMark[boardIndex].SetMarkRepeat(objName, m_AutoModeArgs.MarkRepeat.Value);
+                }
+
+                Console.WriteLine($"Laser params applied to {objCount} objects." +
+                    $" Power={m_AutoModeArgs.Power?.ToString() ?? "default"}" +
+                    $" Speed={m_AutoModeArgs.Speed?.ToString() ?? "default"}" +
+                    $" Freq={m_AutoModeArgs.Frequency?.ToString() ?? "default"}" +
+                    $" PW={m_AutoModeArgs.PulseWidth?.ToString() ?? "default"}" +
+                    $" Repeat={m_AutoModeArgs.MarkRepeat?.ToString() ?? "default"}");
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Warning: Failed to apply laser params - {ex.Message}");
             }
         }
 
@@ -1434,6 +1497,186 @@ namespace WindowsFormsApp1
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"清理過程發生錯誤：{ex.Message}");
+            }
+        }
+
+        // ===== 雷射功率頁籤事件 =====
+
+        private void trkPower_Scroll(object sender, EventArgs e)
+        {
+            numPower.Value = trkPower.Value;
+        }
+
+        private void numPower_ValueChanged(object sender, EventArgs e)
+        {
+            trkPower.Value = (int)Math.Round(numPower.Value);
+        }
+
+        private void btnApplyLaser_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit)
+            {
+                MessageBox.Show("請先在「連接設定」頁簽初始化！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            int boardIndex = comboBoardLaser.SelectedIndex;
+
+            if (!m_bBoardInit[boardIndex])
+            {
+                MessageBox.Show($"晶片板 {boardIndex + 1} 未成功初始化，無法操作！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            // 讀取 UI 參數
+            double power = (double)numPower.Value;
+
+            if (!double.TryParse(txtSpeed.Text.Trim(), out double speed) || speed <= 0)
+            {
+                MessageBox.Show("請輸入有效的速度值！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (!double.TryParse(txtFrequency.Text.Trim(), out double frequency) || frequency <= 0)
+            {
+                MessageBox.Show("請輸入有效的頻率值！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (!double.TryParse(txtPulseWidth.Text.Trim(), out double pulseWidth) || pulseWidth < 0)
+            {
+                MessageBox.Show("請輸入有效的脈波寬度值！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            long markRepeat = (long)numMarkRepeat.Value;
+
+            try
+            {
+                // 選取所有物件
+                m_MMMark[boardIndex].SelectAllObjects();
+                long objCount = m_MMMark[boardIndex].SelectGetCount();
+
+                if (objCount == 0)
+                {
+                    txtLaserStatus.Text = "目前沒有任何物件，請先載入 DXF 或繪製圖形。";
+                    return;
+                }
+
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine($"晶片板 {boardIndex + 1} - 套用參數");
+                sb.AppendLine($"功率: {power}%  速度: {speed} mm/s");
+                sb.AppendLine($"頻率: {frequency} kHz  脈波寬度: {pulseWidth}");
+                sb.AppendLine($"雷射次數: {markRepeat}");
+                sb.AppendLine(new string('-', 40));
+
+                int successCount = 0;
+                for (int i = 0; i < objCount; i++)
+                {
+                    string objName = "";
+                    m_MMMark[boardIndex].SelectEnum(i, ref objName);
+
+                    if (string.IsNullOrEmpty(objName))
+                        continue;
+
+                    long r1 = m_MMMark[boardIndex].SetPower(objName, power);
+                    long r2 = m_MMMark[boardIndex].SetSpeed(objName, speed);
+                    long r3 = m_MMMark[boardIndex].SetFrequency(objName, frequency);
+                    long r4 = m_MMMark[boardIndex].SetPulseWidth(objName, pulseWidth);
+                    long r5 = m_MMMark[boardIndex].SetMarkRepeat(objName, (int)markRepeat);
+                    successCount++;
+
+                    sb.AppendLine($"物件 [{objName}]:");
+                    sb.AppendLine($"  Power={r1} Speed={r2} Freq={r3} PW={r4} Repeat={r5}");
+                    if (r1 != 0 || r2 != 0 || r3 != 0 || r4 != 0 || r5 != 0)
+                        sb.AppendLine($"  ** 有參數設定失敗 (非0=失敗) **");
+                }
+
+                sb.AppendLine(new string('-', 40));
+                sb.AppendLine($"已套用到 {successCount}/{objCount} 個物件");
+
+                txtLaserStatus.Text = sb.ToString();
+                MessageBox.Show($"已將參數套用到 {successCount} 個物件！", "套用成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                txtLaserStatus.Text = $"套用參數失敗：{ex.Message}";
+                MessageBox.Show($"套用參數失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void btnReadLaser_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit)
+            {
+                MessageBox.Show("請先在「連接設定」頁簽初始化！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            int boardIndex = comboBoardLaser.SelectedIndex;
+
+            if (!m_bBoardInit[boardIndex])
+            {
+                MessageBox.Show($"晶片板 {boardIndex + 1} 未成功初始化，無法操作！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            try
+            {
+                m_MMMark[boardIndex].SelectAllObjects();
+                long objCount = m_MMMark[boardIndex].SelectGetCount();
+
+                if (objCount == 0)
+                {
+                    txtLaserStatus.Text = "目前沒有任何物件，請先載入 DXF 或繪製圖形。";
+                    return;
+                }
+
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine($"晶片板 {boardIndex + 1} - 讀取參數");
+                sb.AppendLine($"共 {objCount} 個物件");
+                sb.AppendLine(new string('-', 40));
+
+                // 讀取每個物件的參數
+                for (int i = 0; i < objCount; i++)
+                {
+                    string objName = "";
+                    m_MMMark[boardIndex].SelectEnum(i, ref objName);
+
+                    if (string.IsNullOrEmpty(objName))
+                        continue;
+
+                    double p = m_MMMark[boardIndex].GetPower(objName);
+                    double s = m_MMMark[boardIndex].GetSpeed(objName);
+                    double f = m_MMMark[boardIndex].GetFrequency(objName);
+                    double pw = m_MMMark[boardIndex].GetPulseWidth(objName);
+                    long mr = m_MMMark[boardIndex].GetMarkRepeat(objName);
+
+                    sb.AppendLine($"物件 [{objName}]:");
+                    sb.AppendLine($"  功率: {p:F1}%");
+                    sb.AppendLine($"  速度: {s:F1} mm/s");
+                    sb.AppendLine($"  頻率: {f:F1} kHz");
+                    sb.AppendLine($"  脈波寬度: {pw:F1}");
+                    sb.AppendLine($"  雷射次數: {mr}");
+                    sb.AppendLine();
+
+                    // 以第一個物件的值回填到 UI
+                    if (i == 0)
+                    {
+                        numPower.Value = (decimal)Math.Max(0, Math.Min(100, p));
+                        txtSpeed.Text = s.ToString("F1");
+                        txtFrequency.Text = f.ToString("F1");
+                        txtPulseWidth.Text = pw.ToString("F1");
+                        numMarkRepeat.Value = Math.Max(1, Math.Min(9999, (decimal)mr));
+                    }
+                }
+
+                txtLaserStatus.Text = sb.ToString();
+            }
+            catch (Exception ex)
+            {
+                txtLaserStatus.Text = $"讀取參數失敗：{ex.Message}";
+                MessageBox.Show($"讀取參數失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
