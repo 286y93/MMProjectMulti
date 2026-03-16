@@ -58,7 +58,7 @@ namespace WindowsFormsApp1
             {
                 // 無參數則為 GUI 模式
                 result.IsAutoMode = false;
-                return result; 
+                return result;
             }
 
             for (int i = 0; i < args.Length; i++)
@@ -66,122 +66,122 @@ namespace WindowsFormsApp1
                 string arg = args[i]; // 不要轉小寫，因為 --lines 可能包含 DxfPath 或其他大小寫敏感參數嗎？不，參數名轉小寫，值不轉
                 string argLower = arg.ToLower();
 
-                if (argLower == "--help" || argLower == "-h" || argLower == "/?") 
+                if (argLower == "--help" || argLower == "-h" || argLower == "/?")
                 {
-                        result.ShowHelp = true;
-                        result.IsAutoMode = true;
-                        return result;
+                    result.ShowHelp = true;
+                    result.IsAutoMode = true;
+                    return result;
                 }
                 else if (argLower == "--board" || argLower == "-b")
                 {
-                        if (i + 1 < args.Length && int.TryParse(args[i + 1], out int board))
-                        {
-                            result.BoardIndex = board;
-                            i++;
-                            result.IsAutoMode = true;
-                        }
+                    if (i + 1 < args.Length && int.TryParse(args[i + 1], out int board))
+                    {
+                        result.BoardIndex = board;
+                        i++;
+                        result.IsAutoMode = true;
+                    }
                 }
                 else if (argLower == "--config" || argLower == "-c")
                 {
-                        if (i + 1 < args.Length)
-                        {
-                            result.ConfigPath = args[i + 1];
-                            i++;
-                            result.IsAutoMode = true;
-                        }
+                    if (i + 1 < args.Length)
+                    {
+                        result.ConfigPath = args[i + 1];
+                        i++;
+                        result.IsAutoMode = true;
+                    }
                 }
                 else if (argLower == "--line" || argLower == "-l")
                 {
-                        if (i + 1 < args.Length)
+                    if (i + 1 < args.Length)
+                    {
+                        var line = LineSegment.Parse(args[i + 1]);
+                        if (line != null)
                         {
-                            var line = LineSegment.Parse(args[i + 1]);
+                            result.Lines.Add(line);
+                        }
+                        i++;
+                        result.IsAutoMode = true; // 確保設置為 true
+                    }
+                }
+                else if (argLower == "--lines")
+                {
+                    if (i + 1 < args.Length)
+                    {
+                        // 支援多條線段，以分號分隔：x1,y1,x2,y2;x1,y1,x2,y2;...
+                        string[] lineStrings = args[i + 1].Split(';');
+                        foreach (string lineStr in lineStrings)
+                        {
+                            var line = LineSegment.Parse(lineStr);
                             if (line != null)
                             {
                                 result.Lines.Add(line);
                             }
-                            i++;
-                            result.IsAutoMode = true; // 確保設置為 true
                         }
-                }
-                else if (argLower == "--lines")
-                {
-                        if (i + 1 < args.Length)
-                        {
-                            // 支援多條線段，以分號分隔：x1,y1,x2,y2;x1,y1,x2,y2;...
-                            string[] lineStrings = args[i + 1].Split(';');
-                            foreach (string lineStr in lineStrings)
-                            {
-                                var line = LineSegment.Parse(lineStr);
-                                if (line != null)
-                                {
-                                    result.Lines.Add(line);
-                                }
-                            }
-                            i++;
-                            result.IsAutoMode = true;
-                        }
+                        i++;
+                        result.IsAutoMode = true;
+                    }
                 }
                 else if (argLower == "--dxf" || argLower == "-d")
                 {
-                        if (i + 1 < args.Length)
-                        {
-                            result.DxfPath = args[i + 1];
-                            i++;
-                            result.IsAutoMode = true;
-                        }
+                    if (i + 1 < args.Length)
+                    {
+                        result.DxfPath = args[i + 1];
+                        i++;
+                        result.IsAutoMode = true;
+                    }
                 }
                 else if (argLower == "--workspace" || argLower == "-w")
                 {
-                        if (i + 1 < args.Length && double.TryParse(args[i + 1], out double ws))
-                        {
-                            result.WorkspaceSize = ws;
-                            i++;
-                        }
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double ws))
+                    {
+                        result.WorkspaceSize = ws;
+                        i++;
+                    }
                 }
                 else if (argLower == "--power" || argLower == "-p")
                 {
-                        if (i + 1 < args.Length && double.TryParse(args[i + 1], out double power))
-                        {
-                            result.Power = power;
-                            i++;
-                        }
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double power))
+                    {
+                        result.Power = power;
+                        i++;
+                    }
                 }
                 else if (argLower == "--speed" || argLower == "-s")
                 {
-                        if (i + 1 < args.Length && double.TryParse(args[i + 1], out double speed))
-                        {
-                            result.Speed = speed;
-                            i++;
-                        }
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double speed))
+                    {
+                        result.Speed = speed;
+                        i++;
+                    }
                 }
                 else if (argLower == "--freq" || argLower == "-f")
                 {
-                        if (i + 1 < args.Length && double.TryParse(args[i + 1], out double freq))
-                        {
-                            result.Frequency = freq;
-                            i++;
-                        }
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double freq))
+                    {
+                        result.Frequency = freq;
+                        i++;
+                    }
                 }
                 else if (argLower == "--pulse-width" || argLower == "--pw")
                 {
-                        if (i + 1 < args.Length && double.TryParse(args[i + 1], out double pw))
-                        {
-                            result.PulseWidth = pw;
-                            i++;
-                        }
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double pw))
+                    {
+                        result.PulseWidth = pw;
+                        i++;
+                    }
                 }
                 else if (argLower == "--repeat" || argLower == "-r")
                 {
-                        if (i + 1 < args.Length && int.TryParse(args[i + 1], out int repeat))
-                        {
-                            result.MarkRepeat = repeat;
-                            i++;
-                        }
+                    if (i + 1 < args.Length && int.TryParse(args[i + 1], out int repeat))
+                    {
+                        result.MarkRepeat = repeat;
+                        i++;
+                    }
                 }
                 else if (argLower == "--mark" || argLower == "-m")
                 {
-                        result.AutoMark = true;
-                        result.IsAutoMode = true;
+                    result.AutoMark = true;
+                    result.IsAutoMode = true;
                 }
             }
 

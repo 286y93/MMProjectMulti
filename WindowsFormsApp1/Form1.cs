@@ -84,13 +84,13 @@ namespace WindowsFormsApp1
         {
             m_AutoModeArgs = args;
             // 改為依據 args.IsAutoMode 來設定，而非強制設為 true
-            m_IsAutoMode = args.IsAutoMode; 
+            m_IsAutoMode = args.IsAutoMode;
             m_WorkspaceSize = args.WorkspaceSize;
 
             if (m_IsAutoMode)
             {
-               // Debug: 確認確實進入 AutoMode
-               // MessageBox.Show($"Auto Mode: {m_IsAutoMode}, Lines: {args.Lines.Count}, DXF: {args.DxfPath}");
+                // Debug: 確認確實進入 AutoMode
+                // MessageBox.Show($"Auto Mode: {m_IsAutoMode}, Lines: {args.Lines.Count}, DXF: {args.DxfPath}");
             }
         }
 
@@ -104,7 +104,7 @@ namespace WindowsFormsApp1
                 // 自動模式下，為了避免顯示不必要的視窗，可以設定 Opacity = 0 或WindowState = Minimized
                 // 但不能 Hide，否則 Handle 不會建立，導致 OCX 初始化異常
                 // this.WindowState = FormWindowState.Minimized; // 可選
-                
+
                 // 使用 Timer 延遲執行，確保 Form 完全載入
                 System.Windows.Forms.Timer startTimer = new System.Windows.Forms.Timer();
                 startTimer.Interval = 100;
@@ -119,8 +119,8 @@ namespace WindowsFormsApp1
             // 如果是自動模式，最小化視窗以減少干擾，但不能隱藏（OCX 需要 Window Handle）
             if (m_IsAutoMode)
             {
-               this.WindowState = FormWindowState.Minimized;
-               this.ShowInTaskbar = false;
+                this.WindowState = FormWindowState.Minimized;
+                this.ShowInTaskbar = false;
             }
         }
 
@@ -622,20 +622,20 @@ namespace WindowsFormsApp1
 
                     double centerX = (minX + maxX) / 2.0;
                     double centerY = (minY + maxY) / 2.0;
-                    
+
                     // 計算偏移量，使圖形中心對齊工作區原點 (0,0)
                     double offsetX = -centerX;
                     double offsetY = -centerY;
-                    
+
                     Console.WriteLine($"Auto-Centering Lines: Center=({centerX:F2}, {centerY:F2}) Offset=({offsetX:F2}, {offsetY:F2})");
 
                     foreach (var line in m_AutoModeArgs.Lines)
                     {
                         // 建立平移後的線段版本（不直接修改原始物件，避免副作用）
                         var centeredLine = new LineSegment(
-                            line.X1 + offsetX, 
-                            line.Y1 + offsetY, 
-                            line.X2 + offsetX, 
+                            line.X1 + offsetX,
+                            line.Y1 + offsetY,
+                            line.X2 + offsetX,
                             line.Y2 + offsetY
                         );
 
@@ -769,34 +769,34 @@ namespace WindowsFormsApp1
                 // 如果傳入的是 [0, 150]，則需要平移 -75
 
                 double halfSize = m_WorkspaceSize / 2.0;
-                
+
                 // 先套用一個簡單的平移修正：將輸入座標視為以左下角為(0,0)的絕對座標，轉換為以中心為(0,0)的相對座標
                 // 但是！如果使用者已經提供了負座標（例如 -111, 50），這表示他們可能已經使用了中心原點座標
                 // 我們應該檢查輸入座標的範圍
                 bool isCenterBased = false;
                 if (line.X1 < 0 || line.X2 < 0 || line.Y1 < 0 || line.Y2 < 0)
                 {
-                   isCenterBased = true;
+                    isCenterBased = true;
                 }
 
                 double x1, y1, x2, y2;
                 if (isCenterBased)
                 {
-                   // 已包含負數，假設已經是中心座標，不進行平移
-                   x1 = line.X1;
-                   y1 = line.Y1;
-                   x2 = line.X2;
-                   y2 = line.Y2;
+                    // 已包含負數，假設已經是中心座標，不進行平移
+                    x1 = line.X1;
+                    y1 = line.Y1;
+                    x2 = line.X2;
+                    y2 = line.Y2;
                 }
                 else
                 {
-                   // 全正數，假設是 Corner 原點，進行平移
-                   x1 = line.X1 - halfSize;
-                   y1 = line.Y1 - halfSize;
-                   x2 = line.X2 - halfSize;
-                   y2 = line.Y2 - halfSize;
+                    // 全正數，假設是 Corner 原點，進行平移
+                    x1 = line.X1 - halfSize;
+                    y1 = line.Y1 - halfSize;
+                    x2 = line.X2 - halfSize;
+                    y2 = line.Y2 - halfSize;
                 }
-                
+
                 // 改用轉換後的座標
                 int result = m_MMEdit[boardIndex].AddLine(x1, y1, x2, y2, "", "");
 
@@ -1682,7 +1682,21 @@ namespace WindowsFormsApp1
 
         private void Form1_FormClosed(object sender, FormClosedEventArgs e)
         {
-            CleanupOldControls();
+            // for (int i = 0; i < 4; i++)
+            // {
+            //     if (m_MMMark[i] != null && m_bBoardInit[i])
+            //     {
+            //         try { m_MMMark[i].Finish(); } catch { }
+            //     }
+            //     if (m_MMEdit[i] != null && m_bBoardInit[i])
+            //     {
+            //         try { m_MMEdit[i].Finish(); } catch { }
+            //     }
+            // }
+
+            // 直接強制結束程序，跳過 SDK Finish() 避免「程式關閉中」視窗
+            // OS 會自動回收所有資源（記憶體、Handle、COM 物件等）
+            Environment.Exit(ExitCode);
         }
     }
 
