@@ -1,13 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
 using System.IO;
-using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using AxMMMarkx641Lib;
 using AxMMEditx641Lib;
@@ -1680,8 +1676,34 @@ namespace WindowsFormsApp1
             }
         }
 
+        [DllImport("user32.dll")]
+        private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+        [DllImport("user32.dll")]
+        private static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+        private const uint WM_CLOSE = 0x0010;
+
         private void Form1_FormClosed(object sender, FormClosedEventArgs e)
         {
+            CleanupOldControls();
+            // this.Hide();
+
+            // // 啟動計時器，自動偵測並關閉 SDK 彈出的「程式關閉中」視窗
+            // var closerThread = new Thread(() =>
+            // {
+            //     for (int attempt = 0; attempt < 50; attempt++) // 最多偵測 5 秒
+            //     {
+            //         Thread.Sleep(100);
+            //         IntPtr hwnd = FindWindow(null, "程式關閉中");
+            //         if (hwnd != IntPtr.Zero)
+            //         {
+            //             PostMessage(hwnd, WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
+            //         }
+            //     }
+            // });
+            // closerThread.IsBackground = true;
+            // closerThread.Start();
+
+            // // 呼叫 Finish() 正確關閉雷射硬體（含紅外線）
             // for (int i = 0; i < 4; i++)
             // {
             //     if (m_MMMark[i] != null && m_bBoardInit[i])
@@ -1694,9 +1716,7 @@ namespace WindowsFormsApp1
             //     }
             // }
 
-            // 直接強制結束程序，跳過 SDK Finish() 避免「程式關閉中」視窗
-            // OS 會自動回收所有資源（記憶體、Handle、COM 物件等）
-            Environment.Exit(ExitCode);
+            // Environment.Exit(ExitCode);
         }
     }
 
