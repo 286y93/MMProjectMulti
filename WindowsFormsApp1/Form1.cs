@@ -54,6 +54,7 @@ namespace WindowsFormsApp1
         private bool m_IsAutoMode = false;
         public int ExitCode { get; private set; } = 0;
 
+
         // GUI 模式建構子
         public Form1()
         {
@@ -71,8 +72,8 @@ namespace WindowsFormsApp1
             txtWorkspace.Text = m_WorkspaceSize.ToString();
             txtMargin.Text = (m_MarginPercent * 100).ToString();
 
-            this.btnPreviewDXF.Visible = false;
-            this.btnClearDXF.Visible = false;
+            this.btnPreviewDXF.Visible = true;
+            this.btnClearDXF.Visible = true;
         }
 
         // 自動模式建構子
@@ -400,7 +401,6 @@ namespace WindowsFormsApp1
                 timerMark.Stop();
 
                 // 重要：打標或預覽結束後，必須將預覽模式轉回正常模式 (Mode 0)
-                // 這樣下一次執行打標 (btnMarkDXF_Click) 時，才會正常的射出雷射
                 m_MMMark[boardIndex].SetPreviewMode(0);
 
                 // 關閉打標引擎
@@ -904,13 +904,38 @@ namespace WindowsFormsApp1
                 Application.DoEvents();
                 System.Threading.Thread.Sleep(200); // 給予時間讓圖形載入
 
+                int previewMode = (m_AutoModeArgs != null) ? m_AutoModeArgs.PreviewMode : 0;
+
+                // 預覽模式下套用預覽速度
+                if (previewMode > 0 && m_AutoModeArgs.PreviewSpeed.HasValue)
+                {
+                    m_MMMark[boardIndex].SelectAllObjects();
+                    long objCount = m_MMMark[boardIndex].SelectGetCount();
+                    for (int i = 0; i < objCount; i++)
+                    {
+                        string objName = "";
+                        m_MMMark[boardIndex].SelectEnum(i, ref objName);
+                        if (!string.IsNullOrEmpty(objName))
+                        {
+                            m_MMMark[boardIndex].SetSpeed(objName, m_AutoModeArgs.PreviewSpeed.Value);
+                        }
+                    }
+                    Console.WriteLine($"Preview speed set to {m_AutoModeArgs.PreviewSpeed.Value} mm/s for {objCount} objects.");
+                }
+
                 // 進入待命狀態
                 m_MMMark[boardIndex].MarkStandBy();
                 Application.DoEvents();
 
-                // 啟動打標（模式 4 = 非阻塞，但 MarkingMate 建議使用模式 4）
-                // 這裡使用模式 1 (同步) 可能更適合 CLI，但為了相容性保持模式 4 並手動等待
-                int startResult = m_MMMark[boardIndex].StartMarking(4);
+                // 設定預覽模式：1=外框, 2=全路徑, 0=正常打標
+                if (previewMode > 0)
+                {
+                    m_MMMark[boardIndex].SetPreviewMode(previewMode);
+                }
+
+                // StartMarking(3) = 紅光預覽（不打雷射）, StartMarking(4) = 正常打標（非阻塞）
+                int markMode = (previewMode > 0) ? 3 : 4;
+                int startResult = m_MMMark[boardIndex].StartMarking(markMode);
                 if (startResult != 0)
                 {
                     System.Diagnostics.Debug.WriteLine($"打標啟動失敗，錯誤碼：{startResult}");
@@ -918,8 +943,9 @@ namespace WindowsFormsApp1
                     return false;
                 }
 
-                System.Diagnostics.Debug.WriteLine("打標已啟動，等待完成...");
-                Console.WriteLine("Marking started... Waiting for completion.");
+                string modeText = previewMode == 1 ? "Preview(Outline)" : previewMode == 2 ? "Preview(Full)" : "Marking";
+                System.Diagnostics.Debug.WriteLine($"{modeText} 已啟動，等待完成...");
+                Console.WriteLine($"{modeText} started... Waiting for completion.");
 
                 // 同步等待打標完成
                 int loopCount = 0;
@@ -945,8 +971,14 @@ namespace WindowsFormsApp1
                     }
                 }
 
+                // 重置預覽模式
+                if (previewMode > 0)
+                {
+                    m_MMMark[boardIndex].SetPreviewMode(0);
+                }
+
                 m_MMMark[boardIndex].MarkShutdown();
-                System.Diagnostics.Debug.WriteLine($"打標完成（耗時 {loopCount * 100}ms）");
+                System.Diagnostics.Debug.WriteLine($"{(previewMode > 0 ? "預覽" : "打標")}完成（耗時 {loopCount * 100}ms）");
                 return true;
             }
             catch (Exception ex)
@@ -1293,7 +1325,48 @@ namespace WindowsFormsApp1
         /// </summary>
         private void btnPreviewDXF_Click(object sender, EventArgs e)
         {
-            // 此功能已移除
+            if (!m_bInit)
+            {
+                MessageBox.Show("請先初始化！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            try
+            {
+                int boardIndex = comboBoardDXF.SelectedIndex;
+
+                if (!m_bBoardInit[boardIndex])
+                {
+                    MessageBox.Show($"晶片板 {boardIndex + 1} 未成功初始化，無法操作！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                // StartMarking(3) = 紅光預覽模式（不打雷射）
+                m_MMMark[boardIndex].MarkStandBy();
+
+                if (m_MMMark[boardIndex].StartMarking(3) != 0)
+                {
+                    MessageBox.Show($"晶片板 {boardIndex + 1} 預覽啟動失敗！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                // 啟動 Timer 監控預覽狀態（與打標共用 timerMark_Tick）
+                timerMark.Tag = boardIndex;
+                timerMark.Start();
+
+                // 停用按鈕，防止重複操作
+                btnMarkDXF.Enabled = false;
+                btnPreviewDXF.Enabled = false;
+                btnLoadDXF.Enabled = false;
+                btnLoadDXFFile.Enabled = false;
+                btnClearDXF.Enabled = false;
+                btnMark.Enabled = false;
+                btnStop.Enabled = true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"啟動預覽失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         /// <summary>

@@ -307,7 +307,7 @@
             this.tabPageParams.Location = new System.Drawing.Point(4, 25);
             this.tabPageParams.Name = "tabPageParams";
             this.tabPageParams.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPageParams.Size = new System.Drawing.Size(237, 761);
+            this.tabPageParams.Size = new System.Drawing.Size(452, 761);
             this.tabPageParams.TabIndex = 3;
             this.tabPageParams.Text = "2. 雷射參數";
             this.tabPageParams.UseVisualStyleBackColor = true;
@@ -468,7 +468,7 @@
             this.tabPage1.Location = new System.Drawing.Point(4, 25);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage1.Size = new System.Drawing.Size(237, 761);
+            this.tabPage1.Size = new System.Drawing.Size(452, 761);
             this.tabPage1.TabIndex = 2;
             this.tabPage1.Text = "3. DXF 操作";
             this.tabPage1.UseVisualStyleBackColor = true;
@@ -608,7 +608,7 @@
             this.tabPageDraw.Margin = new System.Windows.Forms.Padding(4);
             this.tabPageDraw.Name = "tabPageDraw";
             this.tabPageDraw.Padding = new System.Windows.Forms.Padding(4);
-            this.tabPageDraw.Size = new System.Drawing.Size(237, 761);
+            this.tabPageDraw.Size = new System.Drawing.Size(452, 761);
             this.tabPageDraw.TabIndex = 1;
             this.tabPageDraw.Text = "4. 手動繪圖";
             this.tabPageDraw.UseVisualStyleBackColor = true;
@@ -777,7 +777,7 @@
             this.tabPageLaserPower.Location = new System.Drawing.Point(4, 25);
             this.tabPageLaserPower.Name = "tabPageLaserPower";
             this.tabPageLaserPower.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPageLaserPower.Size = new System.Drawing.Size(237, 761);
+            this.tabPageLaserPower.Size = new System.Drawing.Size(452, 761);
             this.tabPageLaserPower.TabIndex = 4;
             this.tabPageLaserPower.Text = "5. 雷射功率";
             this.tabPageLaserPower.UseVisualStyleBackColor = true;
@@ -893,43 +893,43 @@
             this.txtFrequency.Size = new System.Drawing.Size(95, 25);
             this.txtFrequency.TabIndex = 6;
             this.txtFrequency.Text = "30";
-            //
+            // 
             // lblPulseWidth
-            //
+            // 
             this.lblPulseWidth.AutoSize = true;
             this.lblPulseWidth.Location = new System.Drawing.Point(10, 185);
             this.lblPulseWidth.Name = "lblPulseWidth";
-            this.lblPulseWidth.Size = new System.Drawing.Size(82, 15);
+            this.lblPulseWidth.Size = new System.Drawing.Size(71, 15);
             this.lblPulseWidth.TabIndex = 7;
             this.lblPulseWidth.Text = "脈波寬度:";
-            //
+            // 
             // txtPulseWidth
-            //
+            // 
             this.txtPulseWidth.Location = new System.Drawing.Point(110, 182);
             this.txtPulseWidth.Name = "txtPulseWidth";
             this.txtPulseWidth.Size = new System.Drawing.Size(95, 25);
             this.txtPulseWidth.TabIndex = 8;
             this.txtPulseWidth.Text = "5";
-            //
+            // 
             // lblMarkRepeat
-            //
+            // 
             this.lblMarkRepeat.AutoSize = true;
             this.lblMarkRepeat.Location = new System.Drawing.Point(10, 225);
             this.lblMarkRepeat.Name = "lblMarkRepeat";
-            this.lblMarkRepeat.Size = new System.Drawing.Size(82, 15);
+            this.lblMarkRepeat.Size = new System.Drawing.Size(71, 15);
             this.lblMarkRepeat.TabIndex = 9;
             this.lblMarkRepeat.Text = "雷射次數:";
-            //
+            // 
             // numMarkRepeat
-            //
+            // 
             this.numMarkRepeat.Location = new System.Drawing.Point(110, 222);
-            this.numMarkRepeat.Minimum = new decimal(new int[] {
-            1,
+            this.numMarkRepeat.Maximum = new decimal(new int[] {
+            9999,
             0,
             0,
             0});
-            this.numMarkRepeat.Maximum = new decimal(new int[] {
-            9999,
+            this.numMarkRepeat.Minimum = new decimal(new int[] {
+            1,
             0,
             0,
             0});
@@ -941,9 +941,9 @@
             0,
             0,
             0});
-            //
+            // 
             // btnApplyLaser
-            //
+            // 
             this.btnApplyLaser.Location = new System.Drawing.Point(15, 365);
             this.btnApplyLaser.Name = "btnApplyLaser";
             this.btnApplyLaser.Size = new System.Drawing.Size(100, 35);
@@ -951,9 +951,9 @@
             this.btnApplyLaser.Text = "套用參數";
             this.btnApplyLaser.UseVisualStyleBackColor = true;
             this.btnApplyLaser.Click += new System.EventHandler(this.btnApplyLaser_Click);
-            //
+            // 
             // btnReadLaser
-            //
+            // 
             this.btnReadLaser.Location = new System.Drawing.Point(120, 365);
             this.btnReadLaser.Name = "btnReadLaser";
             this.btnReadLaser.Size = new System.Drawing.Size(100, 35);
@@ -961,9 +961,9 @@
             this.btnReadLaser.Text = "讀取參數";
             this.btnReadLaser.UseVisualStyleBackColor = true;
             this.btnReadLaser.Click += new System.EventHandler(this.btnReadLaser_Click);
-            //
+            // 
             // txtLaserStatus
-            //
+            // 
             this.txtLaserStatus.Font = new System.Drawing.Font("Consolas", 9F);
             this.txtLaserStatus.Location = new System.Drawing.Point(15, 410);
             this.txtLaserStatus.Multiline = true;

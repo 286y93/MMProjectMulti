@@ -23,6 +23,9 @@ namespace WindowsFormsApp1
         public double? Frequency { get; private set; }
         public double? PulseWidth { get; private set; }
         public int? MarkRepeat { get; private set; }
+        // 預覽模式：0=不預覽, 1=外框預覽, 2=全路徑預覽
+        public int PreviewMode { get; private set; }
+        public double? PreviewSpeed { get; private set; }
 
         public CommandLineArgs()
         {
@@ -39,6 +42,8 @@ namespace WindowsFormsApp1
             Frequency = null;
             PulseWidth = null;
             MarkRepeat = null;
+            PreviewMode = 0;
+            PreviewSpeed = null;
         }
 
         /// <summary>
@@ -178,6 +183,41 @@ namespace WindowsFormsApp1
                         i++;
                     }
                 }
+                else if (argLower == "--preview")
+                {
+                    if (i + 1 < args.Length)
+                    {
+                        string modeLower = args[i + 1].ToLower();
+                        if (modeLower == "outline" || modeLower == "box")
+                        {
+                            result.PreviewMode = 1; // 外框預覽
+                            i++;
+                        }
+                        else if (modeLower == "full" || modeLower == "path")
+                        {
+                            result.PreviewMode = 2; // 全路徑預覽
+                            i++;
+                        }
+                        else
+                        {
+                            result.PreviewMode = 2; // 預設全路徑
+                        }
+                    }
+                    else
+                    {
+                        result.PreviewMode = 2; // 預設全路徑
+                    }
+                    result.AutoMark = true;
+                    result.IsAutoMode = true;
+                }
+                else if (argLower == "--preview-speed")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double previewSpeed))
+                    {
+                        result.PreviewSpeed = previewSpeed;
+                        i++;
+                    }
+                }
                 else if (argLower == "--mark" || argLower == "-m")
                 {
                     result.AutoMark = true;
@@ -213,6 +253,9 @@ namespace WindowsFormsApp1
   --pulse-width <val>, --pw <val>      脈波寬度 (不指定則使用預設值)
   --repeat <n>, -r <n>                 雷射次數 (不指定則使用預設值)
   --mark, -m                            自動執行打標
+  --preview <outline|full>               紅光預覽模式（不打雷射，需搭配 --mark）
+                                          outline = 外框預覽, full = 全路徑預覽 (預設: full)
+  --preview-speed <mm/s>                預覽速度 mm/s (不指定則使用預設值)
 
 範例：
   # 在板 0 上畫一條線並打標
@@ -223,6 +266,15 @@ namespace WindowsFormsApp1
 
   # 在板 1 上畫多條線
   MarkingMateMulti.exe --board 1 --lines ""0,0,50,50;10,10,40,40"" --mark
+
+  # 外框預覽（紅光描外框）
+  MarkingMateMulti.exe --board 0 --dxf ""File\test.dxf"" --mark --preview outline
+
+  # 全路徑預覽（紅光走完整路徑）
+  MarkingMateMulti.exe --board 0 --dxf ""File\test.dxf"" --mark --preview full
+
+  # 全路徑預覽並指定預覽速度
+  MarkingMateMulti.exe --board 0 --dxf ""File\test.dxf"" --mark --preview full --preview-speed 500
 
   # 指定工作區大小 200mm 載入 DXF
   MarkingMateMulti.exe --board 0 --workspace 200 --dxf ""File\上翼板-2.dxf"" --mark
