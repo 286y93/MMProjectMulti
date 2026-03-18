@@ -23,6 +23,10 @@ namespace WindowsFormsApp1
         public double? Frequency { get; private set; }
         public double? PulseWidth { get; private set; }
         public int? MarkRepeat { get; private set; }
+        // 擺動參數（null 表示不設定）
+        public double? WobbleWidth { get; private set; }
+        public double? WobbleOverlap { get; private set; }
+        public double? WobbleSpeed { get; private set; }
         // 預覽模式：0=不預覽, 1=外框預覽, 2=全路徑預覽
         public int PreviewMode { get; private set; }
         public double? PreviewSpeed { get; private set; }
@@ -42,6 +46,9 @@ namespace WindowsFormsApp1
             Frequency = null;
             PulseWidth = null;
             MarkRepeat = null;
+            WobbleWidth = null;
+            WobbleOverlap = null;
+            WobbleSpeed = null;
             PreviewMode = 0;
             PreviewSpeed = null;
         }
@@ -183,6 +190,30 @@ namespace WindowsFormsApp1
                         i++;
                     }
                 }
+                else if (argLower == "--wobble-width" || argLower == "--wobble")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double wobbleWidth))
+                    {
+                        result.WobbleWidth = wobbleWidth;
+                        i++;
+                    }
+                }
+                else if (argLower == "--wobble-overlap")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double wobbleOverlap))
+                    {
+                        result.WobbleOverlap = wobbleOverlap;
+                        i++;
+                    }
+                }
+                else if (argLower == "--wobble-speed")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double wobbleSpeed))
+                    {
+                        result.WobbleSpeed = wobbleSpeed;
+                        i++;
+                    }
+                }
                 else if (argLower == "--preview")
                 {
                     if (i + 1 < args.Length)
@@ -252,6 +283,9 @@ namespace WindowsFormsApp1
   --freq <kHz>, -f <kHz>               脈衝頻率 kHz (不指定則使用預設值)
   --pulse-width <val>, --pw <val>      脈波寬度 (不指定則使用預設值)
   --repeat <n>, -r <n>                 雷射次數 (不指定則使用預設值)
+  --wobble-width <val>, --wobble <val> 擺動寬度 (不指定則不啟動擺動)
+  --wobble-overlap <n>                  擺動重疊率 % (預設: 50)
+  --wobble-speed <mm/s>                 擺動速度 mm/s (預設: 5026.55)
   --mark, -m                            自動執行打標
   --preview <outline|full>               紅光預覽模式（不打雷射，需搭配 --mark）
                                           outline = 外框預覽, full = 全路徑預覽 (預設: full)

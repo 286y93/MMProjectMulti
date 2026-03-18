@@ -69,7 +69,9 @@
             this.lblDXFPath = new System.Windows.Forms.Label();
             this.txtDXFPath = new System.Windows.Forms.TextBox();
             this.btnMarkDXF = new System.Windows.Forms.Button();
+            this.btnStopMarkDXF = new System.Windows.Forms.Button();
             this.btnPreviewDXF = new System.Windows.Forms.Button();
+            this.btnStopPreview = new System.Windows.Forms.Button();
             this.btnClearDXF = new System.Windows.Forms.Button();
             this.btnLoadDXFFile = new System.Windows.Forms.Button();
             this.btnLoadDXF = new System.Windows.Forms.Button();
@@ -103,6 +105,13 @@
             this.txtPulseWidth = new System.Windows.Forms.TextBox();
             this.lblMarkRepeat = new System.Windows.Forms.Label();
             this.numMarkRepeat = new System.Windows.Forms.NumericUpDown();
+            this.chkWobble = new System.Windows.Forms.CheckBox();
+            this.lblWobbleWidth = new System.Windows.Forms.Label();
+            this.txtWobbleWidth = new System.Windows.Forms.TextBox();
+            this.lblWobbleOverlap = new System.Windows.Forms.Label();
+            this.txtWobbleOverlap = new System.Windows.Forms.TextBox();
+            this.lblWobbleSpeed = new System.Windows.Forms.Label();
+            this.txtWobbleSpeed = new System.Windows.Forms.TextBox();
             this.btnApplyLaser = new System.Windows.Forms.Button();
             this.btnReadLaser = new System.Windows.Forms.Button();
             this.txtLaserStatus = new System.Windows.Forms.TextBox();
@@ -461,7 +470,9 @@
             this.tabPage1.Controls.Add(this.lblDXFPath);
             this.tabPage1.Controls.Add(this.txtDXFPath);
             this.tabPage1.Controls.Add(this.btnMarkDXF);
+            this.tabPage1.Controls.Add(this.btnStopMarkDXF);
             this.tabPage1.Controls.Add(this.btnPreviewDXF);
+            this.tabPage1.Controls.Add(this.btnStopPreview);
             this.tabPage1.Controls.Add(this.btnClearDXF);
             this.tabPage1.Controls.Add(this.btnLoadDXFFile);
             this.tabPage1.Controls.Add(this.btnLoadDXF);
@@ -546,15 +557,26 @@
             this.txtDXFPath.Text = "File\\上翼板-2.dxf";
             // 
             // btnMarkDXF
-            // 
+            //
             this.btnMarkDXF.Enabled = false;
             this.btnMarkDXF.Location = new System.Drawing.Point(23, 278);
             this.btnMarkDXF.Name = "btnMarkDXF";
-            this.btnMarkDXF.Size = new System.Drawing.Size(188, 35);
+            this.btnMarkDXF.Size = new System.Drawing.Size(90, 35);
             this.btnMarkDXF.TabIndex = 1;
             this.btnMarkDXF.Text = "打標";
             this.btnMarkDXF.UseVisualStyleBackColor = true;
             this.btnMarkDXF.Click += new System.EventHandler(this.btnMarkDXF_Click);
+            //
+            // btnStopMarkDXF
+            //
+            this.btnStopMarkDXF.Enabled = false;
+            this.btnStopMarkDXF.Location = new System.Drawing.Point(118, 278);
+            this.btnStopMarkDXF.Name = "btnStopMarkDXF";
+            this.btnStopMarkDXF.Size = new System.Drawing.Size(93, 35);
+            this.btnStopMarkDXF.TabIndex = 13;
+            this.btnStopMarkDXF.Text = "停止打標";
+            this.btnStopMarkDXF.UseVisualStyleBackColor = true;
+            this.btnStopMarkDXF.Click += new System.EventHandler(this.btnStopMarkDXF_Click);
             // 
             // btnPreviewDXF
             // 
@@ -565,7 +587,18 @@
             this.btnPreviewDXF.Text = "紅光預覽";
             this.btnPreviewDXF.UseVisualStyleBackColor = true;
             this.btnPreviewDXF.Click += new System.EventHandler(this.btnPreviewDXF_Click);
-            // 
+            //
+            // btnStopPreview
+            //
+            this.btnStopPreview.Location = new System.Drawing.Point(20, 355);
+            this.btnStopPreview.Name = "btnStopPreview";
+            this.btnStopPreview.Size = new System.Drawing.Size(95, 30);
+            this.btnStopPreview.TabIndex = 12;
+            this.btnStopPreview.Text = "停止預覽";
+            this.btnStopPreview.UseVisualStyleBackColor = true;
+            this.btnStopPreview.Enabled = false;
+            this.btnStopPreview.Click += new System.EventHandler(this.btnStopPreview_Click);
+            //
             // btnClearDXF
             // 
             this.btnClearDXF.Location = new System.Drawing.Point(120, 320);
@@ -818,10 +851,17 @@
             this.groupBoxLaserParams.Controls.Add(this.txtPulseWidth);
             this.groupBoxLaserParams.Controls.Add(this.lblMarkRepeat);
             this.groupBoxLaserParams.Controls.Add(this.numMarkRepeat);
+            this.groupBoxLaserParams.Controls.Add(this.chkWobble);
+            this.groupBoxLaserParams.Controls.Add(this.lblWobbleWidth);
+            this.groupBoxLaserParams.Controls.Add(this.txtWobbleWidth);
+            this.groupBoxLaserParams.Controls.Add(this.lblWobbleOverlap);
+            this.groupBoxLaserParams.Controls.Add(this.txtWobbleOverlap);
+            this.groupBoxLaserParams.Controls.Add(this.lblWobbleSpeed);
+            this.groupBoxLaserParams.Controls.Add(this.txtWobbleSpeed);
             this.groupBoxLaserParams.Location = new System.Drawing.Point(8, 45);
             this.groupBoxLaserParams.Name = "groupBoxLaserParams";
             this.groupBoxLaserParams.Padding = new System.Windows.Forms.Padding(4);
-            this.groupBoxLaserParams.Size = new System.Drawing.Size(213, 310);
+            this.groupBoxLaserParams.Size = new System.Drawing.Size(213, 400);
             this.groupBoxLaserParams.TabIndex = 2;
             this.groupBoxLaserParams.TabStop = false;
             this.groupBoxLaserParams.Text = "雷射參數設定";
@@ -941,10 +981,78 @@
             0,
             0,
             0});
-            // 
+            //
+            // chkWobble
+            //
+            this.chkWobble.AutoSize = true;
+            this.chkWobble.Location = new System.Drawing.Point(10, 265);
+            this.chkWobble.Name = "chkWobble";
+            this.chkWobble.Size = new System.Drawing.Size(74, 19);
+            this.chkWobble.TabIndex = 11;
+            this.chkWobble.Text = "擺動啟動";
+            this.chkWobble.UseVisualStyleBackColor = true;
+            this.chkWobble.CheckedChanged += new System.EventHandler(this.chkWobble_CheckedChanged);
+            //
+            // lblWobbleWidth
+            //
+            this.lblWobbleWidth.AutoSize = true;
+            this.lblWobbleWidth.Location = new System.Drawing.Point(10, 298);
+            this.lblWobbleWidth.Name = "lblWobbleWidth";
+            this.lblWobbleWidth.Size = new System.Drawing.Size(71, 15);
+            this.lblWobbleWidth.TabIndex = 12;
+            this.lblWobbleWidth.Text = "擺動寬度:";
+            this.lblWobbleWidth.Enabled = false;
+            //
+            // txtWobbleWidth
+            //
+            this.txtWobbleWidth.Location = new System.Drawing.Point(110, 295);
+            this.txtWobbleWidth.Name = "txtWobbleWidth";
+            this.txtWobbleWidth.Size = new System.Drawing.Size(95, 25);
+            this.txtWobbleWidth.TabIndex = 13;
+            this.txtWobbleWidth.Text = "0.1";
+            this.txtWobbleWidth.Enabled = false;
+            //
+            // lblWobbleOverlap
+            //
+            this.lblWobbleOverlap.AutoSize = true;
+            this.lblWobbleOverlap.Location = new System.Drawing.Point(10, 328);
+            this.lblWobbleOverlap.Name = "lblWobbleOverlap";
+            this.lblWobbleOverlap.Size = new System.Drawing.Size(71, 15);
+            this.lblWobbleOverlap.TabIndex = 14;
+            this.lblWobbleOverlap.Text = "重疊率:";
+            this.lblWobbleOverlap.Enabled = false;
+            //
+            // txtWobbleOverlap
+            //
+            this.txtWobbleOverlap.Location = new System.Drawing.Point(110, 325);
+            this.txtWobbleOverlap.Name = "txtWobbleOverlap";
+            this.txtWobbleOverlap.Size = new System.Drawing.Size(95, 25);
+            this.txtWobbleOverlap.TabIndex = 15;
+            this.txtWobbleOverlap.Text = "50.000";
+            this.txtWobbleOverlap.Enabled = false;
+            //
+            // lblWobbleSpeed
+            //
+            this.lblWobbleSpeed.AutoSize = true;
+            this.lblWobbleSpeed.Location = new System.Drawing.Point(10, 358);
+            this.lblWobbleSpeed.Name = "lblWobbleSpeed";
+            this.lblWobbleSpeed.Size = new System.Drawing.Size(71, 15);
+            this.lblWobbleSpeed.TabIndex = 16;
+            this.lblWobbleSpeed.Text = "擺動速度:";
+            this.lblWobbleSpeed.Enabled = false;
+            //
+            // txtWobbleSpeed
+            //
+            this.txtWobbleSpeed.Location = new System.Drawing.Point(110, 355);
+            this.txtWobbleSpeed.Name = "txtWobbleSpeed";
+            this.txtWobbleSpeed.Size = new System.Drawing.Size(95, 25);
+            this.txtWobbleSpeed.TabIndex = 17;
+            this.txtWobbleSpeed.Text = "5026.55";
+            this.txtWobbleSpeed.Enabled = false;
+            //
             // btnApplyLaser
             // 
-            this.btnApplyLaser.Location = new System.Drawing.Point(15, 365);
+            this.btnApplyLaser.Location = new System.Drawing.Point(15, 455);
             this.btnApplyLaser.Name = "btnApplyLaser";
             this.btnApplyLaser.Size = new System.Drawing.Size(100, 35);
             this.btnApplyLaser.TabIndex = 3;
@@ -954,7 +1062,7 @@
             // 
             // btnReadLaser
             // 
-            this.btnReadLaser.Location = new System.Drawing.Point(120, 365);
+            this.btnReadLaser.Location = new System.Drawing.Point(120, 455);
             this.btnReadLaser.Name = "btnReadLaser";
             this.btnReadLaser.Size = new System.Drawing.Size(100, 35);
             this.btnReadLaser.TabIndex = 4;
@@ -965,12 +1073,12 @@
             // txtLaserStatus
             // 
             this.txtLaserStatus.Font = new System.Drawing.Font("Consolas", 9F);
-            this.txtLaserStatus.Location = new System.Drawing.Point(15, 410);
+            this.txtLaserStatus.Location = new System.Drawing.Point(15, 500);
             this.txtLaserStatus.Multiline = true;
             this.txtLaserStatus.Name = "txtLaserStatus";
             this.txtLaserStatus.ReadOnly = true;
             this.txtLaserStatus.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.txtLaserStatus.Size = new System.Drawing.Size(205, 330);
+            this.txtLaserStatus.Size = new System.Drawing.Size(205, 240);
             this.txtLaserStatus.TabIndex = 5;
             // 
             // btnExit
@@ -1077,6 +1185,7 @@
         private System.Windows.Forms.TabPage tabPage1;
         private System.Windows.Forms.Button btnLoadDXF;
         private System.Windows.Forms.Button btnMarkDXF;
+        private System.Windows.Forms.Button btnStopMarkDXF;
         private System.Windows.Forms.TextBox txtDXFPath;
         private System.Windows.Forms.Label lblDXFPath;
         private System.Windows.Forms.ComboBox comboBoardDXF;
@@ -1086,6 +1195,7 @@
         private System.Windows.Forms.Label lblDXFInfo;
         private System.Windows.Forms.Button btnLoadDXFFile;
         private System.Windows.Forms.Button btnPreviewDXF;
+        private System.Windows.Forms.Button btnStopPreview;
         private System.Windows.Forms.Button btnClearDXF;
         private System.Windows.Forms.TabPage tabPageParams;
         private System.Windows.Forms.Label lblWorkspace;
@@ -1110,5 +1220,12 @@
         private System.Windows.Forms.TextBox txtPulseWidth;
         private System.Windows.Forms.Label lblMarkRepeat;
         private System.Windows.Forms.NumericUpDown numMarkRepeat;
+        private System.Windows.Forms.CheckBox chkWobble;
+        private System.Windows.Forms.Label lblWobbleWidth;
+        private System.Windows.Forms.TextBox txtWobbleWidth;
+        private System.Windows.Forms.Label lblWobbleOverlap;
+        private System.Windows.Forms.TextBox txtWobbleOverlap;
+        private System.Windows.Forms.Label lblWobbleSpeed;
+        private System.Windows.Forms.TextBox txtWobbleSpeed;
     }
 }

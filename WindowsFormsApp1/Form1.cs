@@ -18,6 +18,7 @@ namespace WindowsFormsApp1
 
         private Panel[] m_Panels;
         private bool m_bInit = false;
+        private bool m_bPreviewing = false; // 追蹤是否在紅光預覽中
         private int m_iCurrentBoard = 0;
 
         // 每個晶片板的配置路徑
@@ -211,6 +212,7 @@ namespace WindowsFormsApp1
                     m_MMMark[i].SetActiveDB(0);
                     m_MMMark[i].MarkStandBy();
                     m_MMMark[i].SetCurEditFun(2);
+                    m_MMMark[i].SetLensXReverse(1); // X 軸鏡像修正
                     m_MMMark[i].Redraw();
 
                     m_bBoardInit[i] = true;
@@ -338,6 +340,10 @@ namespace WindowsFormsApp1
                     return;
                 }
 
+                // 打標前自動套用雷射參數
+                if (!ApplyLaserParamsFromUI(m_iCurrentBoard))
+                    return;
+
                 m_MMMark[m_iCurrentBoard].MarkStandBy();
 
                 if (m_MMMark[m_iCurrentBoard].StartMarking(4) != 0)
@@ -379,8 +385,17 @@ namespace WindowsFormsApp1
 
                 m_MMMark[m_iCurrentBoard].StopMarking();
                 timerMark.Stop();
+                m_bPreviewing = false;
 
+                // 恢復所有按鈕狀態
                 btnMark.Enabled = true;
+                btnMarkDXF.Enabled = true;
+                btnStopMarkDXF.Enabled = false;
+                btnPreviewDXF.Enabled = true;
+                btnStopPreview.Enabled = false;
+                btnLoadDXF.Enabled = true;
+                btnLoadDXFFile.Enabled = true;
+                btnClearDXF.Enabled = true;
                 btnStop.Enabled = false;
             }
             catch (Exception ex)
@@ -394,14 +409,19 @@ namespace WindowsFormsApp1
             // 取得目前操作的板索引
             int boardIndex = (int)timerMark.Tag;
 
-            // 檢查打標/預覽是否已完成 (IsMarking 回傳 0 表示已停止)
+            // 預覽模式不使用 timerMark（IsMarking 在預覽模式下回傳不正確）
+            // 此 timer 僅用於正常打標模式
+            if (m_bPreviewing)
+            {
+                timerMark.Stop();
+                return;
+            }
+
+            // 檢查打標是否已完成 (IsMarking 回傳 0 表示已停止)
             if (m_MMMark[boardIndex].IsMarking() == 0)
             {
                 // 停止計時器
                 timerMark.Stop();
-
-                // 重要：打標或預覽結束後，必須將預覽模式轉回正常模式 (Mode 0)
-                m_MMMark[boardIndex].SetPreviewMode(0);
 
                 // 關閉打標引擎
                 m_MMMark[boardIndex].MarkShutdown();
@@ -409,6 +429,7 @@ namespace WindowsFormsApp1
                 // 恢復 UI 按鈕狀態
                 btnMark.Enabled = true;
                 btnMarkDXF.Enabled = true;
+                btnStopMarkDXF.Enabled = false;
                 btnPreviewDXF.Enabled = true;
                 btnLoadDXF.Enabled = true;
                 btnLoadDXFFile.Enabled = true;
@@ -661,7 +682,7 @@ namespace WindowsFormsApp1
                 // 步驟 2.5: 套用雷射參數（如有指定）
                 if (hasContent && (m_AutoModeArgs.Power.HasValue || m_AutoModeArgs.Speed.HasValue ||
                     m_AutoModeArgs.Frequency.HasValue || m_AutoModeArgs.PulseWidth.HasValue ||
-                    m_AutoModeArgs.MarkRepeat.HasValue))
+                    m_AutoModeArgs.MarkRepeat.HasValue || m_AutoModeArgs.WobbleWidth.HasValue))
                 {
                     ApplyLaserParamsAuto(m_AutoModeArgs.BoardIndex);
                 }
@@ -732,6 +753,7 @@ namespace WindowsFormsApp1
                 m_MMMark[boardIndex].SetActiveDB(0);
                 m_MMMark[boardIndex].MarkStandBy();
                 m_MMMark[boardIndex].SetCurEditFun(2);
+                m_MMMark[boardIndex].SetLensXReverse(1); // X 軸鏡像修正
                 m_MMMark[boardIndex].Redraw();
 
                 m_bBoardInit[boardIndex] = true;
@@ -923,63 +945,88 @@ namespace WindowsFormsApp1
                     Console.WriteLine($"Preview speed set to {m_AutoModeArgs.PreviewSpeed.Value} mm/s for {objCount} objects.");
                 }
 
-                // 進入待命狀態
-                m_MMMark[boardIndex].MarkStandBy();
-                Application.DoEvents();
-
-                // 設定預覽模式：1=外框, 2=全路徑, 0=正常打標
                 if (previewMode > 0)
                 {
-                    m_MMMark[boardIndex].SetPreviewMode(previewMode);
-                }
-
-                // StartMarking(3) = 紅光預覽（不打雷射）, StartMarking(4) = 正常打標（非阻塞）
-                int markMode = (previewMode > 0) ? 3 : 4;
-                int startResult = m_MMMark[boardIndex].StartMarking(markMode);
-                if (startResult != 0)
-                {
-                    System.Diagnostics.Debug.WriteLine($"打標啟動失敗，錯誤碼：{startResult}");
-                    Console.Error.WriteLine($"Error: StartMarking failed with code {startResult}");
-                    return false;
-                }
-
-                string modeText = previewMode == 1 ? "Preview(Outline)" : previewMode == 2 ? "Preview(Full)" : "Marking";
-                System.Diagnostics.Debug.WriteLine($"{modeText} 已啟動，等待完成...");
-                Console.WriteLine($"{modeText} started... Waiting for completion.");
-
-                // 同步等待打標完成
-                int loopCount = 0;
-                // 注意：IsMarking() 返回非 0 表示正在打標
-                while (m_MMMark[boardIndex].IsMarking() != 0)
-                {
-                    Application.DoEvents(); // 讓 UI 保持響應，這對 OCX 很重要
-                    System.Threading.Thread.Sleep(100);
-                    loopCount++;
-
-                    // 每 10 次迴圈輸出一次狀態（每秒）
-                    if (loopCount % 10 == 0)
+                    // === 紅光預覽模式 ===
+                    // 注意：不呼叫 MarkStandBy()，SDK 範例不需要（會干擾預覽）
+                    // 注意：IsMarking() 在預覽模式下回傳值不正確（已知 SDK 問題）
+                    int startResult = m_MMMark[boardIndex].StartMarking(3);
+                    if (startResult != 0)
                     {
-                        System.Diagnostics.Debug.WriteLine($"打標進行中... ({loopCount * 100}ms)");
-                    }
-
-                    // 超時保護（60 秒）
-                    if (loopCount > 600)
-                    {
-                        System.Diagnostics.Debug.WriteLine("打標超時，強制停止");
-                        m_MMMark[boardIndex].StopMarking();
+                        System.Diagnostics.Debug.WriteLine($"預覽啟動失敗，錯誤碼：{startResult}");
+                        Console.Error.WriteLine($"Error: StartMarking(3) failed with code {startResult}");
                         return false;
                     }
-                }
 
-                // 重置預覽模式
-                if (previewMode > 0)
+                    string modeText = previewMode == 1 ? "Preview(Outline)" : "Preview(Full)";
+                    Console.WriteLine($"{modeText} started...");
+
+                    // IsMarking() 在預覽模式可能回傳 0（SDK 已知問題）
+                    // 先等待最少 5 秒讓紅光描繪完整路徑
+                    for (int t = 0; t < 50; t++)
+                    {
+                        Application.DoEvents();
+                        System.Threading.Thread.Sleep(100);
+                    }
+
+                    // 之後再檢查 IsMarking()，如果硬體仍在執行就繼續等待
+                    int loopCount = 0;
+                    while (m_MMMark[boardIndex].IsMarking() != 0)
+                    {
+                        Application.DoEvents();
+                        System.Threading.Thread.Sleep(100);
+                        loopCount++;
+                        if (loopCount > 600) // 額外最多 60 秒
+                        {
+                            break;
+                        }
+                    }
+
+                    // 用 StopMarking() 結束預覽（SDK 範例做法）
+                    m_MMMark[boardIndex].StopMarking();
+                    Console.WriteLine("Preview completed.");
+                    return true;
+                }
+                else
                 {
-                    m_MMMark[boardIndex].SetPreviewMode(0);
-                }
+                    // === 正常打標模式 ===
+                    m_MMMark[boardIndex].MarkStandBy();
+                    Application.DoEvents();
 
-                m_MMMark[boardIndex].MarkShutdown();
-                System.Diagnostics.Debug.WriteLine($"{(previewMode > 0 ? "預覽" : "打標")}完成（耗時 {loopCount * 100}ms）");
-                return true;
+                    int startResult = m_MMMark[boardIndex].StartMarking(4);
+                    if (startResult != 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"打標啟動失敗，錯誤碼：{startResult}");
+                        Console.Error.WriteLine($"Error: StartMarking(4) failed with code {startResult}");
+                        return false;
+                    }
+
+                    Console.WriteLine("Marking started... Waiting for completion.");
+
+                    int loopCount = 0;
+                    while (m_MMMark[boardIndex].IsMarking() != 0)
+                    {
+                        Application.DoEvents();
+                        System.Threading.Thread.Sleep(100);
+                        loopCount++;
+
+                        if (loopCount % 10 == 0)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"打標進行中... ({loopCount * 100}ms)");
+                        }
+
+                        if (loopCount > 600) // 60 秒超時
+                        {
+                            System.Diagnostics.Debug.WriteLine("打標超時，強制停止");
+                            m_MMMark[boardIndex].StopMarking();
+                            return false;
+                        }
+                    }
+
+                    m_MMMark[boardIndex].MarkShutdown();
+                    System.Diagnostics.Debug.WriteLine($"打標完成（耗時 {loopCount * 100}ms）");
+                    return true;
+                }
             }
             catch (Exception ex)
             {
@@ -1026,14 +1073,31 @@ namespace WindowsFormsApp1
 
                     if (m_AutoModeArgs.MarkRepeat.HasValue)
                         m_MMMark[boardIndex].SetMarkRepeat(objName, m_AutoModeArgs.MarkRepeat.Value);
+
+                    // 擺動：有指定寬度則啟動
+                    // 頻率 = 擺動速度 / (π × 擺動寬度)，不覆蓋標記速度
+                    if (m_AutoModeArgs.WobbleWidth.HasValue)
+                    {
+                        double wobSpeed = m_AutoModeArgs.WobbleSpeed ?? 5026.55;
+                        double wobWidth = m_AutoModeArgs.WobbleWidth.Value;
+                        int wobbleFreq = (int)(wobSpeed / (Math.PI * wobWidth));
+                        m_MMMark[boardIndex].SetWobble(objName, wobWidth, wobbleFreq);
+                        m_MMMark[boardIndex].SetWobbleSwitch(objName, 1);
+                    }
                 }
+
+                // 套用參數後 Redraw，確保標記引擎載入新設定
+                m_MMMark[boardIndex].Redraw();
 
                 Console.WriteLine($"Laser params applied to {objCount} objects." +
                     $" Power={m_AutoModeArgs.Power?.ToString() ?? "default"}" +
                     $" Speed={m_AutoModeArgs.Speed?.ToString() ?? "default"}" +
                     $" Freq={m_AutoModeArgs.Frequency?.ToString() ?? "default"}" +
                     $" PW={m_AutoModeArgs.PulseWidth?.ToString() ?? "default"}" +
-                    $" Repeat={m_AutoModeArgs.MarkRepeat?.ToString() ?? "default"}");
+                    $" Repeat={m_AutoModeArgs.MarkRepeat?.ToString() ?? "default"}" +
+                    $" Wobble={m_AutoModeArgs.WobbleWidth?.ToString() ?? "off"}" +
+                    $" WobbleOverlap={m_AutoModeArgs.WobbleOverlap?.ToString() ?? "default"}" +
+                    $" WobbleSpeed={m_AutoModeArgs.WobbleSpeed?.ToString() ?? "default"}");
             }
             catch (Exception ex)
             {
@@ -1296,6 +1360,10 @@ namespace WindowsFormsApp1
                     return;
                 }
 
+                // 打標前自動套用雷射參數
+                if (!ApplyLaserParamsFromUI(boardIndex))
+                    return;
+
                 m_MMMark[boardIndex].MarkStandBy();
 
                 if (m_MMMark[boardIndex].StartMarking(4) != 0)
@@ -1309,6 +1377,7 @@ namespace WindowsFormsApp1
                 timerMark.Start();
 
                 btnMarkDXF.Enabled = false;
+                btnStopMarkDXF.Enabled = true;
                 btnLoadDXF.Enabled = false;
                 btnLoadDXFFile.Enabled = false;
                 btnMark.Enabled = false;
@@ -1341,22 +1410,22 @@ namespace WindowsFormsApp1
                     return;
                 }
 
-                // StartMarking(3) = 紅光預覽模式（不打雷射）
-                m_MMMark[boardIndex].MarkStandBy();
-
+                // 紅光預覽模式：不呼叫 MarkStandBy()（SDK 範例不需要，會干擾預覽）
+                // 直接呼叫 StartMarking(3) 啟動紅光預覽
                 if (m_MMMark[boardIndex].StartMarking(3) != 0)
                 {
                     MessageBox.Show($"晶片板 {boardIndex + 1} 預覽啟動失敗！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
 
-                // 啟動 Timer 監控預覽狀態（與打標共用 timerMark_Tick）
-                timerMark.Tag = boardIndex;
-                timerMark.Start();
+                // 注意：IsMarking() 在預覽模式下回傳值不正確（SDK 已知問題）
+                // 不使用 timerMark 監控，由使用者按「停止」按鈕結束預覽
+                m_bPreviewing = true;
 
                 // 停用按鈕，防止重複操作
                 btnMarkDXF.Enabled = false;
                 btnPreviewDXF.Enabled = false;
+                btnStopPreview.Enabled = true;
                 btnLoadDXF.Enabled = false;
                 btnLoadDXFFile.Enabled = false;
                 btnClearDXF.Enabled = false;
@@ -1366,6 +1435,69 @@ namespace WindowsFormsApp1
             catch (Exception ex)
             {
                 MessageBox.Show($"啟動預覽失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// DXF: 停止紅光預覽
+        /// </summary>
+        private void btnStopPreview_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit) return;
+
+            try
+            {
+                int boardIndex = comboBoardDXF.SelectedIndex;
+                if (m_bBoardInit[boardIndex])
+                {
+                    m_MMMark[boardIndex].StopMarking();
+                }
+                m_bPreviewing = false;
+
+                // 恢復按鈕狀態
+                btnMarkDXF.Enabled = true;
+                btnStopMarkDXF.Enabled = false;
+                btnPreviewDXF.Enabled = true;
+                btnStopPreview.Enabled = false;
+                btnLoadDXF.Enabled = true;
+                btnLoadDXFFile.Enabled = true;
+                btnClearDXF.Enabled = true;
+                btnMark.Enabled = true;
+                btnStop.Enabled = false;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"停止預覽失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void btnStopMarkDXF_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit) return;
+
+            try
+            {
+                int boardIndex = comboBoardDXF.SelectedIndex;
+                if (m_bBoardInit[boardIndex])
+                {
+                    m_MMMark[boardIndex].StopMarking();
+                }
+                timerMark.Stop();
+
+                // 恢復按鈕狀態
+                btnMarkDXF.Enabled = true;
+                btnStopMarkDXF.Enabled = false;
+                btnPreviewDXF.Enabled = true;
+                btnStopPreview.Enabled = false;
+                btnLoadDXF.Enabled = true;
+                btnLoadDXFFile.Enabled = true;
+                btnClearDXF.Enabled = true;
+                btnMark.Enabled = true;
+                btnStop.Enabled = false;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"停止打標失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -1581,6 +1713,106 @@ namespace WindowsFormsApp1
             trkPower.Value = (int)Math.Round(numPower.Value);
         }
 
+        private void chkWobble_CheckedChanged(object sender, EventArgs e)
+        {
+            bool enabled = chkWobble.Checked;
+            lblWobbleWidth.Enabled = enabled;
+            txtWobbleWidth.Enabled = enabled;
+            lblWobbleOverlap.Enabled = enabled;
+            txtWobbleOverlap.Enabled = enabled;
+            lblWobbleSpeed.Enabled = enabled;
+            txtWobbleSpeed.Enabled = enabled;
+        }
+
+        /// <summary>
+        /// 從 UI 讀取雷射參數並套用到指定晶片板的所有物件
+        /// </summary>
+        /// <param name="boardIndex">晶片板編號 0-3</param>
+        /// <returns>成功回傳 true，參數無效或失敗回傳 false</returns>
+        private bool ApplyLaserParamsFromUI(int boardIndex)
+        {
+            if (!m_bInit || !m_bBoardInit[boardIndex])
+                return false;
+
+            // 讀取 UI 參數
+            double power = (double)numPower.Value;
+
+            if (!double.TryParse(txtSpeed.Text.Trim(), out double speed) || speed <= 0)
+            {
+                MessageBox.Show("請輸入有效的速度值！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+
+            if (!double.TryParse(txtFrequency.Text.Trim(), out double frequency) || frequency <= 0)
+            {
+                MessageBox.Show("請輸入有效的頻率值！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+
+            if (!double.TryParse(txtPulseWidth.Text.Trim(), out double pulseWidth) || pulseWidth < 0)
+            {
+                MessageBox.Show("請輸入有效的脈波寬度值！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+
+            long markRepeat = (long)numMarkRepeat.Value;
+
+            // 擺動參數
+            bool wobbleEnabled = chkWobble.Checked;
+            double wobbleWidth = 0;
+            double wobbleSpeed = 5026.55;
+            if (wobbleEnabled)
+            {
+                if (!double.TryParse(txtWobbleWidth.Text.Trim(), out wobbleWidth) || wobbleWidth <= 0)
+                {
+                    MessageBox.Show("請輸入有效的擺動寬度值！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false;
+                }
+                if (!double.TryParse(txtWobbleSpeed.Text.Trim(), out wobbleSpeed) || wobbleSpeed <= 0)
+                {
+                    MessageBox.Show("請輸入有效的擺動速度值！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false;
+                }
+            }
+            int wobbleFreqCalc = wobbleEnabled && wobbleWidth > 0
+                ? (int)(wobbleSpeed / (Math.PI * wobbleWidth))
+                : 0;
+
+            try
+            {
+                m_MMMark[boardIndex].SelectAllObjects();
+                long objCount = m_MMMark[boardIndex].SelectGetCount();
+
+                if (objCount == 0)
+                    return true; // 沒有物件，不算失敗
+
+                for (int i = 0; i < objCount; i++)
+                {
+                    string objName = "";
+                    m_MMMark[boardIndex].SelectEnum(i, ref objName);
+
+                    if (string.IsNullOrEmpty(objName))
+                        continue;
+
+                    m_MMMark[boardIndex].SetPower(objName, power);
+                    m_MMMark[boardIndex].SetSpeed(objName, speed);
+                    m_MMMark[boardIndex].SetFrequency(objName, frequency);
+                    m_MMMark[boardIndex].SetPulseWidth(objName, pulseWidth);
+                    m_MMMark[boardIndex].SetMarkRepeat(objName, (int)markRepeat);
+                    m_MMMark[boardIndex].SetWobble(objName, wobbleEnabled ? wobbleWidth : 0, wobbleFreqCalc);
+                    m_MMMark[boardIndex].SetWobbleSwitch(objName, wobbleEnabled ? 1 : 0);
+                }
+
+                m_MMMark[boardIndex].Redraw();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"套用參數失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+        }
+
         private void btnApplyLaser_Click(object sender, EventArgs e)
         {
             if (!m_bInit)
@@ -1620,6 +1852,34 @@ namespace WindowsFormsApp1
 
             long markRepeat = (long)numMarkRepeat.Value;
 
+            // 擺動參數
+            bool wobbleEnabled = chkWobble.Checked;
+            double wobbleWidth = 0;
+            double wobbleOverlap = 50.0;
+            double wobbleSpeed = 5026.55;
+            if (wobbleEnabled)
+            {
+                if (!double.TryParse(txtWobbleWidth.Text.Trim(), out wobbleWidth) || wobbleWidth <= 0)
+                {
+                    MessageBox.Show("請輸入有效的擺動寬度值！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+                if (!double.TryParse(txtWobbleOverlap.Text.Trim(), out wobbleOverlap) || wobbleOverlap < 0)
+                {
+                    MessageBox.Show("請輸入有效的重疊率值！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+                if (!double.TryParse(txtWobbleSpeed.Text.Trim(), out wobbleSpeed) || wobbleSpeed <= 0)
+                {
+                    MessageBox.Show("請輸入有效的擺動速度值！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+            }
+            // 計算擺動頻率：lFreq = WobbleSpeed / (π × WobbleWidth)
+            int wobbleFreqCalc = wobbleEnabled && wobbleWidth > 0
+                ? (int)(wobbleSpeed / (Math.PI * wobbleWidth))
+                : 0;
+
             try
             {
                 // 選取所有物件
@@ -1637,6 +1897,7 @@ namespace WindowsFormsApp1
                 sb.AppendLine($"功率: {power}%  速度: {speed} mm/s");
                 sb.AppendLine($"頻率: {frequency} kHz  脈波寬度: {pulseWidth}");
                 sb.AppendLine($"雷射次數: {markRepeat}");
+                sb.AppendLine($"擺動: {(wobbleEnabled ? $"啟動 (寬度: {wobbleWidth}, 重疊率: {wobbleOverlap}%, 速度: {wobbleSpeed}, 計算頻率: {wobbleFreqCalc})" : "關閉")}");
                 sb.AppendLine(new string('-', 40));
 
                 int successCount = 0;
@@ -1653,13 +1914,29 @@ namespace WindowsFormsApp1
                     long r3 = m_MMMark[boardIndex].SetFrequency(objName, frequency);
                     long r4 = m_MMMark[boardIndex].SetPulseWidth(objName, pulseWidth);
                     long r5 = m_MMMark[boardIndex].SetMarkRepeat(objName, (int)markRepeat);
+                    // 擺動：設定參數（寬度 + 計算頻率）、開關
+                    // 頻率 = 擺動速度 / (π × 擺動寬度)，不覆蓋標記速度
+                    long r6 = m_MMMark[boardIndex].SetWobble(objName, wobbleEnabled ? wobbleWidth : 0, wobbleFreqCalc);
+                    long r7 = m_MMMark[boardIndex].SetWobbleSwitch(objName, wobbleEnabled ? 1 : 0);
                     successCount++;
 
                     sb.AppendLine($"物件 [{objName}]:");
-                    sb.AppendLine($"  Power={r1} Speed={r2} Freq={r3} PW={r4} Repeat={r5}");
-                    if (r1 != 0 || r2 != 0 || r3 != 0 || r4 != 0 || r5 != 0)
+                    sb.AppendLine($"  Set: Power={r1} Speed={r2} Freq={r3} PW={r4} Repeat={r5} Wobble={r6} WobbleSwitch={r7}");
+                    if (r1 != 0 || r2 != 0 || r3 != 0 || r4 != 0 || r5 != 0 || r6 != 0 || r7 != 0)
                         sb.AppendLine($"  ** 有參數設定失敗 (非0=失敗) **");
+
+                    // 讀回擺動參數驗證是否真的寫入
+                    if (wobbleEnabled)
+                    {
+                        double readWt = m_MMMark[boardIndex].GetWobbleThick(objName);
+                        long readWf = m_MMMark[boardIndex].GetWobbleFreq(objName);
+                        long readWs = m_MMMark[boardIndex].GetWobbleSwitch(objName);
+                        sb.AppendLine($"  驗證: WobbleThick={readWt:F3} WobbleFreq={readWf} WobbleSwitch={readWs}");
+                    }
                 }
+
+                // 套用參數後 Redraw，確保標記引擎載入新設定
+                m_MMMark[boardIndex].Redraw();
 
                 sb.AppendLine(new string('-', 40));
                 sb.AppendLine($"已套用到 {successCount}/{objCount} 個物件");
@@ -1720,6 +1997,9 @@ namespace WindowsFormsApp1
                     double f = m_MMMark[boardIndex].GetFrequency(objName);
                     double pw = m_MMMark[boardIndex].GetPulseWidth(objName);
                     long mr = m_MMMark[boardIndex].GetMarkRepeat(objName);
+                    double wt = m_MMMark[boardIndex].GetWobbleThick(objName);
+                    long wf = m_MMMark[boardIndex].GetWobbleFreq(objName);
+                    long ws = m_MMMark[boardIndex].GetWobbleSwitch(objName);
 
                     sb.AppendLine($"物件 [{objName}]:");
                     sb.AppendLine($"  功率: {p:F1}%");
@@ -1727,6 +2007,9 @@ namespace WindowsFormsApp1
                     sb.AppendLine($"  頻率: {f:F1} kHz");
                     sb.AppendLine($"  脈波寬度: {pw:F1}");
                     sb.AppendLine($"  雷射次數: {mr}");
+                    // 從頻率反算擺動速度：wobbleSpeed = freq × π × width
+                    double wobbleSpeedCalc = wt > 0 ? wf * Math.PI * wt : 0;
+                    sb.AppendLine($"  擺動: {(ws != 0 ? "啟動" : "關閉")}  寬度: {wt:F3}  SDK頻率: {wf}  擺動速度: {wobbleSpeedCalc:F1}");
                     sb.AppendLine();
 
                     // 以第一個物件的值回填到 UI
@@ -1737,6 +2020,12 @@ namespace WindowsFormsApp1
                         txtFrequency.Text = f.ToString("F1");
                         txtPulseWidth.Text = pw.ToString("F1");
                         numMarkRepeat.Value = Math.Max(1, Math.Min(9999, (decimal)mr));
+                        chkWobble.Checked = ws != 0;
+                        txtWobbleWidth.Text = wt > 0 ? wt.ToString("F3") : "0.1";
+                        // 從 SDK 頻率反算擺動速度：wobbleSpeed = freq × π × width
+                        double readWobbleSpeed = wt > 0 ? wf * Math.PI * wt : 5026.55;
+                        txtWobbleOverlap.Text = "50.000"; // 重疊率保持預設（SDK 無直接讀取介面）
+                        txtWobbleSpeed.Text = readWobbleSpeed.ToString("F2");
                     }
                 }
 
