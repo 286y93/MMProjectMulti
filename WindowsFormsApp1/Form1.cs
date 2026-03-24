@@ -948,7 +948,11 @@ namespace WindowsFormsApp1
                 if (previewMode > 0)
                 {
                     // === 紅光預覽模式 ===
-                    // 注意：不呼叫 MarkStandBy()，SDK 範例不需要（會干擾預覽）
+                    // 設定預覽模式：1=外框預覽, 2=全路徑預覽
+                    m_MMMark[boardIndex].SetPreviewMode(previewMode);
+                    m_MMMark[boardIndex].MarkStandBy();
+                    Application.DoEvents();
+
                     // 注意：IsMarking() 在預覽模式下回傳值不正確（已知 SDK 問題）
                     int startResult = m_MMMark[boardIndex].StartMarking(3);
                     if (startResult != 0)
@@ -958,27 +962,32 @@ namespace WindowsFormsApp1
                         return false;
                     }
 
+                    int previewTimeSec = (m_AutoModeArgs != null) ? m_AutoModeArgs.PreviewTime : 15;
                     string modeText = previewMode == 1 ? "Preview(Outline)" : "Preview(Full)";
-                    Console.WriteLine($"{modeText} started...");
+                    Console.WriteLine($"{modeText} started... ({previewTimeSec}s)");
 
-                    // IsMarking() 在預覽模式可能回傳 0（SDK 已知問題）
-                    // 先等待最少 5 秒讓紅光描繪完整路徑
-                    for (int t = 0; t < 50; t++)
+                    // 以指定時間持續預覽，紅光跑完一輪後重新啟動
+                    var sw = System.Diagnostics.Stopwatch.StartNew();
+                    int previewTimeMs = previewTimeSec * 1000;
+                    long lastStartMs = 0;
+
+                    while (sw.ElapsedMilliseconds < previewTimeMs)
                     {
                         Application.DoEvents();
                         System.Threading.Thread.Sleep(100);
-                    }
 
-                    // 之後再檢查 IsMarking()，如果硬體仍在執行就繼續等待
-                    int loopCount = 0;
-                    while (m_MMMark[boardIndex].IsMarking() != 0)
-                    {
-                        Application.DoEvents();
-                        System.Threading.Thread.Sleep(100);
-                        loopCount++;
-                        if (loopCount > 600) // 額外最多 60 秒
+                        long elapsed = sw.ElapsedMilliseconds;
+                        long sinceLastStart = elapsed - lastStartMs;
+
+                        // 預覽跑完一輪後重啟：至少間隔 1 秒，且需 MarkStandBy 重置狀態
+                        if (sinceLastStart >= 1000 && m_MMMark[boardIndex].IsMarking() == 0
+                            && elapsed < previewTimeMs - 500)
                         {
-                            break;
+                            m_MMMark[boardIndex].MarkStandBy();
+                            Application.DoEvents();
+                            m_MMMark[boardIndex].StartMarking(3);
+                            lastStartMs = elapsed;
+                            System.Diagnostics.Debug.WriteLine($"預覽重啟 @{elapsed}ms");
                         }
                     }
 
@@ -1410,8 +1419,11 @@ namespace WindowsFormsApp1
                     return;
                 }
 
-                // 紅光預覽模式：不呼叫 MarkStandBy()（SDK 範例不需要，會干擾預覽）
-                // 直接呼叫 StartMarking(3) 啟動紅光預覽
+                // 設定預覽模式（全路徑預覽）並啟動紅光預覽
+                m_MMMark[boardIndex].SetPreviewMode(2);
+                m_MMMark[boardIndex].MarkStandBy();
+                Application.DoEvents();
+
                 if (m_MMMark[boardIndex].StartMarking(3) != 0)
                 {
                     MessageBox.Show($"晶片板 {boardIndex + 1} 預覽啟動失敗！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -1419,8 +1431,11 @@ namespace WindowsFormsApp1
                 }
 
                 // 注意：IsMarking() 在預覽模式下回傳值不正確（SDK 已知問題）
-                // 不使用 timerMark 監控，由使用者按「停止」按鈕結束預覽
                 m_bPreviewing = true;
+
+                // 啟動 15 秒自動關閉 Timer
+                timerPreview.Stop();
+                timerPreview.Start();
 
                 // 停用按鈕，防止重複操作
                 btnMarkDXF.Enabled = false;
@@ -1444,6 +1459,40 @@ namespace WindowsFormsApp1
         private void btnStopPreview_Click(object sender, EventArgs e)
         {
             if (!m_bInit) return;
+
+            try
+            {
+                timerPreview.Stop();
+
+                int boardIndex = comboBoardDXF.SelectedIndex;
+                if (m_bBoardInit[boardIndex])
+                {
+                    m_MMMark[boardIndex].StopMarking();
+                }
+                m_bPreviewing = false;
+
+                // 恢復按鈕狀態
+                btnMarkDXF.Enabled = true;
+                btnStopMarkDXF.Enabled = false;
+                btnPreviewDXF.Enabled = true;
+                btnStopPreview.Enabled = false;
+                btnLoadDXF.Enabled = true;
+                btnLoadDXFFile.Enabled = true;
+                btnClearDXF.Enabled = true;
+                btnMark.Enabled = true;
+                btnStop.Enabled = false;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"停止預覽失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void timerPreview_Tick(object sender, EventArgs e)
+        {
+            timerPreview.Stop();
+
+            if (!m_bInit || !m_bPreviewing) return;
 
             try
             {

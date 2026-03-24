@@ -28,7 +28,9 @@
       "Bash(del \"c:\\\\Users\\\\AlexYang_VW\\\\source\\\\repos\\\\MMProject\\\\MMProjectMulti\\\\inspect_dll.ps1\")",
       "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Professional\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"c:\\\\Users\\\\AlexYang_VW\\\\source\\\\repos\\\\MMProject\\\\MMProjectMulti\\\\WindowsFormsApp1\\\\MarkingMateMulti.sln\" /t:Build /p:Configuration=Debug /p:Platform=x64 /v:minimal)",
       "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Enterprise\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"c:\\\\Users\\\\AlexYang_VW\\\\source\\\\repos\\\\MMProject\\\\MMProjectMulti\\\\WindowsFormsApp1\\\\MarkingMateMulti.sln\" /t:Build /p:Configuration=Debug /p:Platform=x64 /v:minimal)",
-      "Bash(cmd.exe:*)"
+      "Bash(cmd.exe:*)",
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Enterprise\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"c:\\\\Users\\\\AlexYang_VW\\\\source\\\\repos\\\\MMProject\\\\MMProjectMulti\\\\WindowsFormsApp1\\\\WindowsFormsApp1.csproj\" /p:Configuration=Debug /p:Platform=x64 /v:minimal)",
+      "WebFetch(domain:)"
     ]
   }
 }

@@ -74,6 +74,7 @@ MarkingMateMulti.exe [選項]           命令列模式
 | `--mark` | `-m` | 自動執行打標 |
 | `--preview <outline\|full>` | - | 紅光預覽模式（需搭配 `--mark`）<br>`outline` = 外框預覽, `full` = 全路徑預覽（預設） |
 | `--preview-speed <mm/s>` | - | 預覽速度 (mm/s) |
+| `--preview-time <秒>` | - | 預覽持續時間（預設 15 秒，GUI 模式同樣 15 秒自動關閉） |
 
 ### 範例
 

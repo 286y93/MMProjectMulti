@@ -30,6 +30,7 @@
         {
             this.components = new System.ComponentModel.Container();
             this.timerMark = new System.Windows.Forms.Timer(this.components);
+            this.timerPreview = new System.Windows.Forms.Timer(this.components);
             this.panelBoard1 = new System.Windows.Forms.Panel();
             this.panelBoard2 = new System.Windows.Forms.Panel();
             this.panelBoard3 = new System.Windows.Forms.Panel();
@@ -139,7 +140,12 @@
             // 
             this.timerMark.Interval = 200;
             this.timerMark.Tick += new System.EventHandler(this.timerMark_Tick);
-            // 
+            //
+            // timerPreview
+            //
+            this.timerPreview.Interval = 15000;
+            this.timerPreview.Tick += new System.EventHandler(this.timerPreview_Tick);
+            //
             // panelBoard1
             // 
             this.panelBoard1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
@@ -1182,6 +1188,7 @@
         private System.Windows.Forms.Label lblBoardCount;
         private System.Windows.Forms.NumericUpDown numBoardCount;
         private System.Windows.Forms.Timer timerMark;
+        private System.Windows.Forms.Timer timerPreview;
         private System.Windows.Forms.TabPage tabPage1;
         private System.Windows.Forms.Button btnLoadDXF;
         private System.Windows.Forms.Button btnMarkDXF;

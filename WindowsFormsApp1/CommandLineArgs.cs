@@ -30,6 +30,7 @@ namespace WindowsFormsApp1
         // 預覽模式：0=不預覽, 1=外框預覽, 2=全路徑預覽
         public int PreviewMode { get; private set; }
         public double? PreviewSpeed { get; private set; }
+        public int PreviewTime { get; private set; }
 
         public CommandLineArgs()
         {
@@ -51,6 +52,7 @@ namespace WindowsFormsApp1
             WobbleSpeed = null;
             PreviewMode = 0;
             PreviewSpeed = null;
+            PreviewTime = 15;
         }
 
         /// <summary>
@@ -249,6 +251,14 @@ namespace WindowsFormsApp1
                         i++;
                     }
                 }
+                else if (argLower == "--preview-time")
+                {
+                    if (i + 1 < args.Length && int.TryParse(args[i + 1], out int previewTime) && previewTime > 0)
+                    {
+                        result.PreviewTime = previewTime;
+                        i++;
+                    }
+                }
                 else if (argLower == "--mark" || argLower == "-m")
                 {
                     result.AutoMark = true;
@@ -290,6 +300,7 @@ namespace WindowsFormsApp1
   --preview <outline|full>               紅光預覽模式（不打雷射，需搭配 --mark）
                                           outline = 外框預覽, full = 全路徑預覽 (預設: full)
   --preview-speed <mm/s>                預覽速度 mm/s (不指定則使用預設值)
+  --preview-time <秒>                   預覽持續時間 (預設: 15 秒)
 
 範例：
   # 在板 0 上畫一條線並打標
