@@ -117,6 +117,28 @@
             this.btnReadLaser = new System.Windows.Forms.Button();
             this.txtLaserStatus = new System.Windows.Forms.TextBox();
             this.btnExit = new System.Windows.Forms.Button();
+            this.tabPageQRCode = new System.Windows.Forms.TabPage();
+            this.lblBoardQR = new System.Windows.Forms.Label();
+            this.comboBoardQR = new System.Windows.Forms.ComboBox();
+            this.groupBoxQRBasic = new System.Windows.Forms.GroupBox();
+            this.lblQRContent = new System.Windows.Forms.Label();
+            this.txtQRContent = new System.Windows.Forms.TextBox();
+            this.lblQRPosX = new System.Windows.Forms.Label();
+            this.txtQRPosX = new System.Windows.Forms.TextBox();
+            this.lblQRPosY = new System.Windows.Forms.Label();
+            this.txtQRPosY = new System.Windows.Forms.TextBox();
+            this.lblQRWidth = new System.Windows.Forms.Label();
+            this.txtQRWidth = new System.Windows.Forms.TextBox();
+            this.lblQRHeight = new System.Windows.Forms.Label();
+            this.txtQRHeight = new System.Windows.Forms.TextBox();
+            this.chkQRInvert = new System.Windows.Forms.CheckBox();
+            this.btnLoadQR = new System.Windows.Forms.Button();
+            this.btnMarkQR = new System.Windows.Forms.Button();
+            this.btnStopMarkQR = new System.Windows.Forms.Button();
+            this.btnPreviewQR = new System.Windows.Forms.Button();
+            this.btnStopPreviewQR = new System.Windows.Forms.Button();
+            this.btnClearQR = new System.Windows.Forms.Button();
+            this.txtQRStatus = new System.Windows.Forms.TextBox();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
@@ -131,6 +153,8 @@
             this.groupBox5.SuspendLayout();
             this.tabPageLaserPower.SuspendLayout();
             this.groupBoxLaserParams.SuspendLayout();
+            this.tabPageQRCode.SuspendLayout();
+            this.groupBoxQRBasic.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.trkPower)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numPower)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numMarkRepeat)).BeginInit();
@@ -237,6 +261,7 @@
             this.tabControl1.Controls.Add(this.tabPage1);
             this.tabControl1.Controls.Add(this.tabPageDraw);
             this.tabControl1.Controls.Add(this.tabPageLaserPower);
+            this.tabControl1.Controls.Add(this.tabPageQRCode);
             this.tabControl1.Location = new System.Drawing.Point(970, 15);
             this.tabControl1.Margin = new System.Windows.Forms.Padding(4);
             this.tabControl1.Name = "tabControl1";
@@ -1086,9 +1111,244 @@
             this.txtLaserStatus.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.txtLaserStatus.Size = new System.Drawing.Size(205, 240);
             this.txtLaserStatus.TabIndex = 5;
-            // 
+            //
+            // tabPageQRCode
+            //
+            this.tabPageQRCode.Controls.Add(this.lblBoardQR);
+            this.tabPageQRCode.Controls.Add(this.comboBoardQR);
+            this.tabPageQRCode.Controls.Add(this.groupBoxQRBasic);
+            this.tabPageQRCode.Controls.Add(this.chkQRInvert);
+            this.tabPageQRCode.Controls.Add(this.btnLoadQR);
+            this.tabPageQRCode.Controls.Add(this.btnMarkQR);
+            this.tabPageQRCode.Controls.Add(this.btnStopMarkQR);
+            this.tabPageQRCode.Controls.Add(this.btnPreviewQR);
+            this.tabPageQRCode.Controls.Add(this.btnStopPreviewQR);
+            this.tabPageQRCode.Controls.Add(this.btnClearQR);
+            this.tabPageQRCode.Controls.Add(this.txtQRStatus);
+            this.tabPageQRCode.Location = new System.Drawing.Point(4, 25);
+            this.tabPageQRCode.Name = "tabPageQRCode";
+            this.tabPageQRCode.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPageQRCode.Size = new System.Drawing.Size(452, 761);
+            this.tabPageQRCode.TabIndex = 5;
+            this.tabPageQRCode.Text = "6. QR Code";
+            this.tabPageQRCode.UseVisualStyleBackColor = true;
+            //
+            // lblBoardQR
+            //
+            this.lblBoardQR.AutoSize = true;
+            this.lblBoardQR.Location = new System.Drawing.Point(15, 15);
+            this.lblBoardQR.Name = "lblBoardQR";
+            this.lblBoardQR.Size = new System.Drawing.Size(67, 15);
+            this.lblBoardQR.TabIndex = 0;
+            this.lblBoardQR.Text = "選擇板：";
+            //
+            // comboBoardQR
+            //
+            this.comboBoardQR.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboBoardQR.FormattingEnabled = true;
+            this.comboBoardQR.Items.AddRange(new object[] {
+            "板 1",
+            "板 2",
+            "板 3",
+            "板 4"});
+            this.comboBoardQR.Location = new System.Drawing.Point(85, 12);
+            this.comboBoardQR.Name = "comboBoardQR";
+            this.comboBoardQR.Size = new System.Drawing.Size(121, 23);
+            this.comboBoardQR.TabIndex = 1;
+            //
+            // groupBoxQRBasic
+            //
+            this.groupBoxQRBasic.Controls.Add(this.lblQRContent);
+            this.groupBoxQRBasic.Controls.Add(this.txtQRContent);
+            this.groupBoxQRBasic.Controls.Add(this.lblQRPosX);
+            this.groupBoxQRBasic.Controls.Add(this.txtQRPosX);
+            this.groupBoxQRBasic.Controls.Add(this.lblQRPosY);
+            this.groupBoxQRBasic.Controls.Add(this.txtQRPosY);
+            this.groupBoxQRBasic.Controls.Add(this.lblQRWidth);
+            this.groupBoxQRBasic.Controls.Add(this.txtQRWidth);
+            this.groupBoxQRBasic.Controls.Add(this.lblQRHeight);
+            this.groupBoxQRBasic.Controls.Add(this.txtQRHeight);
+            this.groupBoxQRBasic.Location = new System.Drawing.Point(8, 42);
+            this.groupBoxQRBasic.Name = "groupBoxQRBasic";
+            this.groupBoxQRBasic.Padding = new System.Windows.Forms.Padding(4);
+            this.groupBoxQRBasic.Size = new System.Drawing.Size(430, 245);
+            this.groupBoxQRBasic.TabIndex = 2;
+            this.groupBoxQRBasic.TabStop = false;
+            this.groupBoxQRBasic.Text = "QR Code 基本設定";
+            //
+            // lblQRContent
+            //
+            this.lblQRContent.AutoSize = true;
+            this.lblQRContent.Location = new System.Drawing.Point(10, 25);
+            this.lblQRContent.Name = "lblQRContent";
+            this.lblQRContent.Size = new System.Drawing.Size(71, 15);
+            this.lblQRContent.TabIndex = 0;
+            this.lblQRContent.Text = "QR 內容：";
+            //
+            // txtQRContent
+            //
+            this.txtQRContent.Location = new System.Drawing.Point(10, 45);
+            this.txtQRContent.Multiline = true;
+            this.txtQRContent.Name = "txtQRContent";
+            this.txtQRContent.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.txtQRContent.Size = new System.Drawing.Size(410, 60);
+            this.txtQRContent.TabIndex = 1;
+            this.txtQRContent.Text = "Hello World";
+            //
+            // lblQRPosX
+            //
+            this.lblQRPosX.AutoSize = true;
+            this.lblQRPosX.Location = new System.Drawing.Point(10, 118);
+            this.lblQRPosX.Name = "lblQRPosX";
+            this.lblQRPosX.Size = new System.Drawing.Size(78, 15);
+            this.lblQRPosX.TabIndex = 2;
+            this.lblQRPosX.Text = "X 位置(mm):";
+            //
+            // txtQRPosX
+            //
+            this.txtQRPosX.Location = new System.Drawing.Point(100, 115);
+            this.txtQRPosX.Name = "txtQRPosX";
+            this.txtQRPosX.Size = new System.Drawing.Size(80, 25);
+            this.txtQRPosX.TabIndex = 3;
+            this.txtQRPosX.Text = "0";
+            //
+            // lblQRPosY
+            //
+            this.lblQRPosY.AutoSize = true;
+            this.lblQRPosY.Location = new System.Drawing.Point(200, 118);
+            this.lblQRPosY.Name = "lblQRPosY";
+            this.lblQRPosY.Size = new System.Drawing.Size(77, 15);
+            this.lblQRPosY.TabIndex = 4;
+            this.lblQRPosY.Text = "Y 位置(mm):";
+            //
+            // txtQRPosY
+            //
+            this.txtQRPosY.Location = new System.Drawing.Point(290, 115);
+            this.txtQRPosY.Name = "txtQRPosY";
+            this.txtQRPosY.Size = new System.Drawing.Size(80, 25);
+            this.txtQRPosY.TabIndex = 5;
+            this.txtQRPosY.Text = "0";
+            //
+            // lblQRWidth
+            //
+            this.lblQRWidth.AutoSize = true;
+            this.lblQRWidth.Location = new System.Drawing.Point(10, 153);
+            this.lblQRWidth.Name = "lblQRWidth";
+            this.lblQRWidth.Size = new System.Drawing.Size(66, 15);
+            this.lblQRWidth.TabIndex = 6;
+            this.lblQRWidth.Text = "寬度(mm):";
+            //
+            // txtQRWidth
+            //
+            this.txtQRWidth.Location = new System.Drawing.Point(100, 150);
+            this.txtQRWidth.Name = "txtQRWidth";
+            this.txtQRWidth.Size = new System.Drawing.Size(80, 25);
+            this.txtQRWidth.TabIndex = 7;
+            this.txtQRWidth.Text = "10";
+            //
+            // lblQRHeight
+            //
+            this.lblQRHeight.AutoSize = true;
+            this.lblQRHeight.Location = new System.Drawing.Point(200, 153);
+            this.lblQRHeight.Name = "lblQRHeight";
+            this.lblQRHeight.Size = new System.Drawing.Size(66, 15);
+            this.lblQRHeight.TabIndex = 8;
+            this.lblQRHeight.Text = "高度(mm):";
+            //
+            // txtQRHeight
+            //
+            this.txtQRHeight.Location = new System.Drawing.Point(290, 150);
+            this.txtQRHeight.Name = "txtQRHeight";
+            this.txtQRHeight.Size = new System.Drawing.Size(80, 25);
+            this.txtQRHeight.TabIndex = 9;
+            this.txtQRHeight.Text = "10";
+            //
+            // chkQRInvert
+            //
+            this.chkQRInvert.AutoSize = true;
+            this.chkQRInvert.Location = new System.Drawing.Point(15, 295);
+            this.chkQRInvert.Name = "chkQRInvert";
+            this.chkQRInvert.Size = new System.Drawing.Size(100, 19);
+            this.chkQRInvert.TabIndex = 3;
+            this.chkQRInvert.Text = "反轉黑白";
+            this.chkQRInvert.UseVisualStyleBackColor = true;
+            //
+            // btnLoadQR
+            //
+            this.btnLoadQR.Location = new System.Drawing.Point(15, 325);
+            this.btnLoadQR.Name = "btnLoadQR";
+            this.btnLoadQR.Size = new System.Drawing.Size(200, 35);
+            this.btnLoadQR.TabIndex = 4;
+            this.btnLoadQR.Text = "載入 QR Code";
+            this.btnLoadQR.UseVisualStyleBackColor = true;
+            this.btnLoadQR.Click += new System.EventHandler(this.btnLoadQR_Click);
+            //
+            // btnMarkQR
+            //
+            this.btnMarkQR.Enabled = false;
+            this.btnMarkQR.Location = new System.Drawing.Point(15, 370);
+            this.btnMarkQR.Name = "btnMarkQR";
+            this.btnMarkQR.Size = new System.Drawing.Size(95, 35);
+            this.btnMarkQR.TabIndex = 5;
+            this.btnMarkQR.Text = "打標";
+            this.btnMarkQR.UseVisualStyleBackColor = true;
+            this.btnMarkQR.Click += new System.EventHandler(this.btnMarkQR_Click);
+            //
+            // btnStopMarkQR
+            //
+            this.btnStopMarkQR.Enabled = false;
+            this.btnStopMarkQR.Location = new System.Drawing.Point(120, 370);
+            this.btnStopMarkQR.Name = "btnStopMarkQR";
+            this.btnStopMarkQR.Size = new System.Drawing.Size(95, 35);
+            this.btnStopMarkQR.TabIndex = 6;
+            this.btnStopMarkQR.Text = "停止打標";
+            this.btnStopMarkQR.UseVisualStyleBackColor = true;
+            this.btnStopMarkQR.Click += new System.EventHandler(this.btnStopMarkQR_Click);
+            //
+            // btnPreviewQR
+            //
+            this.btnPreviewQR.Location = new System.Drawing.Point(15, 413);
+            this.btnPreviewQR.Name = "btnPreviewQR";
+            this.btnPreviewQR.Size = new System.Drawing.Size(95, 30);
+            this.btnPreviewQR.TabIndex = 7;
+            this.btnPreviewQR.Text = "紅光預覽";
+            this.btnPreviewQR.UseVisualStyleBackColor = true;
+            this.btnPreviewQR.Click += new System.EventHandler(this.btnPreviewQR_Click);
+            //
+            // btnStopPreviewQR
+            //
+            this.btnStopPreviewQR.Enabled = false;
+            this.btnStopPreviewQR.Location = new System.Drawing.Point(120, 413);
+            this.btnStopPreviewQR.Name = "btnStopPreviewQR";
+            this.btnStopPreviewQR.Size = new System.Drawing.Size(95, 30);
+            this.btnStopPreviewQR.TabIndex = 8;
+            this.btnStopPreviewQR.Text = "停止預覽";
+            this.btnStopPreviewQR.UseVisualStyleBackColor = true;
+            this.btnStopPreviewQR.Click += new System.EventHandler(this.btnStopPreviewQR_Click);
+            //
+            // btnClearQR
+            //
+            this.btnClearQR.Location = new System.Drawing.Point(225, 370);
+            this.btnClearQR.Name = "btnClearQR";
+            this.btnClearQR.Size = new System.Drawing.Size(95, 35);
+            this.btnClearQR.TabIndex = 9;
+            this.btnClearQR.Text = "清除畫面";
+            this.btnClearQR.UseVisualStyleBackColor = true;
+            this.btnClearQR.Click += new System.EventHandler(this.btnClearQR_Click);
+            //
+            // txtQRStatus
+            //
+            this.txtQRStatus.Font = new System.Drawing.Font("Consolas", 9F);
+            this.txtQRStatus.Location = new System.Drawing.Point(15, 455);
+            this.txtQRStatus.Multiline = true;
+            this.txtQRStatus.Name = "txtQRStatus";
+            this.txtQRStatus.ReadOnly = true;
+            this.txtQRStatus.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.txtQRStatus.Size = new System.Drawing.Size(420, 100);
+            this.txtQRStatus.TabIndex = 10;
+            //
             // btnExit
-            // 
+            //
             this.btnExit.Location = new System.Drawing.Point(1200, 812);
             this.btnExit.Margin = new System.Windows.Forms.Padding(4);
             this.btnExit.Name = "btnExit";
@@ -1140,6 +1400,10 @@
             ((System.ComponentModel.ISupportInitialize)(this.trkPower)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numPower)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numMarkRepeat)).EndInit();
+            this.tabPageQRCode.ResumeLayout(false);
+            this.tabPageQRCode.PerformLayout();
+            this.groupBoxQRBasic.ResumeLayout(false);
+            this.groupBoxQRBasic.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -1234,5 +1498,27 @@
         private System.Windows.Forms.TextBox txtWobbleOverlap;
         private System.Windows.Forms.Label lblWobbleSpeed;
         private System.Windows.Forms.TextBox txtWobbleSpeed;
+        private System.Windows.Forms.TabPage tabPageQRCode;
+        private System.Windows.Forms.Label lblBoardQR;
+        private System.Windows.Forms.ComboBox comboBoardQR;
+        private System.Windows.Forms.GroupBox groupBoxQRBasic;
+        private System.Windows.Forms.Label lblQRContent;
+        private System.Windows.Forms.TextBox txtQRContent;
+        private System.Windows.Forms.Label lblQRPosX;
+        private System.Windows.Forms.TextBox txtQRPosX;
+        private System.Windows.Forms.Label lblQRPosY;
+        private System.Windows.Forms.TextBox txtQRPosY;
+        private System.Windows.Forms.Label lblQRWidth;
+        private System.Windows.Forms.TextBox txtQRWidth;
+        private System.Windows.Forms.Label lblQRHeight;
+        private System.Windows.Forms.TextBox txtQRHeight;
+        private System.Windows.Forms.CheckBox chkQRInvert;
+        private System.Windows.Forms.Button btnLoadQR;
+        private System.Windows.Forms.Button btnMarkQR;
+        private System.Windows.Forms.Button btnStopMarkQR;
+        private System.Windows.Forms.Button btnPreviewQR;
+        private System.Windows.Forms.Button btnStopPreviewQR;
+        private System.Windows.Forms.Button btnClearQR;
+        private System.Windows.Forms.TextBox txtQRStatus;
     }
 }

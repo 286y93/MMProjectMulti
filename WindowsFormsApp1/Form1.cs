@@ -55,6 +55,9 @@ namespace WindowsFormsApp1
         private bool m_IsAutoMode = false;
         public int ExitCode { get; private set; } = 0;
 
+        // QR Code 條碼類型常數
+        // TODO: 從 SDK 文件 (MultiMM OCX Manual) 確認正確的 lType 值
+        private const int BARCODE_TYPE_QRCODE = 23;
 
         // GUI 模式建構子
         public Form1()
@@ -66,6 +69,7 @@ namespace WindowsFormsApp1
             comboBoard.SelectedIndex = 0;
             comboBoardDXF.SelectedIndex = 0;
             comboBoardLaser.SelectedIndex = 0;
+            comboBoardQR.SelectedIndex = 0;
             // txtPulseWidth 預設值 5 (在 Designer 中設定)
             m_IsAutoMode = false;
 
@@ -435,6 +439,12 @@ namespace WindowsFormsApp1
                 btnLoadDXFFile.Enabled = true;
                 btnClearDXF.Enabled = true;
                 btnStop.Enabled = false;
+                // QR Code 頁籤按鈕
+                btnMarkQR.Enabled = true;
+                btnStopMarkQR.Enabled = false;
+                btnLoadQR.Enabled = true;
+                btnPreviewQR.Enabled = true;
+                btnClearQR.Enabled = true;
 
                 MessageBox.Show($"晶片板 {boardIndex + 1} 完成！", "完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
@@ -1391,6 +1401,10 @@ namespace WindowsFormsApp1
                 btnLoadDXFFile.Enabled = false;
                 btnMark.Enabled = false;
                 btnStop.Enabled = true;
+                // 停用 QR 頁籤按鈕
+                btnMarkQR.Enabled = false;
+                btnPreviewQR.Enabled = false;
+                btnLoadQR.Enabled = false;
             }
             catch (Exception ex)
             {
@@ -1446,6 +1460,10 @@ namespace WindowsFormsApp1
                 btnClearDXF.Enabled = false;
                 btnMark.Enabled = false;
                 btnStop.Enabled = true;
+                // 停用 QR 頁籤按鈕
+                btnMarkQR.Enabled = false;
+                btnPreviewQR.Enabled = false;
+                btnLoadQR.Enabled = false;
             }
             catch (Exception ex)
             {
@@ -1481,6 +1499,13 @@ namespace WindowsFormsApp1
                 btnClearDXF.Enabled = true;
                 btnMark.Enabled = true;
                 btnStop.Enabled = false;
+                // QR Code 頁籤按鈕
+                btnMarkQR.Enabled = true;
+                btnStopMarkQR.Enabled = false;
+                btnPreviewQR.Enabled = true;
+                btnStopPreviewQR.Enabled = false;
+                btnLoadQR.Enabled = true;
+                btnClearQR.Enabled = true;
             }
             catch (Exception ex)
             {
@@ -1513,6 +1538,13 @@ namespace WindowsFormsApp1
                 btnClearDXF.Enabled = true;
                 btnMark.Enabled = true;
                 btnStop.Enabled = false;
+                // QR Code 頁籤按鈕
+                btnMarkQR.Enabled = true;
+                btnStopMarkQR.Enabled = false;
+                btnPreviewQR.Enabled = true;
+                btnStopPreviewQR.Enabled = false;
+                btnLoadQR.Enabled = true;
+                btnClearQR.Enabled = true;
             }
             catch (Exception ex)
             {
@@ -1543,6 +1575,12 @@ namespace WindowsFormsApp1
                 btnClearDXF.Enabled = true;
                 btnMark.Enabled = true;
                 btnStop.Enabled = false;
+                // QR Code 頁籤按鈕
+                btnMarkQR.Enabled = true;
+                btnStopMarkQR.Enabled = false;
+                btnLoadQR.Enabled = true;
+                btnPreviewQR.Enabled = true;
+                btnClearQR.Enabled = true;
             }
             catch (Exception ex)
             {
@@ -2084,6 +2122,325 @@ namespace WindowsFormsApp1
             {
                 txtLaserStatus.Text = $"讀取參數失敗：{ex.Message}";
                 MessageBox.Show($"讀取參數失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // ===== QR Code 頁籤事件 =====
+
+        /// <summary>
+        /// 載入 QR Code 到指定晶片板
+        /// </summary>
+        private void btnLoadQR_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit)
+            {
+                MessageBox.Show("請先在「連接設定」頁簽初始化！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            int boardIndex = comboBoardQR.SelectedIndex;
+
+            if (!m_bBoardInit[boardIndex])
+            {
+                MessageBox.Show($"晶片板 {boardIndex + 1} 未成功初始化，無法操作！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            string content = txtQRContent.Text.Trim();
+            if (string.IsNullOrEmpty(content))
+            {
+                MessageBox.Show("請輸入 QR Code 內容！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (!double.TryParse(txtQRPosX.Text.Trim(), out double posX))
+            {
+                MessageBox.Show("請輸入有效的 X 位置值！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            if (!double.TryParse(txtQRPosY.Text.Trim(), out double posY))
+            {
+                MessageBox.Show("請輸入有效的 Y 位置值！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            if (!double.TryParse(txtQRWidth.Text.Trim(), out double width) || width <= 0)
+            {
+                MessageBox.Show("請輸入有效的寬度值！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            if (!double.TryParse(txtQRHeight.Text.Trim(), out double height) || height <= 0)
+            {
+                MessageBox.Show("請輸入有效的高度值！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            try
+            {
+                // 建立 QR Code 條碼物件
+                long result = m_MMMark[boardIndex].AddBarcode(
+                    BARCODE_TYPE_QRCODE, content, posX, posY, width, height, "", "");
+
+                if (result != 0)
+                {
+                    MessageBox.Show($"建立 QR Code 失敗！回傳碼: {result}\n" +
+                        "可能需要調整 BARCODE_TYPE_QRCODE 常數值。",
+                        "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                Application.DoEvents();
+                Thread.Sleep(100);
+
+                // 列舉物件取得新建的 QR Code 物件名稱
+                m_MMMark[boardIndex].SelectAllObjects();
+                long objCount = m_MMMark[boardIndex].SelectGetCount();
+                string qrObjName = "";
+
+                if (objCount > 0)
+                {
+                    m_MMMark[boardIndex].SelectEnum((int)(objCount - 1), ref qrObjName);
+                }
+
+                // 套用設定
+                if (!string.IsNullOrEmpty(qrObjName))
+                {
+                    // 反轉黑白
+                    m_MMEdit[boardIndex].SetBarcodeInvert(qrObjName, chkQRInvert.Checked ? 1 : 0);
+                }
+
+                // 重繪畫面
+                Application.DoEvents();
+                Thread.Sleep(100);
+                m_MMMark[boardIndex].Redraw();
+                Thread.Sleep(300);
+
+                btnMarkQR.Enabled = true;
+
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine($"QR Code 已載入至晶片板 {boardIndex + 1}");
+                sb.AppendLine($"內容: {content}");
+                sb.AppendLine($"位置: ({posX}, {posY})  大小: {width}x{height}mm");
+                if (!string.IsNullOrEmpty(qrObjName))
+                    sb.AppendLine($"物件名稱: {qrObjName}");
+                txtQRStatus.Text = sb.ToString();
+            }
+            catch (Exception ex)
+            {
+                txtQRStatus.Text = $"載入 QR Code 失敗：{ex.Message}";
+                MessageBox.Show($"載入 QR Code 失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// QR Code: 執行打標
+        /// </summary>
+        private void btnMarkQR_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit)
+            {
+                MessageBox.Show("請先初始化！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            try
+            {
+                int boardIndex = comboBoardQR.SelectedIndex;
+
+                if (!m_bBoardInit[boardIndex])
+                {
+                    MessageBox.Show($"晶片板 {boardIndex + 1} 未成功初始化，無法操作！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                // 打標前自動套用雷射參數
+                if (!ApplyLaserParamsFromUI(boardIndex))
+                    return;
+
+                m_MMMark[boardIndex].MarkStandBy();
+
+                if (m_MMMark[boardIndex].StartMarking(4) != 0)
+                {
+                    MessageBox.Show($"晶片板 {boardIndex + 1} 打標啟動失敗！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                // 啟動 Timer 來監控打標狀態
+                timerMark.Tag = boardIndex;
+                timerMark.Start();
+
+                btnMarkQR.Enabled = false;
+                btnStopMarkQR.Enabled = true;
+                btnLoadQR.Enabled = false;
+                btnPreviewQR.Enabled = false;
+                btnClearQR.Enabled = false;
+                // 停用其他頁籤的打標按鈕
+                btnMarkDXF.Enabled = false;
+                btnMark.Enabled = false;
+                btnStop.Enabled = true;
+
+                txtQRStatus.Text = $"晶片板 {boardIndex + 1} 正在打標...";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"啟動雷射失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// QR Code: 停止打標
+        /// </summary>
+        private void btnStopMarkQR_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit) return;
+
+            try
+            {
+                int boardIndex = comboBoardQR.SelectedIndex;
+                if (m_bBoardInit[boardIndex])
+                {
+                    m_MMMark[boardIndex].StopMarking();
+                }
+                timerMark.Stop();
+
+                // 恢復按鈕狀態
+                btnMarkQR.Enabled = true;
+                btnStopMarkQR.Enabled = false;
+                btnLoadQR.Enabled = true;
+                btnPreviewQR.Enabled = true;
+                btnStopPreviewQR.Enabled = false;
+                btnClearQR.Enabled = true;
+                btnMarkDXF.Enabled = true;
+                btnMark.Enabled = true;
+                btnStop.Enabled = false;
+
+                txtQRStatus.Text = "打標已停止。";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"停止打標失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// QR Code: 紅光預覽
+        /// </summary>
+        private void btnPreviewQR_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit)
+            {
+                MessageBox.Show("請先初始化！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            try
+            {
+                int boardIndex = comboBoardQR.SelectedIndex;
+
+                if (!m_bBoardInit[boardIndex])
+                {
+                    MessageBox.Show($"晶片板 {boardIndex + 1} 未成功初始化，無法操作！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                // 設定預覽模式（全路徑預覽）並啟動紅光預覽
+                m_MMMark[boardIndex].SetPreviewMode(2);
+                m_MMMark[boardIndex].MarkStandBy();
+                Application.DoEvents();
+
+                if (m_MMMark[boardIndex].StartMarking(3) != 0)
+                {
+                    MessageBox.Show($"晶片板 {boardIndex + 1} 預覽啟動失敗！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                m_bPreviewing = true;
+
+                // 啟動 15 秒自動關閉 Timer
+                timerPreview.Stop();
+                timerPreview.Start();
+
+                // 停用按鈕
+                btnMarkQR.Enabled = false;
+                btnPreviewQR.Enabled = false;
+                btnStopPreviewQR.Enabled = true;
+                btnLoadQR.Enabled = false;
+                btnClearQR.Enabled = false;
+                btnMarkDXF.Enabled = false;
+                btnPreviewDXF.Enabled = false;
+                btnMark.Enabled = false;
+                btnStop.Enabled = true;
+
+                txtQRStatus.Text = $"晶片板 {boardIndex + 1} 紅光預覽中...（15秒後自動停止）";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"啟動預覽失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// QR Code: 停止紅光預覽
+        /// </summary>
+        private void btnStopPreviewQR_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit) return;
+
+            try
+            {
+                timerPreview.Stop();
+
+                int boardIndex = comboBoardQR.SelectedIndex;
+                if (m_bBoardInit[boardIndex])
+                {
+                    m_MMMark[boardIndex].StopMarking();
+                }
+                m_bPreviewing = false;
+
+                // 恢復按鈕狀態
+                btnMarkQR.Enabled = true;
+                btnStopMarkQR.Enabled = false;
+                btnPreviewQR.Enabled = true;
+                btnStopPreviewQR.Enabled = false;
+                btnLoadQR.Enabled = true;
+                btnClearQR.Enabled = true;
+                btnMarkDXF.Enabled = true;
+                btnPreviewDXF.Enabled = true;
+                btnStopPreview.Enabled = false;
+                btnMark.Enabled = true;
+                btnStop.Enabled = false;
+
+                txtQRStatus.Text = "預覽已停止。";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"停止預覽失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// QR Code: 清除畫面
+        /// </summary>
+        private void btnClearQR_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit) return;
+
+            int boardIndex = comboBoardQR.SelectedIndex;
+            if (!m_bBoardInit[boardIndex]) return;
+
+            try
+            {
+                // 刪除所有物件後重繪
+                m_MMMark[boardIndex].ResetFile();
+                Application.DoEvents();
+                Thread.Sleep(100);
+                m_MMMark[boardIndex].Redraw();
+
+                btnMarkQR.Enabled = false;
+                txtQRStatus.Text = $"晶片板 {boardIndex + 1} 已清除。";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"清除失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
