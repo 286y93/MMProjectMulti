@@ -620,6 +620,9 @@ namespace WindowsFormsApp1
                     return; // 重要 return
                 }
 
+                // Debug: 輸出解析後的參數
+                Console.WriteLine($"[AutoMode] DxfPath={m_AutoModeArgs.DxfPath ?? "(null)"}, Lines={m_AutoModeArgs.Lines?.Count ?? 0}, QRContent={m_AutoModeArgs.QRContent ?? "(null)"}, QRSize={m_AutoModeArgs.QRWidth}x{m_AutoModeArgs.QRHeight}, QRPos=({m_AutoModeArgs.QRPosX},{m_AutoModeArgs.QRPosY})");
+
                 // 步驟 2: 載入 DXF 檔案或繪製手動線段
                 bool hasContent = false;
                 if (!string.IsNullOrEmpty(m_AutoModeArgs.DxfPath))
@@ -680,6 +683,19 @@ namespace WindowsFormsApp1
                     Application.DoEvents();
                     System.Threading.Thread.Sleep(300); // 等待繪圖完成
                     System.Diagnostics.Debug.WriteLine($"已繪製 {m_AutoModeArgs.Lines.Count} 條線段");
+                    hasContent = true;
+                }
+                else if (!string.IsNullOrEmpty(m_AutoModeArgs.QRContent))
+                {
+                    if (!DrawQRCodeAuto(m_AutoModeArgs.BoardIndex, m_AutoModeArgs.QRContent,
+                        m_AutoModeArgs.QRPosX, m_AutoModeArgs.QRPosY,
+                        m_AutoModeArgs.QRWidth, m_AutoModeArgs.QRHeight))
+                    {
+                        Console.Error.WriteLine("Error: Failed to draw QR Code.");
+                        ExitCode = 2;
+                        this.Close();
+                        return;
+                    }
                     hasContent = true;
                 }
 
@@ -844,6 +860,40 @@ namespace WindowsFormsApp1
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"繪製線段失敗：{ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 自動模式：繪製 QR Code
+        /// </summary>
+        private bool DrawQRCodeAuto(int boardIndex, string content, double posX, double posY, double width, double height)
+        {
+            try
+            {
+                long result = m_MMMark[boardIndex].AddBarcode(
+                    BARCODE_TYPE_QRCODE, content, posX, posY, width, height, "", "");
+
+                if (result != 0)
+                {
+                    Console.Error.WriteLine($"Error: AddBarcode failed with code {result}");
+                    return false;
+                }
+
+                Application.DoEvents();
+                Thread.Sleep(100);
+
+                m_MMMark[boardIndex].Redraw();
+                Application.DoEvents();
+                Thread.Sleep(300);
+
+                System.Diagnostics.Debug.WriteLine($"已繪製 QR Code: content={content}, pos=({posX},{posY}), size={width}x{height}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"繪製 QR Code 失敗：{ex.Message}");
+                Console.Error.WriteLine($"Error: DrawQRCode exception - {ex.Message}");
                 return false;
             }
         }

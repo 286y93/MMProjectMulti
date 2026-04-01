@@ -27,6 +27,12 @@ namespace WindowsFormsApp1
         public double? WobbleWidth { get; private set; }
         public double? WobbleOverlap { get; private set; }
         public double? WobbleSpeed { get; private set; }
+        // QR Code 參數
+        public string QRContent { get; private set; }
+        public double QRWidth { get; private set; }
+        public double QRHeight { get; private set; }
+        public double QRPosX { get; private set; }
+        public double QRPosY { get; private set; }
         // 預覽模式：0=不預覽, 1=外框預覽, 2=全路徑預覽
         public int PreviewMode { get; private set; }
         public double? PreviewSpeed { get; private set; }
@@ -50,6 +56,11 @@ namespace WindowsFormsApp1
             WobbleWidth = null;
             WobbleOverlap = null;
             WobbleSpeed = null;
+            QRContent = null;
+            QRWidth = 10.0;
+            QRHeight = 10.0;
+            QRPosX = 0.0;
+            QRPosY = 0.0;
             PreviewMode = 0;
             PreviewSpeed = null;
             PreviewTime = 15;
@@ -259,6 +270,47 @@ namespace WindowsFormsApp1
                         i++;
                     }
                 }
+                else if (argLower == "--qrcode" || argLower == "-qr")
+                {
+                    if (i + 1 < args.Length)
+                    {
+                        result.QRContent = args[i + 1];
+                        i++;
+                        result.IsAutoMode = true;
+                    }
+                }
+                else if (argLower == "--qr-width")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double qrWidth))
+                    {
+                        result.QRWidth = qrWidth;
+                        i++;
+                    }
+                }
+                else if (argLower == "--qr-height")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double qrHeight))
+                    {
+                        result.QRHeight = qrHeight;
+                        i++;
+                    }
+                }
+                else if (argLower == "--qr-x")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double qrX))
+                    {
+                        result.QRPosX = qrX;
+                        i++;
+                    }
+                }
+                else if (argLower == "--qr-y")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double qrY))
+                    {
+                        result.QRPosY = qrY;
+                        i++;
+                    }
+                }
                 else if (argLower == "--mark" || argLower == "-m")
                 {
                     result.AutoMark = true;
@@ -296,6 +348,11 @@ namespace WindowsFormsApp1
   --wobble-width <val>, --wobble <val> 擺動寬度 (不指定則不啟動擺動)
   --wobble-overlap <n>                  擺動重疊率 % (預設: 50)
   --wobble-speed <mm/s>                 擺動速度 mm/s (預設: 5026.55)
+  --qrcode <content>, -qr <content>   QR Code 內容字串
+  --qr-width <mm>                       QR Code 寬度 mm (預設: 10)
+  --qr-height <mm>                      QR Code 高度 mm (預設: 10)
+  --qr-x <mm>                           QR Code X 位置 mm (預設: 0)
+  --qr-y <mm>                           QR Code Y 位置 mm (預設: 0)
   --mark, -m                            自動執行打標
   --preview <outline|full>               紅光預覽模式（不打雷射，需搭配 --mark）
                                           outline = 外框預覽, full = 全路徑預覽 (預設: full)
@@ -324,6 +381,12 @@ namespace WindowsFormsApp1
   # 指定工作區大小 200mm 載入 DXF
   MarkingMateMulti.exe --board 0 --workspace 200 --dxf ""File\上翼板-2.dxf"" --mark
 
+  # QR Code 打標
+  MarkingMateMulti.exe --board 0 --qrcode ""Hello World"" --qr-width 10 --qr-height 10 --power 50 --speed 1000 --mark
+
+  # QR Code 指定位置
+  MarkingMateMulti.exe --board 0 --qrcode ""https://example.com"" --qr-x 5 --qr-y -5 --qr-width 15 --qr-height 15 --mark
+
   # 使用自訂配置
   MarkingMateMulti.exe --board 2 --config /cfg_config_MM3 --line 0,0,100,100
 
@@ -347,9 +410,9 @@ namespace WindowsFormsApp1
                 return false;
             }
 
-            if (Lines.Count == 0 && string.IsNullOrEmpty(DxfPath) && AutoMark)
+            if (Lines.Count == 0 && string.IsNullOrEmpty(DxfPath) && string.IsNullOrEmpty(QRContent) && AutoMark)
             {
-                errorMessage = "自動打標模式至少需要一條線段或指定 DXF 檔案";
+                errorMessage = "自動打標模式至少需要一條線段、DXF 檔案或 QR Code 內容";
                 return false;
             }
 
