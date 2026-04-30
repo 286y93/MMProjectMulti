@@ -33,7 +33,9 @@
       "WebFetch(domain:)",
       "WebFetch(domain:manualzz.com)",
       "WebFetch(domain:www.linxuanlaser.com)",
-      "WebFetch(domain:www.markingmate.vn)"
+      "WebFetch(domain:www.markingmate.vn)",
+      "Bash(grep -i \"\\\\.exe$\")",
+      "Bash(grep -iE \"\\\\.h$|header|api|doc|pdf|error\")"
     ]
   }
 }
