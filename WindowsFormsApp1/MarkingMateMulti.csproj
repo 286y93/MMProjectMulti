@@ -51,16 +51,20 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="AxMMMark_x64_1">
-      <HintPath>C:\Program Files (x86)\MarkingMate\MmAssembly\AxMMMark_x64_1.dll</HintPath>
+      <HintPath>Lib\AxMMMark_x64_1.dll</HintPath>
+      <Private>true</Private>
     </Reference>
     <Reference Include="AxMMEdit_x64_1">
-      <HintPath>C:\Program Files (x86)\MarkingMate\MmAssembly\AxMMEdit_x64_1.dll</HintPath>
+      <HintPath>Lib\AxMMEdit_x64_1.dll</HintPath>
+      <Private>true</Private>
     </Reference>
     <Reference Include="MMMarkx641Lib">
-      <HintPath>C:\Program Files (x86)\MarkingMate\MmAssembly\MMMarkx641Lib.dll</HintPath>
+      <HintPath>Lib\MMMarkx641Lib.dll</HintPath>
+      <Private>true</Private>
     </Reference>
     <Reference Include="MMEditx641Lib">
-      <HintPath>C:\Program Files (x86)\MarkingMate\MmAssembly\MMEditx641Lib.dll</HintPath>
+      <HintPath>Lib\MMEditx641Lib.dll</HintPath>
+      <Private>true</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
