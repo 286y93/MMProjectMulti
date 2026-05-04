@@ -24,13 +24,7 @@ namespace WindowsFormsApp1
         // 每個晶片板的配置路徑
         // 注意：MarkingMate MultiMM SDK 預設支援 MM1 和 MM2
         // 若需要 MM3、MM4，需在 MarkingMate 中建立對應的配置
-        private string[] m_ConfigPaths = new string[]
-        {
-            "/cfg_config_MM1",
-            "/cfg_config_MM2",
-            "/cfg_config_MM3",
-            "/cfg_config_MM4"
-        };
+        private string[] m_ConfigPaths;
 
         // 記錄每個板是否成功初始化
         private bool[] m_bBoardInit = new bool[4];
@@ -63,6 +57,15 @@ namespace WindowsFormsApp1
         public Form1()
         {
             InitializeComponent();
+
+            string configBasePath = Path.Combine(Application.StartupPath, "config");
+            m_ConfigPaths = new string[]
+            {
+                Path.Combine(configBasePath, "cfg_config_MM1"),
+                Path.Combine(configBasePath, "cfg_config_MM2"),
+                Path.Combine(configBasePath, "cfg_config_MM3"),
+                Path.Combine(configBasePath, "cfg_config_MM4")
+            };
 
             m_Panels = new Panel[] { panelBoard1, panelBoard2, panelBoard3, panelBoard4 };
             m_txtIPs = new TextBox[] { txtIP1, txtIP2, txtIP3, txtIP4 };
