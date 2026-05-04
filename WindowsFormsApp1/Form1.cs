@@ -585,24 +585,46 @@ namespace WindowsFormsApp1
             try
             {
                 // 檢查是否還有 MM27Dx64.exe 在背景執行，若有則強制結束
+                // 注意：若有其他 MarkingMateMulti 實例正在執行（多 process 並行模式），則跳過 kill
+                // 以免殺掉其他實例正在使用的驅動程序
                 try
                 {
-                    System.Diagnostics.Process[] processes = System.Diagnostics.Process.GetProcessesByName("MM27Dx64");
-                    if (processes.Length > 0)
+                    int currentPid = System.Diagnostics.Process.GetCurrentProcess().Id;
+                    string currentName = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
+                    var otherInstances = System.Diagnostics.Process.GetProcessesByName(currentName);
+                    bool hasOtherInstances = false;
+                    foreach (var p in otherInstances)
                     {
-                        System.Diagnostics.Debug.WriteLine($"發現 {processes.Length} 個 MM27Dx64.exe 背景進程，正在結束...");
-                        foreach (System.Diagnostics.Process proc in processes)
+                        if (p.Id != currentPid)
                         {
-                            try
-                            {
-                                proc.Kill();
-                            }
-                            catch (Exception ex)
-                            {
-                                System.Diagnostics.Debug.WriteLine($"結束 MM27Dx64.exe 失敗 (PID: {proc.Id}): {ex.Message}");
-                            }
+                            hasOtherInstances = true;
+                            break;
                         }
-                        System.Threading.Thread.Sleep(500); // 確保資源釋放
+                    }
+
+                    if (hasOtherInstances)
+                    {
+                        System.Diagnostics.Debug.WriteLine("偵測到其他 MarkingMateMulti 實例執行中，跳過 MM27Dx64 清理以避免干擾其他實例");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Process[] processes = System.Diagnostics.Process.GetProcessesByName("MM27Dx64");
+                        if (processes.Length > 0)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"發現 {processes.Length} 個 MM27Dx64.exe 背景進程，正在結束...");
+                            foreach (System.Diagnostics.Process proc in processes)
+                            {
+                                try
+                                {
+                                    proc.Kill();
+                                }
+                                catch (Exception ex)
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"結束 MM27Dx64.exe 失敗 (PID: {proc.Id}): {ex.Message}");
+                                }
+                            }
+                            System.Threading.Thread.Sleep(500); // 確保資源釋放
+                        }
                     }
                 }
                 catch (Exception ex)

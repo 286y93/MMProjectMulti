@@ -27,23 +27,50 @@ namespace WindowsFormsApp1
                 AttachConsole(ATTACH_PARENT_PROCESS);
             }
 
-            // 確保只有一個實例執行（防止 EZDrawPlatform 衝突）
+            // 先解析命令列參數，決定 Mutex 名稱
+            CommandLineArgs cmdArgs;
+            try
+            {
+                cmdArgs = CommandLineArgs.Parse(args);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"參數解析錯誤: {ex.Message}", "程式錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return -1;
+            }
+
+            // CLI 模式：每塊板各自 single instance（允許不同板號並行）
+            // GUI 模式：全域 single instance（防止 EZDrawPlatform 衝突）
+            string mutexName = cmdArgs.IsAutoMode
+                ? $"MarkingMateMulti_Board{cmdArgs.BoardIndex}"
+                : "MarkingMateMulti_SingleInstance";
+
             bool createdNew;
-            using (Mutex mutex = new Mutex(true, "MarkingMateMulti_SingleInstance", out createdNew))
+            using (Mutex mutex = new Mutex(true, mutexName, out createdNew))
             {
                 if (!createdNew)
                 {
-                    MessageBox.Show(
-                        "程式已經在執行中！\n\n" +
-                        "如果看不到視窗，請：\n" +
-                        "1. 開啟工作管理員 (Ctrl+Shift+Esc)\n" +
-                        "2. 結束所有 WindowsFormsApp1.exe\n" +
-                        "3. 等待 5 秒後重新啟動\n\n" +
-                        "或執行 KillAllInstances.bat 自動清理",
-                        "程式已執行",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Warning);
-                    return -1;
+                    if (cmdArgs.IsAutoMode)
+                    {
+                        // CLI 模式：同板號已在執行中
+                        AttachConsole(ATTACH_PARENT_PROCESS);
+                        Console.Error.WriteLine($"Error: Board {cmdArgs.BoardIndex} is already being used by another instance.");
+                        return -2;
+                    }
+                    else
+                    {
+                        MessageBox.Show(
+                            "程式已經在執行中！\n\n" +
+                            "如果看不到視窗，請：\n" +
+                            "1. 開啟工作管理員 (Ctrl+Shift+Esc)\n" +
+                            "2. 結束所有 WindowsFormsApp1.exe\n" +
+                            "3. 等待 5 秒後重新啟動\n\n" +
+                            "或執行 KillAllInstances.bat 自動清理",
+                            "程式已執行",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Warning);
+                        return -1;
+                    }
                 }
 
                 Application.EnableVisualStyles();
@@ -51,9 +78,6 @@ namespace WindowsFormsApp1
 
                 try
                 {
-                    // 解析命令列參數
-                    CommandLineArgs cmdArgs = CommandLineArgs.Parse(args);
-
                     // 如果是顯示說明
                     if (cmdArgs.ShowHelp)
                     {
