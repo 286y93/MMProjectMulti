@@ -35,7 +35,8 @@
       "WebFetch(domain:www.linxuanlaser.com)",
       "WebFetch(domain:www.markingmate.vn)",
       "Bash(grep -i \"\\\\.exe$\")",
-      "Bash(grep -iE \"\\\\.h$|header|api|doc|pdf|error\")"
+      "Bash(grep -iE \"\\\\.h$|header|api|doc|pdf|error\")",
+      "Bash(powershell.exe -NoProfile -Command '& { $msb = \\(Get-ChildItem '\\\\''C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\*\\\\*\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe'\\\\'' -ErrorAction SilentlyContinue | Select-Object -First 1\\).FullName; if \\(-not $msb\\) { $msb = \\(Get-ChildItem '\\\\''C:\\\\Program Files\\\\Microsoft Visual Studio\\\\*\\\\*\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe'\\\\'' -ErrorAction SilentlyContinue | Select-Object -First 1\\).FullName }; if \\(-not $msb\\) { '\\\\''NO MSBUILD'\\\\'' } else { Write-Host \"Using $msb\"; & $msb '\\\\''MarkingMateMulti.csproj'\\\\'' /t:Build /p:Configuration=Debug /p:Platform=x64 /v:minimal /nologo 2>&1 | Select-Object -Last 40 } }')"
     ]
   }
 }

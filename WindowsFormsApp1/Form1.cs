@@ -35,14 +35,35 @@ namespace WindowsFormsApp1
         // 記錄每個板是否成功初始化
         private bool[] m_bBoardInit = new bool[4];
 
-        // EMC6 IP 設定檔路徑
-        private string[] m_IPConfigPaths = new string[]
+        // 雷射頭設定來源（專案內，相對於 .csproj 根；初始化時會部署到 MarkingMate 安裝目錄）
+        // 各 MMx 的 IP 檔仍會部署，但 DEV0 在初始化時會由「主 IP 表」依固定 CARD 對應自動同步
+        private static readonly string[] m_IPConfigRelativePaths = new string[]
         {
-            @"C:\Program Files (x86)\MarkingMate\Drivers\EMC6_MM1\DevIPAddress.ini",
-            @"C:\Program Files (x86)\MarkingMate\Drivers\EMC6_MM2\DevIPAddress.ini",
-            @"C:\Program Files (x86)\MarkingMate\Drivers\EMC6_MM3\DevIPAddress.ini",
-            @"C:\Program Files (x86)\MarkingMate\Drivers\EMC6_MM4\DevIPAddress.ini"
+            @"Drivers\EMC6_MM1\DevIPAddress.ini",
+            @"Drivers\EMC6_MM2\DevIPAddress.ini",
+            @"Drivers\EMC6_MM3\DevIPAddress.ini",
+            @"Drivers\EMC6_MM4\DevIPAddress.ini"
         };
+
+        private static readonly string[] m_LaserConfigRelativePaths = new string[]
+        {
+            @"config\config_MM1.ini",
+            @"config\config_MM2.ini",
+            @"config\config_MM3.ini",
+            @"config\config_MM4.ini"
+        };
+
+        // 「卡片 IP 主表」：UI 與初始化的單一來源，DEV0~DEV3 對應 CARD0~CARD3 → MM1~MM4
+        private const string MasterIPRelativePath = @"Drivers\EMC6\DevIPAddress.ini";
+
+        // EMC6 共用驅動目錄（含驅動 / cfg / 主 IP 表），初始化時整個遞迴部署
+        private const string SharedDriverDirRelativePath = @"Drivers\EMC6";
+
+        // 共用主 config.ini，初始化時部署到 MarkingMate\config.ini
+        private const string SharedConfigRelativePath = @"config\config.ini";
+
+        // MarkingMate 安裝根目錄（部署目標）
+        private const string MarkingMateRoot = @"C:\Program Files (x86)\MarkingMate";
 
         private TextBox[] m_txtIPs;
 
@@ -190,6 +211,16 @@ namespace WindowsFormsApp1
             int successCount = 0;
             string failInfo = "";
             int boardCount = (int)numBoardCount.Value;
+
+            // 在 InitialExt 之前部署並驗證 MM1~MMn 雷射頭設定
+            if (!DeployAndValidateLaserHeadConfigs(boardCount, out string deployError))
+            {
+                MessageBox.Show(
+                    "雷射頭設定部署 / 驗證失敗，無法初始化：\n\n" + deployError +
+                    "\n請修正後重試（可在 UI 填入 IP 並按「儲存IP」，或以系統管理員身分執行本程式）。",
+                    "初始化前檢查失敗", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
 
             // 重要：MultiMM SDK 要求逐個板建立、初始化，而非批次處理
             // 必須：建立板 0 → 初始化板 0 → 建立板 1 → 初始化板 1 → ...
@@ -492,23 +523,26 @@ namespace WindowsFormsApp1
 
         private void LoadIPSettings()
         {
+            // 從主 IP 表讀 DEV0~DEV3 → 對應 MM1~MM4 的 UI 欄位
+            string masterIp = ResolveProjectFile(MasterIPRelativePath);
             for (int i = 0; i < 4; i++)
             {
-                m_txtIPs[i].Text = ReadIPFromIni(m_IPConfigPaths[i]);
+                m_txtIPs[i].Text = (masterIp != null) ? ReadDevFromIni(masterIp, i) : "";
             }
         }
 
-        private string ReadIPFromIni(string iniPath)
+        private static string ReadDevFromIni(string iniPath, int devIndex)
         {
             if (!File.Exists(iniPath))
                 return "";
 
+            string key = $"DEV{devIndex}=";
             foreach (string line in File.ReadAllLines(iniPath))
             {
                 string trimmed = line.Trim();
-                if (trimmed.StartsWith("DEV0=", StringComparison.OrdinalIgnoreCase))
+                if (trimmed.StartsWith(key, StringComparison.OrdinalIgnoreCase))
                 {
-                    return trimmed.Substring(5).Trim();
+                    return trimmed.Substring(key.Length).Trim();
                 }
             }
             return "";
@@ -522,16 +556,46 @@ namespace WindowsFormsApp1
 
         private void btnSaveIP_Click(object sender, EventArgs e)
         {
-            int successCount = 0;
+            // 寫入主 IP 表（單一來源），同時把 DEV0~3 同步至 4 支 EMC6_MMx 的 DEV0
+            // 固定 CARD 對應：MM1→CARD0, MM2→CARD1, MM3→CARD2, MM4→CARD3
+            string masterIp = ResolveProjectFile(MasterIPRelativePath);
+            if (masterIp == null)
+            {
+                MessageBox.Show($"找不到主 IP 表：{MasterIPRelativePath}\n請先確認檔案存在。",
+                    "儲存IP", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
             string errorInfo = "";
 
+            // 1. 寫主表
+            try
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    WriteDevToIni(masterIp, i, m_txtIPs[i].Text.Trim());
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"寫入主 IP 表失敗：{ex.Message}", "儲存IP", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            // 2. 同步至各 EMC6_MMx 的 DEV0
+            int syncedCount = 0;
             for (int i = 0; i < 4; i++)
             {
-                string ip = m_txtIPs[i].Text.Trim();
+                string src = ResolveProjectFile(m_IPConfigRelativePaths[i]);
+                if (src == null)
+                {
+                    errorInfo += $"MM{i + 1}：找不到專案 IP 檔（{m_IPConfigRelativePaths[i]}）\n";
+                    continue;
+                }
                 try
                 {
-                    SaveIPToIni(m_IPConfigPaths[i], ip);
-                    successCount++;
+                    WriteDevToIni(src, 0, m_txtIPs[i].Text.Trim());
+                    syncedCount++;
                 }
                 catch (Exception ex)
                 {
@@ -539,34 +603,273 @@ namespace WindowsFormsApp1
                 }
             }
 
-            if (successCount == 4)
+            if (syncedCount == 4)
             {
-                MessageBox.Show("四組 IP 設定已儲存！\n\n注意：IP 變更需重新啟動程式並重新初始化才會生效。",
+                MessageBox.Show("已寫入主 IP 表，並同步至 4 支 EMC6_MMx 的 DEV0。\n\n下次按「初始化」會自動部署到 MarkingMate 安裝目錄並生效。",
                     "儲存IP", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             else
             {
-                MessageBox.Show($"已儲存 {successCount}/4 組。\n\n儲存失敗：\n{errorInfo}\n" +
-                    "提示：可能需要以管理員身分執行程式才能寫入 Program Files 目錄。",
+                MessageBox.Show($"主表已寫入；MMx 同步 {syncedCount}/4 組。\n\n問題：\n{errorInfo}",
                     "儲存IP", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
 
-        private void SaveIPToIni(string iniPath, string ip)
+        private static void WriteDevToIni(string iniPath, int devIndex, string value)
         {
             if (!File.Exists(iniPath))
                 throw new FileNotFoundException($"找不到設定檔：{iniPath}");
 
+            string key = $"DEV{devIndex}=";
             string[] lines = File.ReadAllLines(iniPath);
+            bool written = false;
             for (int j = 0; j < lines.Length; j++)
             {
-                if (lines[j].Trim().StartsWith("DEV0=", StringComparison.OrdinalIgnoreCase))
+                if (lines[j].Trim().StartsWith(key, StringComparison.OrdinalIgnoreCase))
                 {
-                    lines[j] = $"DEV0={ip}";
+                    lines[j] = $"DEV{devIndex}={value}";
+                    written = true;
                     break;
                 }
             }
+            if (!written)
+                throw new InvalidOperationException($"{iniPath} 找不到 DEV{devIndex}= 條目");
             File.WriteAllLines(iniPath, lines);
+        }
+
+        // -----------------------------------------------------------------
+        // 雷射頭設定部署與驗證（MM1~MM4）
+        // -----------------------------------------------------------------
+
+        /// <summary>
+        /// 從 exe 所在資料夾起向上搜尋專案來源檔；用於 dev (bin\x64\Debug) 與部署 (exe 同層) 兩種情境。
+        /// </summary>
+        private static string ResolveProjectFile(string relativePath)
+        {
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string direct = Path.Combine(baseDir, relativePath);
+            if (File.Exists(direct)) return direct;
+
+            var dir = new DirectoryInfo(baseDir);
+            for (int i = 0; i < 6 && dir != null; i++)
+            {
+                string candidate = Path.Combine(dir.FullName, relativePath);
+                if (File.Exists(candidate)) return candidate;
+                dir = dir.Parent;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// 同上但找的是目錄。
+        /// </summary>
+        private static string ResolveProjectDir(string relativePath)
+        {
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string direct = Path.Combine(baseDir, relativePath);
+            if (Directory.Exists(direct)) return direct;
+
+            var dir = new DirectoryInfo(baseDir);
+            for (int i = 0; i < 6 && dir != null; i++)
+            {
+                string candidate = Path.Combine(dir.FullName, relativePath);
+                if (Directory.Exists(candidate)) return candidate;
+                dir = dir.Parent;
+            }
+            return null;
+        }
+
+        private static void CopyWithBackup(string src, string dest)
+        {
+            string destDir = Path.GetDirectoryName(dest);
+            if (!Directory.Exists(destDir)) Directory.CreateDirectory(destDir);
+
+            if (File.Exists(dest))
+            {
+                try { File.Copy(dest, dest + ".bak", overwrite: true); }
+                catch { /* 備份失敗不阻斷部署 */ }
+            }
+            File.Copy(src, dest, overwrite: true);
+        }
+
+        private static void DeployCfgDirectory(string srcDir, string destDir)
+        {
+            if (!Directory.Exists(srcDir)) return;
+            if (!Directory.Exists(destDir)) Directory.CreateDirectory(destDir);
+
+            foreach (string srcFile in Directory.GetFiles(srcDir, "*.cfg"))
+            {
+                string destFile = Path.Combine(destDir, Path.GetFileName(srcFile));
+                File.Copy(srcFile, destFile, overwrite: true);
+            }
+        }
+
+        /// <summary>
+        /// 遞迴複製整個目錄（用於部署 EMC6 共用驅動目錄）。覆蓋同名檔，但不刪除目標端原有檔案。
+        /// </summary>
+        private static void CopyDirectoryRecursive(string srcDir, string destDir)
+        {
+            if (!Directory.Exists(srcDir)) return;
+            Directory.CreateDirectory(destDir);
+
+            foreach (string srcFile in Directory.GetFiles(srcDir))
+            {
+                string destFile = Path.Combine(destDir, Path.GetFileName(srcFile));
+                File.Copy(srcFile, destFile, overwrite: true);
+            }
+
+            foreach (string subDir in Directory.GetDirectories(srcDir))
+            {
+                string destSubDir = Path.Combine(destDir, Path.GetFileName(subDir));
+                CopyDirectoryRecursive(subDir, destSubDir);
+            }
+        }
+
+        /// <summary>
+        /// 在 InitialExt 之前，依「主 IP 表」驗證並把專案設定部署到 MarkingMate 安裝目錄。
+        /// 流程：
+        ///   1. 從 Drivers\EMC6\DevIPAddress.ini 讀 DEV0~DEV(boardCount-1)，全部須非空
+        ///   2. 依固定 CARD 對應（MM1→0, MM2→1, MM3→2, MM4→3）把主表 IP 同步到各 EMC6_MMx\DevIPAddress.ini 的 DEV0
+        ///   3. 整個 Drivers\EMC6\ 遞迴部署到 MarkingMate（含主表、驅動、cfg）
+        ///   4. 共用 config\config.ini 部署到 MarkingMate\config.ini
+        ///   5. 各 MMx 的 DevIPAddress.ini / config_MMx.ini / cfg\*.cfg 部署到對應位置
+        /// </summary>
+        /// <param name="boardCount">要啟用的雷射頭數（1~4）</param>
+        /// <param name="errorInfo">回傳問題明細；空字串代表全部 OK</param>
+        /// <returns>true=可繼續初始化；false=需中止</returns>
+        private bool DeployAndValidateLaserHeadConfigs(int boardCount, out string errorInfo)
+        {
+            var sb = new StringBuilder();
+
+            // === 1. 主 IP 表（單一來源）===
+            string srcMasterIp = ResolveProjectFile(MasterIPRelativePath);
+            if (srcMasterIp == null)
+            {
+                errorInfo = $"找不到主 IP 表：{MasterIPRelativePath}";
+                return false;
+            }
+
+            string[] cardIps = new string[boardCount];
+            for (int i = 0; i < boardCount; i++)
+            {
+                cardIps[i] = ReadDevFromIni(srcMasterIp, i);
+                if (string.IsNullOrWhiteSpace(cardIps[i]))
+                {
+                    sb.AppendLine($"主 IP 表 DEV{i} 為空（對應 MM{i + 1} / CARD{i}），請於 UI 填入 IP 後按「儲存IP」：{srcMasterIp}");
+                }
+            }
+            if (sb.Length > 0)
+            {
+                errorInfo = sb.ToString();
+                return false;
+            }
+
+            // === 2. 主表 → 各 EMC6_MMx\DEV0 同步 ===
+            for (int i = 0; i < boardCount; i++)
+            {
+                string mmxSrcIp = ResolveProjectFile(m_IPConfigRelativePaths[i]);
+                if (mmxSrcIp == null)
+                {
+                    sb.AppendLine($"[MM{i + 1}] 找不到專案 IP 來源檔：{m_IPConfigRelativePaths[i]}");
+                    continue;
+                }
+                try
+                {
+                    WriteDevToIni(mmxSrcIp, 0, cardIps[i]);
+                }
+                catch (Exception ex)
+                {
+                    sb.AppendLine($"[MM{i + 1}] 主表→DEV0 同步失敗：{ex.Message}");
+                }
+            }
+
+            // === 3. EMC6 共用目錄（含主表、驅動、cfg）整個遞迴部署 ===
+            string srcSharedDir = ResolveProjectDir(SharedDriverDirRelativePath);
+            string destSharedDir = Path.Combine(MarkingMateRoot, SharedDriverDirRelativePath);
+            if (srcSharedDir == null)
+            {
+                sb.AppendLine($"找不到專案 EMC6 共用目錄：{SharedDriverDirRelativePath}");
+            }
+            else
+            {
+                try
+                {
+                    CopyDirectoryRecursive(srcSharedDir, destSharedDir);
+                    System.Diagnostics.Debug.WriteLine($"[EMC6] 已遞迴部署：{srcSharedDir} → {destSharedDir}");
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    sb.AppendLine($"部署 EMC6 共用目錄失敗：寫入 {MarkingMateRoot} 權限不足，請以系統管理員身分執行本程式。");
+                    errorInfo = sb.ToString();
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    sb.AppendLine($"部署 EMC6 共用目錄失敗：{ex.Message}");
+                }
+            }
+
+            // === 4. 共用 config.ini ===
+            string srcSharedConfig = ResolveProjectFile(SharedConfigRelativePath);
+            if (srcSharedConfig != null)
+            {
+                string destSharedConfig = Path.Combine(MarkingMateRoot, "config.ini");
+                try
+                {
+                    CopyWithBackup(srcSharedConfig, destSharedConfig);
+                }
+                catch (Exception ex)
+                {
+                    sb.AppendLine($"部署共用 config.ini 失敗：{ex.Message}");
+                }
+            }
+
+            // === 5. 各 MMx 設定 ===
+            for (int i = 0; i < boardCount; i++)
+            {
+                string mmName = $"MM{i + 1}";
+
+                string srcIp = ResolveProjectFile(m_IPConfigRelativePaths[i]);
+                string srcCfg = ResolveProjectFile(m_LaserConfigRelativePaths[i]);
+
+                if (srcIp == null)
+                {
+                    sb.AppendLine($"[{mmName}] 找不到專案 IP 來源檔：{m_IPConfigRelativePaths[i]}");
+                    continue;
+                }
+                if (srcCfg == null)
+                {
+                    sb.AppendLine($"[{mmName}] 找不到專案 config 來源檔：{m_LaserConfigRelativePaths[i]}");
+                    continue;
+                }
+
+                string destIp = Path.Combine(MarkingMateRoot, "Drivers", $"EMC6_{mmName}", "DevIPAddress.ini");
+                string destCfg = Path.Combine(MarkingMateRoot, $"config_{mmName}.ini");
+
+                // 雷射頭 cfg 目錄（含 DEFAULT CARD、MultiCard、MultiSYN* 等多卡同步參數）
+                string srcCfgDir = Path.Combine(Path.GetDirectoryName(srcIp), "cfg");
+                string destCfgDir = Path.Combine(MarkingMateRoot, "Drivers", $"EMC6_{mmName}", "cfg");
+
+                try
+                {
+                    CopyWithBackup(srcIp, destIp);
+                    CopyWithBackup(srcCfg, destCfg);
+                    DeployCfgDirectory(srcCfgDir, destCfgDir);
+                    System.Diagnostics.Debug.WriteLine($"[{mmName}] 已部署 IP={cardIps[i]} → {destIp}");
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    sb.AppendLine($"[{mmName}] 部署失敗：寫入 {MarkingMateRoot} 權限不足，請以系統管理員身分執行本程式。");
+                    break; // 後續皆會失敗，提早結束
+                }
+                catch (Exception ex)
+                {
+                    sb.AppendLine($"[{mmName}] 部署失敗：{ex.Message}");
+                }
+            }
+
+            errorInfo = sb.ToString();
+            return errorInfo.Length == 0;
         }
 
         private void btnExit_Click(object sender, EventArgs e)
@@ -778,6 +1081,21 @@ namespace WindowsFormsApp1
         {
             try
             {
+                // 在 InitialExt 之前部署並驗證 MM1~MM(boardIndex+1) 雷射頭設定
+                // 來源：主 IP 表 Drivers\EMC6\DevIPAddress.ini（DEV0~3 = MM1~4 對應 CARD0~3）
+                if (!DeployAndValidateLaserHeadConfigs(boardIndex + 1, out string deployError))
+                {
+                    Console.Error.WriteLine($"Error: 雷射頭設定部署 / 驗證失敗（板 {boardIndex}）：");
+                    Console.Error.WriteLine(deployError);
+                    Console.Error.WriteLine("提示：");
+                    Console.Error.WriteLine("  - 主 IP 表位置：WindowsFormsApp1\\Drivers\\EMC6\\DevIPAddress.ini");
+                    Console.Error.WriteLine("  - 請確認 DEV0~DEV" + boardIndex + " 已填入有效 IP（可由 GUI 模式按「儲存IP」設定）");
+                    Console.Error.WriteLine("  - 部署到 MarkingMate 安裝目錄需以系統管理員身分執行");
+                    System.Diagnostics.Debug.WriteLine(
+                        $"自動模式：雷射頭設定部署 / 驗證失敗，板 {boardIndex} 無法初始化：\n{deployError}");
+                    return false;
+                }
+
                 // 建立控件
                 m_MMMark[boardIndex] = new AxMMMarkx641();
                 m_MMEdit[boardIndex] = new AxMMEditx641();
@@ -816,6 +1134,7 @@ namespace WindowsFormsApp1
             }
             catch (Exception ex)
             {
+                Console.Error.WriteLine($"Error: 初始化板 {boardIndex} 失敗：{ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"初始化板 {boardIndex} 失敗：{ex.Message}");
                 return false;
             }

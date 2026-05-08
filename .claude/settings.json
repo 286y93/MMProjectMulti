@@ -2,7 +2,16 @@
   "permissions": {
     "allow": [
       "Bash(find:*)",
-      "Read(//c/Program Files \\(x86\\)/MarkingMate/MulSDK/OCXSample/C#/MultiMM_Mark/**)"
+      "Read(//c/Program Files \\(x86\\)/MarkingMate/MulSDK/OCXSample/C#/MultiMM_Mark/**)",
+      "Bash(ls -la \"WindowsFormsApp1/config/config.ini\" 2>&1; ls \"C:/Program Files \\(x86\\)/MarkingMate/\" 2>&1 | head -30)",
+      "Read(//c/Program Files \\(x86\\)/MarkingMate/**)",
+      "Bash(git status *)",
+      "Bash(ls \"/c/Program Files/Microsoft Visual Studio/\"*/*/MSBuild/*/Bin/MSBuild.exe 2>/dev/null | head -3; ls \"/c/Windows/Microsoft.NET/Framework64/\"*/MSBuild.exe 2>/dev/null | head -3)",
+      "Read(//c/Program Files/Microsoft Visual Studio/**)",
+      "Read(//c/Windows/Microsoft.NET/Framework64/**)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Enterprise/MSBuild/Current/Bin/MSBuild.exe\" \"c:/Users/MyUser/Documents/MMProjectMulti/MMProjectMulti/WindowsFormsApp1/MarkingMateMulti.sln\" /t:Build /p:Configuration=Debug /p:Platform=x64 /v:minimal /nologo)",
+      "PowerShell(& \"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Enterprise\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"c:\\\\Users\\\\MyUser\\\\Documents\\\\MMProjectMulti\\\\MMProjectMulti\\\\WindowsFormsApp1\\\\MarkingMateMulti.sln\" /t:Build /p:Configuration=Debug /p:Platform=x64 /v:minimal /nologo 2>&1)",
+      "Read(//c/Users/MyUser/Documents/MMProjectMulti/MMProjectMulti/WindowsFormsApp1/bin/x64/Debug/**)"
     ]
   }
 }

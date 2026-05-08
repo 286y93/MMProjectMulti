@@ -390,9 +390,21 @@ namespace WindowsFormsApp1
   # 使用自訂配置
   MarkingMateMulti.exe --board 2 --config /cfg_config_MM3 --line 0,0,100,100
 
+雷射頭 IP 設定（重要）：
+  IP 來源為「主表」：WindowsFormsApp1\Drivers\EMC6\DevIPAddress.ini
+  - DEV0 → MM1 / CARD0    DEV1 → MM2 / CARD1
+  - DEV2 → MM3 / CARD2    DEV3 → MM4 / CARD3
+  初始化（含本 CLI 模式）會自動：
+  1. 驗證主表 DEV0~DEV(--board) 已填入有效 IP，缺值即中止
+  2. 依固定 CARD 對應，把主表 IP 同步到各 EMC6_MMx\DevIPAddress.ini 的 DEV0
+  3. 把整個 Drivers\EMC6\ 目錄遞迴部署到 MarkingMate 安裝路徑
+  4. 部署 config\config.ini 與各 config_MMx.ini、cfg\*.cfg
+  若主表 IP 未填或部署失敗，CLI 會以 stderr 列出具體原因並回 ExitCode=1。
+  IP 編輯目前僅 GUI 模式支援（在「1. 連接設定」頁填入後按「儲存IP」）。
+
 結束代碼：
   0  - 成功
-  1  - 初始化失敗
+  1  - 初始化失敗（含 IP 主表未填、部署權限不足等）
   2  - 繪圖失敗
   3  - 打標失敗
   4  - 參數錯誤

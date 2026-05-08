@@ -173,47 +173,47 @@
             // panelBoard1
             // 
             this.panelBoard1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.panelBoard1.Location = new System.Drawing.Point(20, 38);
+            this.panelBoard1.Location = new System.Drawing.Point(8, 25);
             this.panelBoard1.Margin = new System.Windows.Forms.Padding(4);
             this.panelBoard1.Name = "panelBoard1";
-            this.panelBoard1.Size = new System.Drawing.Size(428, 313);
+            this.panelBoard1.Size = new System.Drawing.Size(164, 185);
             this.panelBoard1.TabIndex = 0;
             // 
             // panelBoard2
             // 
             this.panelBoard2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.panelBoard2.Location = new System.Drawing.Point(20, 38);
+            this.panelBoard2.Location = new System.Drawing.Point(8, 25);
             this.panelBoard2.Margin = new System.Windows.Forms.Padding(4);
             this.panelBoard2.Name = "panelBoard2";
-            this.panelBoard2.Size = new System.Drawing.Size(428, 313);
+            this.panelBoard2.Size = new System.Drawing.Size(164, 185);
             this.panelBoard2.TabIndex = 0;
             // 
             // panelBoard3
             // 
             this.panelBoard3.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.panelBoard3.Location = new System.Drawing.Point(20, 38);
+            this.panelBoard3.Location = new System.Drawing.Point(8, 25);
             this.panelBoard3.Margin = new System.Windows.Forms.Padding(4);
             this.panelBoard3.Name = "panelBoard3";
-            this.panelBoard3.Size = new System.Drawing.Size(428, 313);
+            this.panelBoard3.Size = new System.Drawing.Size(164, 185);
             this.panelBoard3.TabIndex = 0;
             // 
             // panelBoard4
             // 
             this.panelBoard4.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.panelBoard4.Location = new System.Drawing.Point(20, 38);
+            this.panelBoard4.Location = new System.Drawing.Point(8, 25);
             this.panelBoard4.Margin = new System.Windows.Forms.Padding(4);
             this.panelBoard4.Name = "panelBoard4";
-            this.panelBoard4.Size = new System.Drawing.Size(428, 313);
+            this.panelBoard4.Size = new System.Drawing.Size(164, 185);
             this.panelBoard4.TabIndex = 0;
             // 
             // groupBox1
             // 
             this.groupBox1.Controls.Add(this.panelBoard1);
-            this.groupBox1.Location = new System.Drawing.Point(16, 15);
+            this.groupBox1.Location = new System.Drawing.Point(8, 756);
             this.groupBox1.Margin = new System.Windows.Forms.Padding(4);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Padding = new System.Windows.Forms.Padding(4);
-            this.groupBox1.Size = new System.Drawing.Size(469, 369);
+            this.groupBox1.Size = new System.Drawing.Size(180, 216);
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "晶片板 1";
@@ -221,11 +221,11 @@
             // groupBox2
             // 
             this.groupBox2.Controls.Add(this.panelBoard2);
-            this.groupBox2.Location = new System.Drawing.Point(493, 15);
+            this.groupBox2.Location = new System.Drawing.Point(192, 756);
             this.groupBox2.Margin = new System.Windows.Forms.Padding(4);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Padding = new System.Windows.Forms.Padding(4);
-            this.groupBox2.Size = new System.Drawing.Size(469, 369);
+            this.groupBox2.Size = new System.Drawing.Size(180, 216);
             this.groupBox2.TabIndex = 1;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "晶片板 2";
@@ -233,11 +233,11 @@
             // groupBox3
             // 
             this.groupBox3.Controls.Add(this.panelBoard3);
-            this.groupBox3.Location = new System.Drawing.Point(16, 392);
+            this.groupBox3.Location = new System.Drawing.Point(376, 756);
             this.groupBox3.Margin = new System.Windows.Forms.Padding(4);
             this.groupBox3.Name = "groupBox3";
             this.groupBox3.Padding = new System.Windows.Forms.Padding(4);
-            this.groupBox3.Size = new System.Drawing.Size(469, 369);
+            this.groupBox3.Size = new System.Drawing.Size(180, 216);
             this.groupBox3.TabIndex = 2;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "晶片板 3";
@@ -245,11 +245,11 @@
             // groupBox4
             // 
             this.groupBox4.Controls.Add(this.panelBoard4);
-            this.groupBox4.Location = new System.Drawing.Point(493, 392);
+            this.groupBox4.Location = new System.Drawing.Point(560, 756);
             this.groupBox4.Margin = new System.Windows.Forms.Padding(4);
             this.groupBox4.Name = "groupBox4";
             this.groupBox4.Padding = new System.Windows.Forms.Padding(4);
-            this.groupBox4.Size = new System.Drawing.Size(469, 369);
+            this.groupBox4.Size = new System.Drawing.Size(180, 216);
             this.groupBox4.TabIndex = 3;
             this.groupBox4.TabStop = false;
             this.groupBox4.Text = "晶片板 4";
@@ -262,11 +262,11 @@
             this.tabControl1.Controls.Add(this.tabPageDraw);
             this.tabControl1.Controls.Add(this.tabPageLaserPower);
             this.tabControl1.Controls.Add(this.tabPageQRCode);
-            this.tabControl1.Location = new System.Drawing.Point(970, 15);
+            this.tabControl1.Location = new System.Drawing.Point(8, 8);
             this.tabControl1.Margin = new System.Windows.Forms.Padding(4);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(460, 790);
+            this.tabControl1.Size = new System.Drawing.Size(736, 740);
             this.tabControl1.TabIndex = 20;
             // 
             // tabPageConnect
@@ -275,11 +275,12 @@
             this.tabPageConnect.Controls.Add(this.numBoardCount);
             this.tabPageConnect.Controls.Add(this.btnInit);
             this.tabPageConnect.Controls.Add(this.btnTestConnect);
+            this.tabPageConnect.Controls.Add(this.btnExit);
             this.tabPageConnect.Location = new System.Drawing.Point(4, 25);
             this.tabPageConnect.Margin = new System.Windows.Forms.Padding(4);
             this.tabPageConnect.Name = "tabPageConnect";
             this.tabPageConnect.Padding = new System.Windows.Forms.Padding(4);
-            this.tabPageConnect.Size = new System.Drawing.Size(452, 761);
+            this.tabPageConnect.Size = new System.Drawing.Size(728, 715);
             this.tabPageConnect.TabIndex = 0;
             this.tabPageConnect.Text = "1. 連接設定";
             this.tabPageConnect.UseVisualStyleBackColor = true;
@@ -347,7 +348,7 @@
             this.tabPageParams.Location = new System.Drawing.Point(4, 25);
             this.tabPageParams.Name = "tabPageParams";
             this.tabPageParams.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPageParams.Size = new System.Drawing.Size(452, 761);
+            this.tabPageParams.Size = new System.Drawing.Size(728, 715);
             this.tabPageParams.TabIndex = 3;
             this.tabPageParams.Text = "2. 雷射參數";
             this.tabPageParams.UseVisualStyleBackColor = true;
@@ -510,7 +511,7 @@
             this.tabPage1.Location = new System.Drawing.Point(4, 25);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage1.Size = new System.Drawing.Size(452, 761);
+            this.tabPage1.Size = new System.Drawing.Size(728, 715);
             this.tabPage1.TabIndex = 2;
             this.tabPage1.Text = "3. DXF 操作";
             this.tabPage1.UseVisualStyleBackColor = true;
@@ -532,7 +533,7 @@
             this.txtDXFInfo.Name = "txtDXFInfo";
             this.txtDXFInfo.ReadOnly = true;
             this.txtDXFInfo.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.txtDXFInfo.Size = new System.Drawing.Size(191, 327);
+            this.txtDXFInfo.Size = new System.Drawing.Size(191, 290);
             this.txtDXFInfo.TabIndex = 7;
             this.txtDXFInfo.WordWrap = false;
             // 
@@ -672,7 +673,7 @@
             this.tabPageDraw.Margin = new System.Windows.Forms.Padding(4);
             this.tabPageDraw.Name = "tabPageDraw";
             this.tabPageDraw.Padding = new System.Windows.Forms.Padding(4);
-            this.tabPageDraw.Size = new System.Drawing.Size(452, 761);
+            this.tabPageDraw.Size = new System.Drawing.Size(728, 715);
             this.tabPageDraw.TabIndex = 1;
             this.tabPageDraw.Text = "4. 手動繪圖";
             this.tabPageDraw.UseVisualStyleBackColor = true;
@@ -841,7 +842,7 @@
             this.tabPageLaserPower.Location = new System.Drawing.Point(4, 25);
             this.tabPageLaserPower.Name = "tabPageLaserPower";
             this.tabPageLaserPower.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPageLaserPower.Size = new System.Drawing.Size(452, 761);
+            this.tabPageLaserPower.Size = new System.Drawing.Size(728, 715);
             this.tabPageLaserPower.TabIndex = 4;
             this.tabPageLaserPower.Text = "5. 雷射功率";
             this.tabPageLaserPower.UseVisualStyleBackColor = true;
@@ -1109,7 +1110,7 @@
             this.txtLaserStatus.Name = "txtLaserStatus";
             this.txtLaserStatus.ReadOnly = true;
             this.txtLaserStatus.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.txtLaserStatus.Size = new System.Drawing.Size(205, 240);
+            this.txtLaserStatus.Size = new System.Drawing.Size(205, 210);
             this.txtLaserStatus.TabIndex = 5;
             //
             // tabPageQRCode
@@ -1128,7 +1129,7 @@
             this.tabPageQRCode.Location = new System.Drawing.Point(4, 25);
             this.tabPageQRCode.Name = "tabPageQRCode";
             this.tabPageQRCode.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPageQRCode.Size = new System.Drawing.Size(452, 761);
+            this.tabPageQRCode.Size = new System.Drawing.Size(728, 715);
             this.tabPageQRCode.TabIndex = 5;
             this.tabPageQRCode.Text = "6. QR Code";
             this.tabPageQRCode.UseVisualStyleBackColor = true;
@@ -1349,10 +1350,10 @@
             //
             // btnExit
             //
-            this.btnExit.Location = new System.Drawing.Point(1200, 812);
+            this.btnExit.Location = new System.Drawing.Point(618, 670);
             this.btnExit.Margin = new System.Windows.Forms.Padding(4);
             this.btnExit.Name = "btnExit";
-            this.btnExit.Size = new System.Drawing.Size(160, 50);
+            this.btnExit.Size = new System.Drawing.Size(100, 35);
             this.btnExit.TabIndex = 21;
             this.btnExit.Text = "退出";
             this.btnExit.UseVisualStyleBackColor = true;
@@ -1362,13 +1363,12 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1443, 820);
+            this.ClientSize = new System.Drawing.Size(752, 980);
             this.Controls.Add(this.tabControl1);
             this.Controls.Add(this.groupBox4);
             this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
-            this.Controls.Add(this.btnExit);
             this.Margin = new System.Windows.Forms.Padding(4);
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
