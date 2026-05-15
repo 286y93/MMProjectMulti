@@ -20,6 +20,7 @@ namespace WindowsFormsApp1
         private bool m_bInit = false;
         private bool m_bPreviewing = false; // 追蹤是否在紅光預覽中
         private int m_iCurrentBoard = 0;
+        private int m_iPreviewBoard = -1;   // 目前紅光預覽的板索引（DXF/QR/手動共用 timerPreview）
 
         // 每個晶片板的配置路徑
         // 注意：MarkingMate MultiMM SDK 預設支援 MM1 和 MM2
@@ -45,6 +46,8 @@ namespace WindowsFormsApp1
             @"Drivers\EMC6_MM4\DevIPAddress.ini"
         };
 
+        // 每片板的雷射機台設定檔（可選；若不存在則僅使用共用 config\config.ini）
+        // 早期設計每板一份，現在統一以共用 config\config.ini 為主，這裡保留以兼容舊配置
         private static readonly string[] m_LaserConfigRelativePaths = new string[]
         {
             @"config\config_MM1.ini",
@@ -392,11 +395,104 @@ namespace WindowsFormsApp1
                 timerMark.Start();
 
                 btnMark.Enabled = false;
+                btnPreviewManual.Enabled = false;
                 btnStop.Enabled = true;
+                // 鎖住其他頁籤的預覽 / 打標按鈕避免衝突
+                btnPreviewDXF.Enabled = false;
+                btnMarkDXF.Enabled = false;
+                btnPreviewQR.Enabled = false;
+                btnMarkQR.Enabled = false;
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"啟動雷射失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// 手動繪圖：紅光預覽（不打雷射，跑全路徑）
+        /// </summary>
+        private void btnPreviewManual_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit)
+            {
+                MessageBox.Show("請先初始化！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            try
+            {
+                int boardIndex = comboBoard.SelectedIndex;
+
+                if (!m_bBoardInit[boardIndex])
+                {
+                    MessageBox.Show($"晶片板 {boardIndex + 1} 未成功初始化，無法操作！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                // 設定預覽模式（全路徑預覽）並啟動紅光預覽
+                m_MMMark[boardIndex].SetPreviewMode(2);
+                m_MMMark[boardIndex].MarkStandBy();
+                Application.DoEvents();
+
+                if (m_MMMark[boardIndex].StartMarking(3) != 0)
+                {
+                    MessageBox.Show($"晶片板 {boardIndex + 1} 預覽啟動失敗！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                m_bPreviewing = true;
+                m_iPreviewBoard = boardIndex;
+
+                // 啟動 15 秒自動關閉 Timer
+                timerPreview.Stop();
+                timerPreview.Start();
+
+                // 停用按鈕，防止重複操作
+                btnMark.Enabled = false;
+                btnPreviewManual.Enabled = false;
+                btnStopPreviewManual.Enabled = true;
+                btnStop.Enabled = true;
+                // 停用 DXF 頁籤
+                btnMarkDXF.Enabled = false;
+                btnPreviewDXF.Enabled = false;
+                btnLoadDXF.Enabled = false;
+                btnLoadDXFFile.Enabled = false;
+                // 停用 QR 頁籤
+                btnMarkQR.Enabled = false;
+                btnPreviewQR.Enabled = false;
+                btnLoadQR.Enabled = false;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"啟動預覽失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// 手動繪圖：停止紅光預覽
+        /// </summary>
+        private void btnStopPreviewManual_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit) return;
+
+            try
+            {
+                timerPreview.Stop();
+
+                int boardIndex = (m_iPreviewBoard >= 0) ? m_iPreviewBoard : comboBoard.SelectedIndex;
+                if (boardIndex >= 0 && boardIndex < m_bBoardInit.Length && m_bBoardInit[boardIndex])
+                {
+                    m_MMMark[boardIndex].StopMarking();
+                }
+                m_bPreviewing = false;
+                m_iPreviewBoard = -1;
+
+                ResetPreviewButtonsAfterStop();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"停止預覽失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -420,18 +516,12 @@ namespace WindowsFormsApp1
 
                 m_MMMark[m_iCurrentBoard].StopMarking();
                 timerMark.Stop();
+                timerPreview.Stop();
                 m_bPreviewing = false;
+                m_iPreviewBoard = -1;
 
-                // 恢復所有按鈕狀態
-                btnMark.Enabled = true;
-                btnMarkDXF.Enabled = true;
-                btnStopMarkDXF.Enabled = false;
-                btnPreviewDXF.Enabled = true;
-                btnStopPreview.Enabled = false;
-                btnLoadDXF.Enabled = true;
-                btnLoadDXFFile.Enabled = true;
-                btnClearDXF.Enabled = true;
-                btnStop.Enabled = false;
+                // 恢復所有按鈕狀態（含 QR / 預覽）
+                ResetPreviewButtonsAfterStop();
             }
             catch (Exception ex)
             {
@@ -679,8 +769,71 @@ namespace WindowsFormsApp1
             return null;
         }
 
-        private static void CopyWithBackup(string src, string dest)
+        // 部署統計：用於 skip-if-same 機制下追蹤實際寫入 / 跳過數量
+        private class DeployStats
         {
+            public int Written;
+            public int Skipped;
+        }
+
+        /// <summary>
+        /// 比較兩個檔案內容是否完全相同（用於 skip-if-same 部署機制）。
+        /// 流程：dest 不存在 → false；size 不同 → false；逐 byte 比較。
+        /// </summary>
+        private static bool FilesAreIdentical(string srcPath, string destPath)
+        {
+            try
+            {
+                if (!File.Exists(destPath)) return false;
+                var srcInfo = new FileInfo(srcPath);
+                var destInfo = new FileInfo(destPath);
+                if (srcInfo.Length != destInfo.Length) return false;
+                if (srcInfo.Length == 0) return true;
+
+                const int bufSize = 64 * 1024;
+                var b1 = new byte[bufSize];
+                var b2 = new byte[bufSize];
+                using (var s1 = File.OpenRead(srcPath))
+                using (var s2 = File.OpenRead(destPath))
+                {
+                    while (true)
+                    {
+                        int r1 = ReadFully(s1, b1, bufSize);
+                        int r2 = ReadFully(s2, b2, bufSize);
+                        if (r1 != r2) return false;
+                        if (r1 == 0) return true;
+                        for (int i = 0; i < r1; i++)
+                            if (b1[i] != b2[i]) return false;
+                    }
+                }
+            }
+            catch
+            {
+                // 任何 IO 例外都當作「不確定相同」，讓後續嘗試寫入
+                return false;
+            }
+        }
+
+        private static int ReadFully(Stream s, byte[] buf, int count)
+        {
+            int total = 0;
+            while (total < count)
+            {
+                int r = s.Read(buf, total, count - total);
+                if (r == 0) break;
+                total += r;
+            }
+            return total;
+        }
+
+        /// <summary>
+        /// 複製單檔到目標路徑；若目標已存在且內容相同，跳過寫入並回傳 false。
+        /// </summary>
+        /// <returns>true=實際寫入；false=跳過（內容相同）</returns>
+        private static bool CopyWithBackup(string src, string dest)
+        {
+            if (FilesAreIdentical(src, dest)) return false;
+
             string destDir = Path.GetDirectoryName(dest);
             if (!Directory.Exists(destDir)) Directory.CreateDirectory(destDir);
 
@@ -690,38 +843,51 @@ namespace WindowsFormsApp1
                 catch { /* 備份失敗不阻斷部署 */ }
             }
             File.Copy(src, dest, overwrite: true);
+            return true;
         }
 
-        private static void DeployCfgDirectory(string srcDir, string destDir)
+        private static void DeployCfgDirectory(string srcDir, string destDir, DeployStats stats)
         {
             if (!Directory.Exists(srcDir)) return;
-            if (!Directory.Exists(destDir)) Directory.CreateDirectory(destDir);
 
             foreach (string srcFile in Directory.GetFiles(srcDir, "*.cfg"))
             {
                 string destFile = Path.Combine(destDir, Path.GetFileName(srcFile));
+                if (FilesAreIdentical(srcFile, destFile))
+                {
+                    stats.Skipped++;
+                    continue;
+                }
+                if (!Directory.Exists(destDir)) Directory.CreateDirectory(destDir);
                 File.Copy(srcFile, destFile, overwrite: true);
+                stats.Written++;
             }
         }
 
         /// <summary>
-        /// 遞迴複製整個目錄（用於部署 EMC6 共用驅動目錄）。覆蓋同名檔，但不刪除目標端原有檔案。
+        /// 遞迴複製整個目錄（用於部署 EMC6 共用驅動目錄）。已存在且內容相同的檔案會跳過。
         /// </summary>
-        private static void CopyDirectoryRecursive(string srcDir, string destDir)
+        private static void CopyDirectoryRecursive(string srcDir, string destDir, DeployStats stats)
         {
             if (!Directory.Exists(srcDir)) return;
-            Directory.CreateDirectory(destDir);
 
             foreach (string srcFile in Directory.GetFiles(srcDir))
             {
                 string destFile = Path.Combine(destDir, Path.GetFileName(srcFile));
+                if (FilesAreIdentical(srcFile, destFile))
+                {
+                    stats.Skipped++;
+                    continue;
+                }
+                if (!Directory.Exists(destDir)) Directory.CreateDirectory(destDir);
                 File.Copy(srcFile, destFile, overwrite: true);
+                stats.Written++;
             }
 
             foreach (string subDir in Directory.GetDirectories(srcDir))
             {
                 string destSubDir = Path.Combine(destDir, Path.GetFileName(subDir));
-                CopyDirectoryRecursive(subDir, destSubDir);
+                CopyDirectoryRecursive(subDir, destSubDir, stats);
             }
         }
 
@@ -740,6 +906,7 @@ namespace WindowsFormsApp1
         private bool DeployAndValidateLaserHeadConfigs(int boardCount, out string errorInfo)
         {
             var sb = new StringBuilder();
+            var stats = new DeployStats();
 
             // === 1. 主 IP 表（單一來源）===
             string srcMasterIp = ResolveProjectFile(MasterIPRelativePath);
@@ -764,7 +931,7 @@ namespace WindowsFormsApp1
                 return false;
             }
 
-            // === 2. 主表 → 各 EMC6_MMx\DEV0 同步 ===
+            // === 2. 主表 → 各 EMC6_MMx\DEV0 同步（寫專案內，不會碰 Program Files 權限）===
             for (int i = 0; i < boardCount; i++)
             {
                 string mmxSrcIp = ResolveProjectFile(m_IPConfigRelativePaths[i]);
@@ -775,7 +942,10 @@ namespace WindowsFormsApp1
                 }
                 try
                 {
-                    WriteDevToIni(mmxSrcIp, 0, cardIps[i]);
+                    if (!string.Equals(ReadDevFromIni(mmxSrcIp, 0), cardIps[i], StringComparison.Ordinal))
+                    {
+                        WriteDevToIni(mmxSrcIp, 0, cardIps[i]);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -794,12 +964,11 @@ namespace WindowsFormsApp1
             {
                 try
                 {
-                    CopyDirectoryRecursive(srcSharedDir, destSharedDir);
-                    System.Diagnostics.Debug.WriteLine($"[EMC6] 已遞迴部署：{srcSharedDir} → {destSharedDir}");
+                    CopyDirectoryRecursive(srcSharedDir, destSharedDir, stats);
                 }
                 catch (UnauthorizedAccessException)
                 {
-                    sb.AppendLine($"部署 EMC6 共用目錄失敗：寫入 {MarkingMateRoot} 權限不足，請以系統管理員身分執行本程式。");
+                    AppendPermissionError(sb, "部署 EMC6 共用目錄");
                     errorInfo = sb.ToString();
                     return false;
                 }
@@ -816,7 +985,14 @@ namespace WindowsFormsApp1
                 string destSharedConfig = Path.Combine(MarkingMateRoot, "config.ini");
                 try
                 {
-                    CopyWithBackup(srcSharedConfig, destSharedConfig);
+                    if (CopyWithBackup(srcSharedConfig, destSharedConfig)) stats.Written++;
+                    else stats.Skipped++;
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    AppendPermissionError(sb, "部署共用 config.ini");
+                    errorInfo = sb.ToString();
+                    return false;
                 }
                 catch (Exception ex)
                 {
@@ -830,16 +1006,11 @@ namespace WindowsFormsApp1
                 string mmName = $"MM{i + 1}";
 
                 string srcIp = ResolveProjectFile(m_IPConfigRelativePaths[i]);
-                string srcCfg = ResolveProjectFile(m_LaserConfigRelativePaths[i]);
+                string srcCfg = ResolveProjectFile(m_LaserConfigRelativePaths[i]); // 可選
 
                 if (srcIp == null)
                 {
                     sb.AppendLine($"[{mmName}] 找不到專案 IP 來源檔：{m_IPConfigRelativePaths[i]}");
-                    continue;
-                }
-                if (srcCfg == null)
-                {
-                    sb.AppendLine($"[{mmName}] 找不到專案 config 來源檔：{m_LaserConfigRelativePaths[i]}");
                     continue;
                 }
 
@@ -852,14 +1023,21 @@ namespace WindowsFormsApp1
 
                 try
                 {
-                    CopyWithBackup(srcIp, destIp);
-                    CopyWithBackup(srcCfg, destCfg);
-                    DeployCfgDirectory(srcCfgDir, destCfgDir);
-                    System.Diagnostics.Debug.WriteLine($"[{mmName}] 已部署 IP={cardIps[i]} → {destIp}");
+                    if (CopyWithBackup(srcIp, destIp)) stats.Written++; else stats.Skipped++;
+                    if (srcCfg != null)
+                    {
+                        if (CopyWithBackup(srcCfg, destCfg)) stats.Written++; else stats.Skipped++;
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[{mmName}] 未提供專案 config_{mmName}.ini，跳過部署（將使用共用 config.ini）");
+                    }
+                    DeployCfgDirectory(srcCfgDir, destCfgDir, stats);
                 }
                 catch (UnauthorizedAccessException)
                 {
-                    sb.AppendLine($"[{mmName}] 部署失敗：寫入 {MarkingMateRoot} 權限不足，請以系統管理員身分執行本程式。");
+                    AppendPermissionError(sb, $"[{mmName}] 部署");
                     break; // 後續皆會失敗，提早結束
                 }
                 catch (Exception ex)
@@ -868,8 +1046,29 @@ namespace WindowsFormsApp1
                 }
             }
 
+            System.Diagnostics.Debug.WriteLine(
+                $"[Deploy] 完成：寫入 {stats.Written} 檔、跳過 {stats.Skipped} 檔（內容相同）");
+
             errorInfo = sb.ToString();
             return errorInfo.Length == 0;
+        }
+
+        /// <summary>
+        /// 統一的權限不足錯誤訊息。在 CLI 模式下，會額外建議「先用 GUI 模式（系統管理員）部署一次」。
+        /// </summary>
+        private void AppendPermissionError(StringBuilder sb, string actionLabel)
+        {
+            sb.AppendLine($"{actionLabel}失敗：寫入 {MarkingMateRoot} 權限不足。");
+            if (m_IsAutoMode)
+            {
+                sb.AppendLine("提示：偵測到設定檔與安裝目錄內容不同，CLI（非管理員）無法寫入。");
+                sb.AppendLine("解法 A：以「系統管理員」身分開啟 cmd / PowerShell 後再執行此 CLI；");
+                sb.AppendLine("解法 B：先以系統管理員身分執行 GUI 模式按一次「初始化」完成同步，之後設定若未變動，CLI 可用一般權限執行。");
+            }
+            else
+            {
+                sb.AppendLine("請以系統管理員身分執行本程式。");
+            }
         }
 
         private void btnExit_Click(object sender, EventArgs e)
@@ -935,14 +1134,11 @@ namespace WindowsFormsApp1
                 // 步驟 1: 初始化指定的板
                 if (!InitializeBoardAuto(m_AutoModeArgs.BoardIndex, m_AutoModeArgs.ConfigPath))
                 {
-                    // ExitCode = 1; // 初始化失敗
-                    // this.Close();
-                    // 改為：不立刻關閉，讓使用者看到錯誤訊息，或者 Log 後再關閉
-                    // 如要在 CLI 靜默模式下，應該輸出到 StdErr 並關閉
+                    // 初始化失敗：詳細錯誤已由 InitializeBoardAuto 內部輸出到 stderr
                     Console.Error.WriteLine("Error: Failed to initialize board.");
                     ExitCode = 1;
                     this.Close();
-                    return; // 重要 return
+                    return;
                 }
 
                 // Debug: 輸出解析後的參數
@@ -1087,10 +1283,6 @@ namespace WindowsFormsApp1
                 {
                     Console.Error.WriteLine($"Error: 雷射頭設定部署 / 驗證失敗（板 {boardIndex}）：");
                     Console.Error.WriteLine(deployError);
-                    Console.Error.WriteLine("提示：");
-                    Console.Error.WriteLine("  - 主 IP 表位置：WindowsFormsApp1\\Drivers\\EMC6\\DevIPAddress.ini");
-                    Console.Error.WriteLine("  - 請確認 DEV0~DEV" + boardIndex + " 已填入有效 IP（可由 GUI 模式按「儲存IP」設定）");
-                    Console.Error.WriteLine("  - 部署到 MarkingMate 安裝目錄需以系統管理員身分執行");
                     System.Diagnostics.Debug.WriteLine(
                         $"自動模式：雷射頭設定部署 / 驗證失敗，板 {boardIndex} 無法初始化：\n{deployError}");
                     return false;
@@ -1837,6 +2029,7 @@ namespace WindowsFormsApp1
 
                 // 注意：IsMarking() 在預覽模式下回傳值不正確（SDK 已知問題）
                 m_bPreviewing = true;
+                m_iPreviewBoard = boardIndex;
 
                 // 啟動 15 秒自動關閉 Timer
                 timerPreview.Stop();
@@ -1850,6 +2043,7 @@ namespace WindowsFormsApp1
                 btnLoadDXFFile.Enabled = false;
                 btnClearDXF.Enabled = false;
                 btnMark.Enabled = false;
+                btnPreviewManual.Enabled = false;
                 btnStop.Enabled = true;
                 // 停用 QR 頁籤按鈕
                 btnMarkQR.Enabled = false;
@@ -1873,30 +2067,15 @@ namespace WindowsFormsApp1
             {
                 timerPreview.Stop();
 
-                int boardIndex = comboBoardDXF.SelectedIndex;
-                if (m_bBoardInit[boardIndex])
+                int boardIndex = (m_iPreviewBoard >= 0) ? m_iPreviewBoard : comboBoardDXF.SelectedIndex;
+                if (boardIndex >= 0 && boardIndex < m_bBoardInit.Length && m_bBoardInit[boardIndex])
                 {
                     m_MMMark[boardIndex].StopMarking();
                 }
                 m_bPreviewing = false;
+                m_iPreviewBoard = -1;
 
-                // 恢復按鈕狀態
-                btnMarkDXF.Enabled = true;
-                btnStopMarkDXF.Enabled = false;
-                btnPreviewDXF.Enabled = true;
-                btnStopPreview.Enabled = false;
-                btnLoadDXF.Enabled = true;
-                btnLoadDXFFile.Enabled = true;
-                btnClearDXF.Enabled = true;
-                btnMark.Enabled = true;
-                btnStop.Enabled = false;
-                // QR Code 頁籤按鈕
-                btnMarkQR.Enabled = true;
-                btnStopMarkQR.Enabled = false;
-                btnPreviewQR.Enabled = true;
-                btnStopPreviewQR.Enabled = false;
-                btnLoadQR.Enabled = true;
-                btnClearQR.Enabled = true;
+                ResetPreviewButtonsAfterStop();
             }
             catch (Exception ex)
             {
@@ -1912,35 +2091,49 @@ namespace WindowsFormsApp1
 
             try
             {
-                int boardIndex = comboBoardDXF.SelectedIndex;
-                if (m_bBoardInit[boardIndex])
+                // 使用 m_iPreviewBoard 而非硬編碼的 comboBoardDXF；
+                // 來源 tab 不同（DXF / QR / 手動）時都能停在正確的板上
+                int boardIndex = (m_iPreviewBoard >= 0) ? m_iPreviewBoard : comboBoardDXF.SelectedIndex;
+                if (boardIndex >= 0 && boardIndex < m_bBoardInit.Length && m_bBoardInit[boardIndex])
                 {
                     m_MMMark[boardIndex].StopMarking();
                 }
                 m_bPreviewing = false;
+                m_iPreviewBoard = -1;
 
-                // 恢復按鈕狀態
-                btnMarkDXF.Enabled = true;
-                btnStopMarkDXF.Enabled = false;
-                btnPreviewDXF.Enabled = true;
-                btnStopPreview.Enabled = false;
-                btnLoadDXF.Enabled = true;
-                btnLoadDXFFile.Enabled = true;
-                btnClearDXF.Enabled = true;
-                btnMark.Enabled = true;
-                btnStop.Enabled = false;
-                // QR Code 頁籤按鈕
-                btnMarkQR.Enabled = true;
-                btnStopMarkQR.Enabled = false;
-                btnPreviewQR.Enabled = true;
-                btnStopPreviewQR.Enabled = false;
-                btnLoadQR.Enabled = true;
-                btnClearQR.Enabled = true;
+                ResetPreviewButtonsAfterStop();
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"停止預覽失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        /// <summary>
+        /// 紅光預覽結束 / 停止後，把三個 tab 的按鈕狀態恢復成「閒置」。
+        /// </summary>
+        private void ResetPreviewButtonsAfterStop()
+        {
+            // 手動繪圖頁籤
+            btnMark.Enabled = true;
+            btnStop.Enabled = false;
+            btnPreviewManual.Enabled = true;
+            btnStopPreviewManual.Enabled = false;
+            // DXF 頁籤
+            btnMarkDXF.Enabled = true;
+            btnStopMarkDXF.Enabled = false;
+            btnPreviewDXF.Enabled = true;
+            btnStopPreview.Enabled = false;
+            btnLoadDXF.Enabled = true;
+            btnLoadDXFFile.Enabled = true;
+            btnClearDXF.Enabled = true;
+            // QR Code 頁籤
+            btnMarkQR.Enabled = true;
+            btnStopMarkQR.Enabled = false;
+            btnPreviewQR.Enabled = true;
+            btnStopPreviewQR.Enabled = false;
+            btnLoadQR.Enabled = true;
+            btnClearQR.Enabled = true;
         }
 
         private void btnStopMarkDXF_Click(object sender, EventArgs e)
@@ -2745,6 +2938,7 @@ namespace WindowsFormsApp1
                 }
 
                 m_bPreviewing = true;
+                m_iPreviewBoard = boardIndex;
 
                 // 啟動 15 秒自動關閉 Timer
                 timerPreview.Stop();
@@ -2759,6 +2953,7 @@ namespace WindowsFormsApp1
                 btnMarkDXF.Enabled = false;
                 btnPreviewDXF.Enabled = false;
                 btnMark.Enabled = false;
+                btnPreviewManual.Enabled = false;
                 btnStop.Enabled = true;
 
                 txtQRStatus.Text = $"晶片板 {boardIndex + 1} 紅光預覽中...（15秒後自動停止）";
@@ -2780,26 +2975,15 @@ namespace WindowsFormsApp1
             {
                 timerPreview.Stop();
 
-                int boardIndex = comboBoardQR.SelectedIndex;
-                if (m_bBoardInit[boardIndex])
+                int boardIndex = (m_iPreviewBoard >= 0) ? m_iPreviewBoard : comboBoardQR.SelectedIndex;
+                if (boardIndex >= 0 && boardIndex < m_bBoardInit.Length && m_bBoardInit[boardIndex])
                 {
                     m_MMMark[boardIndex].StopMarking();
                 }
                 m_bPreviewing = false;
+                m_iPreviewBoard = -1;
 
-                // 恢復按鈕狀態
-                btnMarkQR.Enabled = true;
-                btnStopMarkQR.Enabled = false;
-                btnPreviewQR.Enabled = true;
-                btnStopPreviewQR.Enabled = false;
-                btnLoadQR.Enabled = true;
-                btnClearQR.Enabled = true;
-                btnMarkDXF.Enabled = true;
-                btnPreviewDXF.Enabled = true;
-                btnStopPreview.Enabled = false;
-                btnMark.Enabled = true;
-                btnStop.Enabled = false;
-
+                ResetPreviewButtonsAfterStop();
                 txtQRStatus.Text = "預覽已停止。";
             }
             catch (Exception ex)

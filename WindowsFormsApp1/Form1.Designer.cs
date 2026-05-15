@@ -91,6 +91,8 @@
             this.btnDrawLine = new System.Windows.Forms.Button();
             this.btnMark = new System.Windows.Forms.Button();
             this.btnStop = new System.Windows.Forms.Button();
+            this.btnPreviewManual = new System.Windows.Forms.Button();
+            this.btnStopPreviewManual = new System.Windows.Forms.Button();
             this.tabPageLaserPower = new System.Windows.Forms.TabPage();
             this.lblBoardLaser = new System.Windows.Forms.Label();
             this.comboBoardLaser = new System.Windows.Forms.ComboBox();
@@ -669,6 +671,8 @@
             this.tabPageDraw.Controls.Add(this.btnDrawLine);
             this.tabPageDraw.Controls.Add(this.btnMark);
             this.tabPageDraw.Controls.Add(this.btnStop);
+            this.tabPageDraw.Controls.Add(this.btnPreviewManual);
+            this.tabPageDraw.Controls.Add(this.btnStopPreviewManual);
             this.tabPageDraw.Location = new System.Drawing.Point(4, 25);
             this.tabPageDraw.Margin = new System.Windows.Forms.Padding(4);
             this.tabPageDraw.Name = "tabPageDraw";
@@ -830,6 +834,29 @@
             this.btnStop.Text = "停止";
             this.btnStop.UseVisualStyleBackColor = true;
             this.btnStop.Click += new System.EventHandler(this.btnStop_Click);
+            //
+            // btnPreviewManual
+            //
+            this.btnPreviewManual.Location = new System.Drawing.Point(8, 495);
+            this.btnPreviewManual.Margin = new System.Windows.Forms.Padding(4);
+            this.btnPreviewManual.Name = "btnPreviewManual";
+            this.btnPreviewManual.Size = new System.Drawing.Size(100, 40);
+            this.btnPreviewManual.TabIndex = 14;
+            this.btnPreviewManual.Text = "紅光預覽";
+            this.btnPreviewManual.UseVisualStyleBackColor = true;
+            this.btnPreviewManual.Click += new System.EventHandler(this.btnPreviewManual_Click);
+            //
+            // btnStopPreviewManual
+            //
+            this.btnStopPreviewManual.Enabled = false;
+            this.btnStopPreviewManual.Location = new System.Drawing.Point(115, 495);
+            this.btnStopPreviewManual.Margin = new System.Windows.Forms.Padding(4);
+            this.btnStopPreviewManual.Name = "btnStopPreviewManual";
+            this.btnStopPreviewManual.Size = new System.Drawing.Size(100, 40);
+            this.btnStopPreviewManual.TabIndex = 15;
+            this.btnStopPreviewManual.Text = "停止預覽";
+            this.btnStopPreviewManual.UseVisualStyleBackColor = true;
+            this.btnStopPreviewManual.Click += new System.EventHandler(this.btnStopPreviewManual_Click);
             // 
             // tabPageLaserPower
             // 
@@ -1448,6 +1475,8 @@
         private System.Windows.Forms.Button btnDrawLine;
         private System.Windows.Forms.Button btnMark;
         private System.Windows.Forms.Button btnStop;
+        private System.Windows.Forms.Button btnPreviewManual;
+        private System.Windows.Forms.Button btnStopPreviewManual;
         private System.Windows.Forms.Button btnExit;
         private System.Windows.Forms.Label lblBoardCount;
         private System.Windows.Forms.NumericUpDown numBoardCount;
