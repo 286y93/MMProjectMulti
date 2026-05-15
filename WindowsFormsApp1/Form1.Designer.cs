@@ -141,6 +141,26 @@
             this.btnStopPreviewQR = new System.Windows.Forms.Button();
             this.btnClearQR = new System.Windows.Forms.Button();
             this.txtQRStatus = new System.Windows.Forms.TextBox();
+            // === 命令提示 tab ===
+            this.tabPageCmd = new System.Windows.Forms.TabPage();
+            this.lblCmdHeader = new System.Windows.Forms.Label();
+            this.btnCmdRegen = new System.Windows.Forms.Button();
+            this.lblCmd1 = new System.Windows.Forms.Label();
+            this.txtCmd1 = new System.Windows.Forms.TextBox();
+            this.btnCmd1 = new System.Windows.Forms.Button();
+            this.lblCmd2 = new System.Windows.Forms.Label();
+            this.txtCmd2 = new System.Windows.Forms.TextBox();
+            this.btnCmd2 = new System.Windows.Forms.Button();
+            this.lblCmd3 = new System.Windows.Forms.Label();
+            this.txtCmd3 = new System.Windows.Forms.TextBox();
+            this.btnCmd3 = new System.Windows.Forms.Button();
+            this.lblCmd4 = new System.Windows.Forms.Label();
+            this.txtCmd4 = new System.Windows.Forms.TextBox();
+            this.btnCmd4 = new System.Windows.Forms.Button();
+            this.lblCmd5 = new System.Windows.Forms.Label();
+            this.txtCmd5 = new System.Windows.Forms.TextBox();
+            this.btnCmd5 = new System.Windows.Forms.Button();
+            this.lblCmdHint = new System.Windows.Forms.Label();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
@@ -157,6 +177,7 @@
             this.groupBoxLaserParams.SuspendLayout();
             this.tabPageQRCode.SuspendLayout();
             this.groupBoxQRBasic.SuspendLayout();
+            this.tabPageCmd.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.trkPower)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numPower)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numMarkRepeat)).BeginInit();
@@ -264,6 +285,7 @@
             this.tabControl1.Controls.Add(this.tabPageDraw);
             this.tabControl1.Controls.Add(this.tabPageLaserPower);
             this.tabControl1.Controls.Add(this.tabPageQRCode);
+            this.tabControl1.Controls.Add(this.tabPageCmd);
             this.tabControl1.Location = new System.Drawing.Point(8, 8);
             this.tabControl1.Margin = new System.Windows.Forms.Padding(4);
             this.tabControl1.Name = "tabControl1";
@@ -1375,6 +1397,187 @@
             this.txtQRStatus.Size = new System.Drawing.Size(420, 100);
             this.txtQRStatus.TabIndex = 10;
             //
+            // === tabPageCmd: 命令提示 ===
+            //
+            this.tabPageCmd.Controls.Add(this.lblCmdHeader);
+            this.tabPageCmd.Controls.Add(this.btnCmdRegen);
+            this.tabPageCmd.Controls.Add(this.lblCmd1);
+            this.tabPageCmd.Controls.Add(this.txtCmd1);
+            this.tabPageCmd.Controls.Add(this.btnCmd1);
+            this.tabPageCmd.Controls.Add(this.lblCmd2);
+            this.tabPageCmd.Controls.Add(this.txtCmd2);
+            this.tabPageCmd.Controls.Add(this.btnCmd2);
+            this.tabPageCmd.Controls.Add(this.lblCmd3);
+            this.tabPageCmd.Controls.Add(this.txtCmd3);
+            this.tabPageCmd.Controls.Add(this.btnCmd3);
+            this.tabPageCmd.Controls.Add(this.lblCmd4);
+            this.tabPageCmd.Controls.Add(this.txtCmd4);
+            this.tabPageCmd.Controls.Add(this.btnCmd4);
+            this.tabPageCmd.Controls.Add(this.lblCmd5);
+            this.tabPageCmd.Controls.Add(this.txtCmd5);
+            this.tabPageCmd.Controls.Add(this.btnCmd5);
+            this.tabPageCmd.Controls.Add(this.lblCmdHint);
+            this.tabPageCmd.Location = new System.Drawing.Point(4, 25);
+            this.tabPageCmd.Name = "tabPageCmd";
+            this.tabPageCmd.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPageCmd.Size = new System.Drawing.Size(728, 715);
+            this.tabPageCmd.TabIndex = 6;
+            this.tabPageCmd.Text = "7. 命令提示";
+            this.tabPageCmd.UseVisualStyleBackColor = true;
+            //
+            // lblCmdHeader
+            //
+            this.lblCmdHeader.AutoSize = true;
+            this.lblCmdHeader.Font = new System.Drawing.Font("Microsoft JhengHei UI", 10F, System.Drawing.FontStyle.Bold);
+            this.lblCmdHeader.Location = new System.Drawing.Point(15, 18);
+            this.lblCmdHeader.Name = "lblCmdHeader";
+            this.lblCmdHeader.Size = new System.Drawing.Size(0, 19);
+            this.lblCmdHeader.TabIndex = 0;
+            this.lblCmdHeader.Text = "命令提示：隨機 5 組紅光預覽指令";
+            //
+            // btnCmdRegen
+            //
+            this.btnCmdRegen.Location = new System.Drawing.Point(575, 12);
+            this.btnCmdRegen.Name = "btnCmdRegen";
+            this.btnCmdRegen.Size = new System.Drawing.Size(135, 32);
+            this.btnCmdRegen.TabIndex = 1;
+            this.btnCmdRegen.Text = "重新產生";
+            this.btnCmdRegen.UseVisualStyleBackColor = true;
+            this.btnCmdRegen.Click += new System.EventHandler(this.btnCmdRegen_Click);
+            //
+            // #1 列
+            //
+            this.lblCmd1.AutoSize = true;
+            this.lblCmd1.Font = new System.Drawing.Font("Microsoft JhengHei UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblCmd1.Location = new System.Drawing.Point(15, 70);
+            this.lblCmd1.Name = "lblCmd1";
+            this.lblCmd1.Size = new System.Drawing.Size(20, 17);
+            this.lblCmd1.TabIndex = 2;
+            this.lblCmd1.Text = "#1";
+            //
+            this.txtCmd1.Font = new System.Drawing.Font("Consolas", 9F);
+            this.txtCmd1.Location = new System.Drawing.Point(50, 65);
+            this.txtCmd1.Name = "txtCmd1";
+            this.txtCmd1.ReadOnly = false;
+            this.txtCmd1.Size = new System.Drawing.Size(520, 23);
+            this.txtCmd1.TabIndex = 3;
+            //
+            this.btnCmd1.Location = new System.Drawing.Point(580, 63);
+            this.btnCmd1.Name = "btnCmd1";
+            this.btnCmd1.Size = new System.Drawing.Size(130, 30);
+            this.btnCmd1.TabIndex = 4;
+            this.btnCmd1.Text = "執行預覽";
+            this.btnCmd1.UseVisualStyleBackColor = true;
+            this.btnCmd1.Click += new System.EventHandler(this.btnCmd1_Click);
+            //
+            // #2 列
+            //
+            this.lblCmd2.AutoSize = true;
+            this.lblCmd2.Font = new System.Drawing.Font("Microsoft JhengHei UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblCmd2.Location = new System.Drawing.Point(15, 130);
+            this.lblCmd2.Name = "lblCmd2";
+            this.lblCmd2.Size = new System.Drawing.Size(20, 17);
+            this.lblCmd2.TabIndex = 5;
+            this.lblCmd2.Text = "#2";
+            //
+            this.txtCmd2.Font = new System.Drawing.Font("Consolas", 9F);
+            this.txtCmd2.Location = new System.Drawing.Point(50, 125);
+            this.txtCmd2.Name = "txtCmd2";
+            this.txtCmd2.ReadOnly = false;
+            this.txtCmd2.Size = new System.Drawing.Size(520, 23);
+            this.txtCmd2.TabIndex = 6;
+            //
+            this.btnCmd2.Location = new System.Drawing.Point(580, 123);
+            this.btnCmd2.Name = "btnCmd2";
+            this.btnCmd2.Size = new System.Drawing.Size(130, 30);
+            this.btnCmd2.TabIndex = 7;
+            this.btnCmd2.Text = "執行預覽";
+            this.btnCmd2.UseVisualStyleBackColor = true;
+            this.btnCmd2.Click += new System.EventHandler(this.btnCmd2_Click);
+            //
+            // #3 列
+            //
+            this.lblCmd3.AutoSize = true;
+            this.lblCmd3.Font = new System.Drawing.Font("Microsoft JhengHei UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblCmd3.Location = new System.Drawing.Point(15, 190);
+            this.lblCmd3.Name = "lblCmd3";
+            this.lblCmd3.Size = new System.Drawing.Size(20, 17);
+            this.lblCmd3.TabIndex = 8;
+            this.lblCmd3.Text = "#3";
+            //
+            this.txtCmd3.Font = new System.Drawing.Font("Consolas", 9F);
+            this.txtCmd3.Location = new System.Drawing.Point(50, 185);
+            this.txtCmd3.Name = "txtCmd3";
+            this.txtCmd3.ReadOnly = false;
+            this.txtCmd3.Size = new System.Drawing.Size(520, 23);
+            this.txtCmd3.TabIndex = 9;
+            //
+            this.btnCmd3.Location = new System.Drawing.Point(580, 183);
+            this.btnCmd3.Name = "btnCmd3";
+            this.btnCmd3.Size = new System.Drawing.Size(130, 30);
+            this.btnCmd3.TabIndex = 10;
+            this.btnCmd3.Text = "執行預覽";
+            this.btnCmd3.UseVisualStyleBackColor = true;
+            this.btnCmd3.Click += new System.EventHandler(this.btnCmd3_Click);
+            //
+            // #4 列
+            //
+            this.lblCmd4.AutoSize = true;
+            this.lblCmd4.Font = new System.Drawing.Font("Microsoft JhengHei UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblCmd4.Location = new System.Drawing.Point(15, 250);
+            this.lblCmd4.Name = "lblCmd4";
+            this.lblCmd4.Size = new System.Drawing.Size(20, 17);
+            this.lblCmd4.TabIndex = 11;
+            this.lblCmd4.Text = "#4";
+            //
+            this.txtCmd4.Font = new System.Drawing.Font("Consolas", 9F);
+            this.txtCmd4.Location = new System.Drawing.Point(50, 245);
+            this.txtCmd4.Name = "txtCmd4";
+            this.txtCmd4.ReadOnly = false;
+            this.txtCmd4.Size = new System.Drawing.Size(520, 23);
+            this.txtCmd4.TabIndex = 12;
+            //
+            this.btnCmd4.Location = new System.Drawing.Point(580, 243);
+            this.btnCmd4.Name = "btnCmd4";
+            this.btnCmd4.Size = new System.Drawing.Size(130, 30);
+            this.btnCmd4.TabIndex = 13;
+            this.btnCmd4.Text = "執行預覽";
+            this.btnCmd4.UseVisualStyleBackColor = true;
+            this.btnCmd4.Click += new System.EventHandler(this.btnCmd4_Click);
+            //
+            // #5 列
+            //
+            this.lblCmd5.AutoSize = true;
+            this.lblCmd5.Font = new System.Drawing.Font("Microsoft JhengHei UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblCmd5.Location = new System.Drawing.Point(15, 310);
+            this.lblCmd5.Name = "lblCmd5";
+            this.lblCmd5.Size = new System.Drawing.Size(20, 17);
+            this.lblCmd5.TabIndex = 14;
+            this.lblCmd5.Text = "#5";
+            //
+            this.txtCmd5.Font = new System.Drawing.Font("Consolas", 9F);
+            this.txtCmd5.Location = new System.Drawing.Point(50, 305);
+            this.txtCmd5.Name = "txtCmd5";
+            this.txtCmd5.ReadOnly = false;
+            this.txtCmd5.Size = new System.Drawing.Size(520, 23);
+            this.txtCmd5.TabIndex = 15;
+            //
+            this.btnCmd5.Location = new System.Drawing.Point(580, 303);
+            this.btnCmd5.Name = "btnCmd5";
+            this.btnCmd5.Size = new System.Drawing.Size(130, 30);
+            this.btnCmd5.TabIndex = 16;
+            this.btnCmd5.Text = "執行預覽";
+            this.btnCmd5.UseVisualStyleBackColor = true;
+            this.btnCmd5.Click += new System.EventHandler(this.btnCmd5_Click);
+            //
+            // lblCmdHint
+            //
+            this.lblCmdHint.Location = new System.Drawing.Point(15, 370);
+            this.lblCmdHint.Name = "lblCmdHint";
+            this.lblCmdHint.Size = new System.Drawing.Size(695, 80);
+            this.lblCmdHint.TabIndex = 17;
+            this.lblCmdHint.Text = "提示：\r\n   - 每個 textbox 顯示一組隨機產生的紅光預覽命令（與 CLI 模式相同 schema），可直接編輯。\r\n   - 點「執行預覽」會即時解析該 textbox 內容、清空指定板、加入命令內容並啟動紅光預覽。\r\n   - 預覽時間以該命令的 --preview-time 為準。執行前請先在「連接設定」頁完成初始化。\r\n   - 解析失敗或缺少內容（--line / --lines / --qrcode）會以對話框提示，不會操作雷射。";
+            //
             // btnExit
             //
             this.btnExit.Location = new System.Drawing.Point(618, 670);
@@ -1549,5 +1752,25 @@
         private System.Windows.Forms.Button btnStopPreviewQR;
         private System.Windows.Forms.Button btnClearQR;
         private System.Windows.Forms.TextBox txtQRStatus;
+        // === 命令提示 tab 控件 ===
+        private System.Windows.Forms.TabPage tabPageCmd;
+        private System.Windows.Forms.Label lblCmdHeader;
+        private System.Windows.Forms.Button btnCmdRegen;
+        private System.Windows.Forms.Label lblCmd1;
+        private System.Windows.Forms.TextBox txtCmd1;
+        private System.Windows.Forms.Button btnCmd1;
+        private System.Windows.Forms.Label lblCmd2;
+        private System.Windows.Forms.TextBox txtCmd2;
+        private System.Windows.Forms.Button btnCmd2;
+        private System.Windows.Forms.Label lblCmd3;
+        private System.Windows.Forms.TextBox txtCmd3;
+        private System.Windows.Forms.Button btnCmd3;
+        private System.Windows.Forms.Label lblCmd4;
+        private System.Windows.Forms.TextBox txtCmd4;
+        private System.Windows.Forms.Button btnCmd4;
+        private System.Windows.Forms.Label lblCmd5;
+        private System.Windows.Forms.TextBox txtCmd5;
+        private System.Windows.Forms.Button btnCmd5;
+        private System.Windows.Forms.Label lblCmdHint;
     }
 }

@@ -103,6 +103,9 @@ namespace WindowsFormsApp1
 
             this.btnPreviewDXF.Visible = true;
             this.btnClearDXF.Visible = true;
+
+            // 「命令提示」tab：初次填入 5 組隨機指令
+            GenerateCmdPreviews();
         }
 
         // 自動模式建構子
@@ -2134,6 +2137,289 @@ namespace WindowsFormsApp1
             btnStopPreviewQR.Enabled = false;
             btnLoadQR.Enabled = true;
             btnClearQR.Enabled = true;
+            // 命令提示頁籤
+            btnCmd1.Enabled = true;
+            btnCmd2.Enabled = true;
+            btnCmd3.Enabled = true;
+            btnCmd4.Enabled = true;
+            btnCmd5.Enabled = true;
+            btnCmdRegen.Enabled = true;
+            // 命令預覽會臨時調整 timerPreview.Interval，恢復成預設 15 秒
+            timerPreview.Interval = 15000;
+        }
+
+        // ============================================================
+        // 命令提示頁籤：隨機產生 5 組紅光預覽指令並執行
+        // ============================================================
+
+        private class CmdPreviewSpec
+        {
+            public int BoardIndex;
+            public List<LineSegment> Lines;     // 線段內容（單條或多條）；null = 非線段類
+            public string QRContent;            // QR 內容；null = 非 QR
+            public double QRWidth, QRHeight, QRPosX, QRPosY;
+            public int PreviewMode;             // 1=outline, 2=full
+            public int PreviewTime;             // 秒
+            public string DisplayText;          // 顯示在 textbox 內的命令字串
+        }
+
+        private readonly Random m_CmdRandom = new Random();
+
+        private void GenerateCmdPreviews()
+        {
+            var textboxes = new[] { txtCmd1, txtCmd2, txtCmd3, txtCmd4, txtCmd5 };
+            for (int i = 0; i < 5; i++)
+            {
+                textboxes[i].Text = GenerateOneCmdSpec().DisplayText;
+            }
+        }
+
+        private CmdPreviewSpec GenerateOneCmdSpec()
+        {
+            var spec = new CmdPreviewSpec
+            {
+                BoardIndex = m_CmdRandom.Next(0, 4),
+                PreviewMode = m_CmdRandom.Next(0, 2) == 0 ? 1 : 2,
+                PreviewTime = new[] { 5, 10, 15 }[m_CmdRandom.Next(0, 3)]
+            };
+            string previewModeText = spec.PreviewMode == 1 ? "outline" : "full";
+
+            var sb = new StringBuilder();
+            sb.Append("MarkingMate.exe");
+            sb.Append($" --board {spec.BoardIndex}");
+            sb.Append($" --config /cfg_config_MM{spec.BoardIndex + 1}");
+
+            // 隨機選一種內容：單線 / 多線 / QR
+            int contentType = m_CmdRandom.Next(0, 3);
+            if (contentType == 0)
+            {
+                int x1 = m_CmdRandom.Next(-50, 51);
+                int y1 = m_CmdRandom.Next(-50, 51);
+                int x2 = m_CmdRandom.Next(-50, 51);
+                int y2 = m_CmdRandom.Next(-50, 51);
+                spec.Lines = new List<LineSegment> { new LineSegment(x1, y1, x2, y2) };
+                sb.Append($" --line {x1},{y1},{x2},{y2}");
+            }
+            else if (contentType == 1)
+            {
+                int n = m_CmdRandom.Next(2, 5);
+                spec.Lines = new List<LineSegment>();
+                var parts = new List<string>();
+                for (int j = 0; j < n; j++)
+                {
+                    int x1 = m_CmdRandom.Next(-50, 51);
+                    int y1 = m_CmdRandom.Next(-50, 51);
+                    int x2 = m_CmdRandom.Next(-50, 51);
+                    int y2 = m_CmdRandom.Next(-50, 51);
+                    spec.Lines.Add(new LineSegment(x1, y1, x2, y2));
+                    parts.Add($"{x1},{y1},{x2},{y2}");
+                }
+                sb.Append($" --lines \"{string.Join(";", parts)}\"");
+            }
+            else
+            {
+                string[] samples = { "DEMO-001", "TEST", "ABC-123", "QR-XYZ", "Hello", "MarkingMate" };
+                spec.QRContent = samples[m_CmdRandom.Next(samples.Length)];
+                spec.QRWidth = m_CmdRandom.Next(8, 26);
+                spec.QRHeight = spec.QRWidth;
+                spec.QRPosX = m_CmdRandom.Next(-20, 21);
+                spec.QRPosY = m_CmdRandom.Next(-20, 21);
+                sb.Append($" --qrcode \"{spec.QRContent}\"");
+                sb.Append($" --qr-width {spec.QRWidth}");
+                sb.Append($" --qr-height {spec.QRHeight}");
+                sb.Append($" --qr-x {spec.QRPosX}");
+                sb.Append($" --qr-y {spec.QRPosY}");
+            }
+
+            sb.Append($" --mark --preview {previewModeText} --preview-time {spec.PreviewTime}");
+            spec.DisplayText = sb.ToString();
+            return spec;
+        }
+
+        private void btnCmdRegen_Click(object sender, EventArgs e) => GenerateCmdPreviews();
+        private void btnCmd1_Click(object sender, EventArgs e) => RunCmdPreview(0);
+        private void btnCmd2_Click(object sender, EventArgs e) => RunCmdPreview(1);
+        private void btnCmd3_Click(object sender, EventArgs e) => RunCmdPreview(2);
+        private void btnCmd4_Click(object sender, EventArgs e) => RunCmdPreview(3);
+        private void btnCmd5_Click(object sender, EventArgs e) => RunCmdPreview(4);
+
+        /// <summary>
+        /// 把 textbox 內的命令字串切成 argv（支援雙引號包夾，無需處理 \ 跳脫）。
+        /// </summary>
+        private static string[] SplitCommandLine(string s)
+        {
+            var result = new List<string>();
+            var sb = new StringBuilder();
+            bool inQuotes = false;
+            foreach (var c in s ?? "")
+            {
+                if (c == '"') { inQuotes = !inQuotes; }
+                else if (char.IsWhiteSpace(c) && !inQuotes)
+                {
+                    if (sb.Length > 0) { result.Add(sb.ToString()); sb.Clear(); }
+                }
+                else { sb.Append(c); }
+            }
+            if (sb.Length > 0) result.Add(sb.ToString());
+            return result.ToArray();
+        }
+
+        /// <summary>
+        /// 把編輯過的命令字串解析成 CmdPreviewSpec。
+        /// 內部複用 CommandLineArgs.Parse，所以支援 CLI 模式完整 schema。
+        /// </summary>
+        private CmdPreviewSpec ParseCmdToSpec(string cmdLine)
+        {
+            var args = SplitCommandLine(cmdLine);
+            // 把開頭的 exe 名稱（不以 - 開頭的第一個 token）去掉
+            if (args.Length > 0 && !args[0].StartsWith("-"))
+            {
+                var rest = new string[args.Length - 1];
+                Array.Copy(args, 1, rest, 0, rest.Length);
+                args = rest;
+            }
+
+            var cli = CommandLineArgs.Parse(args);
+
+            var spec = new CmdPreviewSpec
+            {
+                BoardIndex = cli.BoardIndex,
+                // 若未指定 --preview，預設用全路徑預覽
+                PreviewMode = cli.PreviewMode > 0 ? cli.PreviewMode : 2,
+                // 若未指定 --preview-time，使用 CLI 預設 15 秒
+                PreviewTime = cli.PreviewTime > 0 ? cli.PreviewTime : 15,
+                DisplayText = cmdLine
+            };
+
+            if (cli.Lines != null && cli.Lines.Count > 0)
+            {
+                spec.Lines = cli.Lines;
+            }
+            else if (!string.IsNullOrEmpty(cli.QRContent))
+            {
+                spec.QRContent = cli.QRContent;
+                spec.QRWidth = cli.QRWidth;
+                spec.QRHeight = cli.QRHeight;
+                spec.QRPosX = cli.QRPosX;
+                spec.QRPosY = cli.QRPosY;
+            }
+            return spec;
+        }
+
+        private void RunCmdPreview(int idx)
+        {
+            if (!m_bInit)
+            {
+                MessageBox.Show("請先到「連接設定」頁按「初始化」！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            // 每次按下按鈕都重新從 textbox 解析（讓編輯生效）
+            var textboxes = new[] { txtCmd1, txtCmd2, txtCmd3, txtCmd4, txtCmd5 };
+            string cmdText = textboxes[idx].Text;
+
+            CmdPreviewSpec spec;
+            try { spec = ParseCmdToSpec(cmdText); }
+            catch (Exception parseEx)
+            {
+                MessageBox.Show($"命令解析失敗：{parseEx.Message}", "錯誤",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (spec == null || (spec.Lines == null && string.IsNullOrEmpty(spec.QRContent)))
+            {
+                MessageBox.Show("命令缺少內容：需要 --line / --lines / --qrcode 至少其中一項。", "錯誤",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            int board = spec.BoardIndex;
+            if (board < 0 || board >= m_bBoardInit.Length || !m_bBoardInit[board])
+            {
+                MessageBox.Show($"晶片板 {board + 1} 未初始化（請先在「連接設定」頁設定板數為 {board + 1} 以上並完成初始化）。", "錯誤",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            try
+            {
+                // 1. 清空板上現有內容
+                m_MMMark[board].ResetFile();
+                Application.DoEvents();
+                Thread.Sleep(100);
+
+                // 2. 加入命令所述內容
+                if (spec.Lines != null && spec.Lines.Count > 0)
+                {
+                    double halfSize = m_WorkspaceSize / 2.0;
+                    foreach (var line in spec.Lines)
+                    {
+                        // 與 DrawLineAuto 相同的座標規則：任一負值 → 中心原點；全正 → 左下角原點需平移
+                        bool isCenterBased = line.X1 < 0 || line.X2 < 0 || line.Y1 < 0 || line.Y2 < 0;
+                        double x1, y1, x2, y2;
+                        if (isCenterBased)
+                        {
+                            x1 = line.X1; y1 = line.Y1; x2 = line.X2; y2 = line.Y2;
+                        }
+                        else
+                        {
+                            x1 = line.X1 - halfSize; y1 = line.Y1 - halfSize;
+                            x2 = line.X2 - halfSize; y2 = line.Y2 - halfSize;
+                        }
+                        m_MMEdit[board].AddLine(x1, y1, x2, y2, "", "");
+                    }
+                }
+                else if (!string.IsNullOrEmpty(spec.QRContent))
+                {
+                    m_MMMark[board].AddBarcode(BARCODE_TYPE_QRCODE, spec.QRContent,
+                        spec.QRPosX, spec.QRPosY, spec.QRWidth, spec.QRHeight, "", "");
+                }
+
+                Application.DoEvents();
+                Thread.Sleep(100);
+                m_MMMark[board].Redraw();
+                Thread.Sleep(200);
+
+                // 3. 啟動紅光預覽
+                m_MMMark[board].SetPreviewMode(spec.PreviewMode);
+                m_MMMark[board].MarkStandBy();
+                Application.DoEvents();
+
+                if (m_MMMark[board].StartMarking(3) != 0)
+                {
+                    MessageBox.Show($"晶片板 {board + 1} 預覽啟動失敗！", "錯誤",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                m_bPreviewing = true;
+                m_iPreviewBoard = board;
+
+                // 4. 套用該命令的 preview-time（之後 ResetPreviewButtonsAfterStop 會恢復 15s）
+                timerPreview.Stop();
+                timerPreview.Interval = spec.PreviewTime * 1000;
+                timerPreview.Start();
+
+                // 5. 全域停用其他預覽 / 打標按鈕
+                btnCmd1.Enabled = false;
+                btnCmd2.Enabled = false;
+                btnCmd3.Enabled = false;
+                btnCmd4.Enabled = false;
+                btnCmd5.Enabled = false;
+                btnCmdRegen.Enabled = false;
+                btnMark.Enabled = false;
+                btnPreviewManual.Enabled = false;
+                btnMarkDXF.Enabled = false;
+                btnPreviewDXF.Enabled = false;
+                btnMarkQR.Enabled = false;
+                btnPreviewQR.Enabled = false;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"啟動命令預覽失敗：{ex.Message}", "錯誤",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void btnStopMarkDXF_Click(object sender, EventArgs e)
