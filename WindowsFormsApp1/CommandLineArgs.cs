@@ -38,6 +38,16 @@ namespace WindowsFormsApp1
         public double? PreviewSpeed { get; private set; }
         public int PreviewTime { get; private set; }
 
+        // Daemon / Client 模式：解決 SDK multi-process 限制
+        // Daemon：常駐 process，一次 init 全 4 板，listen HTTP localhost:DaemonPort/cmd
+        // Client：thin client，把命令 POST 到 daemon、收到 ExitCode 後結束（無 SDK 動作）
+        public bool DaemonMode { get; private set; }
+        public bool ClientMode { get; private set; }
+        public int DaemonPort { get; private set; }
+
+        // 是否使用者明確指定了 --config（影響後續是否要依 --board 自動推導預設值）
+        private bool m_ConfigPathExplicit = false;
+
         public CommandLineArgs()
         {
             IsAutoMode = false;
@@ -64,6 +74,9 @@ namespace WindowsFormsApp1
             PreviewMode = 0;
             PreviewSpeed = null;
             PreviewTime = 15;
+            DaemonMode = false;
+            ClientMode = false;
+            DaemonPort = 19527;
         }
 
         /// <summary>
@@ -111,6 +124,7 @@ namespace WindowsFormsApp1
                     if (i + 1 < args.Length)
                     {
                         result.ConfigPath = args[i + 1];
+                        result.m_ConfigPathExplicit = true;
                         i++;
                         result.IsAutoMode = true;
                     }
@@ -316,6 +330,31 @@ namespace WindowsFormsApp1
                     result.AutoMark = true;
                     result.IsAutoMode = true;
                 }
+                else if (argLower == "--daemon")
+                {
+                    result.DaemonMode = true;
+                    result.IsAutoMode = true;
+                }
+                else if (argLower == "--client")
+                {
+                    result.ClientMode = true;
+                    result.IsAutoMode = true;
+                }
+                else if (argLower == "--port")
+                {
+                    if (i + 1 < args.Length && int.TryParse(args[i + 1], out int p) && p > 0 && p < 65536)
+                    {
+                        result.DaemonPort = p;
+                        i++;
+                    }
+                }
+            }
+
+            // 若使用者沒明確指定 --config，依 --board 推導對應的預設 config 路徑。
+            // 否則 board >0 卻用 cfg_config_MM1 會造成 InitialExt 配置錯誤、StartMarking 失敗。
+            if (!result.m_ConfigPathExplicit)
+            {
+                result.ConfigPath = $"/cfg_config_MM{result.BoardIndex + 1}";
             }
 
             return result;
@@ -358,6 +397,18 @@ namespace WindowsFormsApp1
                                           outline = 外框預覽, full = 全路徑預覽 (預設: full)
   --preview-speed <mm/s>                預覽速度 mm/s (不指定則使用預設值)
   --preview-time <秒>                   預覽持續時間 (預設: 15 秒)
+  --daemon                              啟動常駐 daemon process（一次 init 全 4 板，
+                                        listen HTTP localhost:port/cmd，接受 client
+                                        命令派發到對應板）。繞過 SDK multi-process 限制。
+  --client                              Thin client：把後續命令字串 POST 到 daemon，
+                                        收到 ExitCode 後結束。不直接動 SDK。
+  --port <N>                            Daemon 監聽 port（預設 19527）；client 連接 port。
+
+並行模式：
+  SDK 不支援多個 process 同時 init OCX。要讓多塊板平行動作的正確做法是
+  跑一個 daemon process（一次 init 全 4 板），其餘 CLI / 網頁透過 HTTP 把
+  命令送進 daemon，由 daemon 在同一 process 內派發到不同板（in-process
+  parallel，SDK 已實測支援）。
 
 範例：
   # 在板 0 上畫一條線並打標
@@ -389,6 +440,22 @@ namespace WindowsFormsApp1
 
   # 使用自訂配置
   MarkingMateMulti.exe --board 2 --config /cfg_config_MM3 --line 0,0,100,100
+
+  # Daemon / Client 模式：繞過 SDK multi-process 限制，網頁也能呼叫
+  # 步驟 1：先啟動 daemon（背景跑，一次 init 4 板）
+  start """" MarkingMate.exe --daemon
+  # 步驟 2：在 daemon 還活著的情況下，多個 client 可以連發命令到不同板
+  MarkingMate.exe --client --board 0 --line 0,0,50,50 --mark --preview full --preview-time 10
+  MarkingMate.exe --client --board 1 --qrcode ""TEST"" --mark --preview full --preview-time 8
+  # 網頁端 JS（CORS 已允許 *）：
+  #   fetch('http://localhost:19527/cmd', {
+  #     method: 'POST',
+  #     headers: { 'Content-Type': 'text/plain' },
+  #     body: '--board 2 --line -20,-20,20,20 --mark --preview full'
+  #   }).then(r => r.json()).then(r => console.log(r.exitCode, r.logs))
+  # 停止 daemon：
+  MarkingMate.exe --client --shutdown
+  # 或直接：  curl -X POST http://localhost:19527/shutdown
 
 雷射頭 IP 設定（重要）：
   IP 來源為「主表」：WindowsFormsApp1\Drivers\EMC6\DevIPAddress.ini

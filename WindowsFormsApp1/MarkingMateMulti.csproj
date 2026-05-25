@@ -80,6 +80,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CommandLineArgs.cs" />
+    <Compile Include="MarkingMateDaemon.cs" />
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>
     </Compile>

@@ -1,8 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -39,17 +43,32 @@ namespace WindowsFormsApp1
                 return -1;
             }
 
-            // CLI 模式：每塊板各自 single instance（允許不同板號並行）
-            // GUI 模式：全域 single instance（防止 EZDrawPlatform 衝突）
-            string mutexName = cmdArgs.IsAutoMode
-                ? $"MarkingMateMulti_Board{cmdArgs.BoardIndex}"
-                : "MarkingMateMulti_SingleInstance";
+            // Client 模式：完全不開 Form、不持 Mutex，直接 HTTP POST 到 daemon
+            if (cmdArgs.ClientMode)
+            {
+                return RunClientMode(args, cmdArgs.DaemonPort);
+            }
+
+            // 各模式使用不同 Mutex name 避免互鎖
+            string mutexName;
+            if (cmdArgs.DaemonMode)
+                mutexName = "MarkingMateMulti_Daemon";
+            else if (cmdArgs.IsAutoMode)
+                mutexName = $"MarkingMateMulti_Board{cmdArgs.BoardIndex}";
+            else
+                mutexName = "MarkingMateMulti_SingleInstance";
 
             bool createdNew;
             using (Mutex mutex = new Mutex(true, mutexName, out createdNew))
             {
                 if (!createdNew)
                 {
+                    if (cmdArgs.DaemonMode)
+                    {
+                        AttachConsole(ATTACH_PARENT_PROCESS);
+                        Console.Error.WriteLine($"Error: 已有 daemon 在 port {cmdArgs.DaemonPort} 運行。一台機器只能有一個 daemon。");
+                        return -3;
+                    }
                     if (cmdArgs.IsAutoMode)
                     {
                         // CLI 模式：同板號已在執行中
@@ -96,6 +115,86 @@ namespace WindowsFormsApp1
                     return -1;
                 }
             } // Mutex will be released here
+        }
+
+        /// <summary>
+        /// Client mode：把命令字串 POST 到 localhost daemon，等回應後印出並回傳 ExitCode。
+        /// 命令字串 = 原始 argv 排除 --client / --port N 之後重新串接。
+        /// 特殊：若有 --shutdown，呼叫 /shutdown endpoint。
+        /// </summary>
+        private static int RunClientMode(string[] args, int port)
+        {
+            AttachConsole(ATTACH_PARENT_PROCESS);
+
+            bool shutdown = false;
+            var passthrough = new List<string>();
+            for (int i = 0; i < args.Length; i++)
+            {
+                string a = args[i].ToLower();
+                if (a == "--client") continue;
+                if (a == "--port") { if (i + 1 < args.Length) i++; continue; }
+                if (a == "--shutdown") { shutdown = true; continue; }
+                passthrough.Add(args[i]);
+            }
+
+            string url = $"http://localhost:{port}/" + (shutdown ? "shutdown" : "cmd");
+            string body = string.Join(" ", passthrough.Select(QuoteIfNeeded));
+
+            try
+            {
+                var req = (HttpWebRequest)WebRequest.Create(url);
+                req.Method = "POST";
+                req.ContentType = "text/plain; charset=utf-8";
+                req.Timeout = 5 * 60 * 1000; // 5 分鐘上限，preview-time 最長設計
+
+                if (!shutdown)
+                {
+                    byte[] bodyBytes = Encoding.UTF8.GetBytes(body);
+                    req.ContentLength = bodyBytes.Length;
+                    using (var stream = req.GetRequestStream())
+                    {
+                        stream.Write(bodyBytes, 0, bodyBytes.Length);
+                    }
+                }
+                else
+                {
+                    req.ContentLength = 0;
+                }
+
+                using (var resp = (HttpWebResponse)req.GetResponse())
+                using (var rs = resp.GetResponseStream())
+                using (var sr = new StreamReader(rs, Encoding.UTF8))
+                {
+                    string text = sr.ReadToEnd();
+                    Console.WriteLine(text);
+
+                    if (shutdown) return 0;
+
+                    // 從回應 JSON 抽出 exitCode
+                    var m = Regex.Match(text, "\"exitCode\"\\s*:\\s*(-?\\d+)");
+                    if (m.Success && int.TryParse(m.Groups[1].Value, out int ec))
+                        return ec;
+                    return 0;
+                }
+            }
+            catch (WebException wex)
+            {
+                Console.Error.WriteLine($"Error: 無法連線到 daemon ({url}): {wex.Message}");
+                Console.Error.WriteLine($"  請確認 daemon 已啟動：MarkingMate.exe --daemon");
+                return 6;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Error: client 例外 - {ex.Message}");
+                return 7;
+            }
+        }
+
+        private static string QuoteIfNeeded(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return "\"\"";
+            if (s.IndexOfAny(new[] { ' ', '\t', '"' }) < 0) return s;
+            return "\"" + s.Replace("\"", "\\\"") + "\"";
         }
     }
 }

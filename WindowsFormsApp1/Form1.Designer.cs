@@ -31,6 +31,7 @@
             this.components = new System.ComponentModel.Container();
             this.timerMark = new System.Windows.Forms.Timer(this.components);
             this.timerPreview = new System.Windows.Forms.Timer(this.components);
+            this.timerParallelTest = new System.Windows.Forms.Timer(this.components);
             this.panelBoard1 = new System.Windows.Forms.Panel();
             this.panelBoard2 = new System.Windows.Forms.Panel();
             this.panelBoard3 = new System.Windows.Forms.Panel();
@@ -144,6 +145,8 @@
             // === 命令提示 tab ===
             this.tabPageCmd = new System.Windows.Forms.TabPage();
             this.lblCmdHeader = new System.Windows.Forms.Label();
+            this.lblBoardCmd = new System.Windows.Forms.Label();
+            this.comboBoardCmd = new System.Windows.Forms.ComboBox();
             this.btnCmdRegen = new System.Windows.Forms.Button();
             this.lblCmd1 = new System.Windows.Forms.Label();
             this.txtCmd1 = new System.Windows.Forms.TextBox();
@@ -161,6 +164,8 @@
             this.txtCmd5 = new System.Windows.Forms.TextBox();
             this.btnCmd5 = new System.Windows.Forms.Button();
             this.lblCmdHint = new System.Windows.Forms.Label();
+            this.btnParallelTest = new System.Windows.Forms.Button();
+            this.txtParallelResult = new System.Windows.Forms.TextBox();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
@@ -192,6 +197,11 @@
             //
             this.timerPreview.Interval = 15000;
             this.timerPreview.Tick += new System.EventHandler(this.timerPreview_Tick);
+            //
+            // timerParallelTest
+            //
+            this.timerParallelTest.Interval = 5000;
+            this.timerParallelTest.Tick += new System.EventHandler(this.timerParallelTest_Tick);
             //
             // panelBoard1
             // 
@@ -1400,6 +1410,8 @@
             // === tabPageCmd: 命令提示 ===
             //
             this.tabPageCmd.Controls.Add(this.lblCmdHeader);
+            this.tabPageCmd.Controls.Add(this.lblBoardCmd);
+            this.tabPageCmd.Controls.Add(this.comboBoardCmd);
             this.tabPageCmd.Controls.Add(this.btnCmdRegen);
             this.tabPageCmd.Controls.Add(this.lblCmd1);
             this.tabPageCmd.Controls.Add(this.txtCmd1);
@@ -1417,6 +1429,8 @@
             this.tabPageCmd.Controls.Add(this.txtCmd5);
             this.tabPageCmd.Controls.Add(this.btnCmd5);
             this.tabPageCmd.Controls.Add(this.lblCmdHint);
+            this.tabPageCmd.Controls.Add(this.btnParallelTest);
+            this.tabPageCmd.Controls.Add(this.txtParallelResult);
             this.tabPageCmd.Location = new System.Drawing.Point(4, 25);
             this.tabPageCmd.Name = "tabPageCmd";
             this.tabPageCmd.Padding = new System.Windows.Forms.Padding(3);
@@ -1435,12 +1449,37 @@
             this.lblCmdHeader.TabIndex = 0;
             this.lblCmdHeader.Text = "命令提示：隨機 5 組紅光預覽指令";
             //
+            // lblBoardCmd
+            //
+            this.lblBoardCmd.AutoSize = true;
+            this.lblBoardCmd.Font = new System.Drawing.Font("Microsoft JhengHei UI", 9F);
+            this.lblBoardCmd.Location = new System.Drawing.Point(330, 18);
+            this.lblBoardCmd.Name = "lblBoardCmd";
+            this.lblBoardCmd.Size = new System.Drawing.Size(60, 17);
+            this.lblBoardCmd.TabIndex = 1;
+            this.lblBoardCmd.Text = "晶片板：";
+            //
+            // comboBoardCmd
+            //
+            this.comboBoardCmd.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboBoardCmd.FormattingEnabled = true;
+            this.comboBoardCmd.Items.AddRange(new object[] {
+            "晶片板 1",
+            "晶片板 2",
+            "晶片板 3",
+            "晶片板 4"});
+            this.comboBoardCmd.Location = new System.Drawing.Point(395, 14);
+            this.comboBoardCmd.Name = "comboBoardCmd";
+            this.comboBoardCmd.Size = new System.Drawing.Size(140, 25);
+            this.comboBoardCmd.TabIndex = 2;
+            this.comboBoardCmd.SelectedIndexChanged += new System.EventHandler(this.comboBoardCmd_SelectedIndexChanged);
+            //
             // btnCmdRegen
             //
             this.btnCmdRegen.Location = new System.Drawing.Point(575, 12);
             this.btnCmdRegen.Name = "btnCmdRegen";
             this.btnCmdRegen.Size = new System.Drawing.Size(135, 32);
-            this.btnCmdRegen.TabIndex = 1;
+            this.btnCmdRegen.TabIndex = 3;
             this.btnCmdRegen.Text = "重新產生";
             this.btnCmdRegen.UseVisualStyleBackColor = true;
             this.btnCmdRegen.Click += new System.EventHandler(this.btnCmdRegen_Click);
@@ -1576,7 +1615,29 @@
             this.lblCmdHint.Name = "lblCmdHint";
             this.lblCmdHint.Size = new System.Drawing.Size(695, 80);
             this.lblCmdHint.TabIndex = 17;
-            this.lblCmdHint.Text = "提示：\r\n   - 每個 textbox 顯示一組隨機產生的紅光預覽命令（與 CLI 模式相同 schema），可直接編輯。\r\n   - 點「執行預覽」會即時解析該 textbox 內容、清空指定板、加入命令內容並啟動紅光預覽。\r\n   - 預覽時間以該命令的 --preview-time 為準。執行前請先在「連接設定」頁完成初始化。\r\n   - 解析失敗或缺少內容（--line / --lines / --qrcode）會以對話框提示，不會操作雷射。";
+            this.lblCmdHint.Text = "提示：\r\n   - 每個 textbox 顯示一組隨機產生的紅光預覽命令（與 CLI 模式相同 schema），可直接編輯。\r\n   - 板號統一由上方下拉選單決定 → 切換下拉會自動同步 5 條命令的 --board / --config。\r\n   - 點「執行預覽」會即時解析 textbox 內容、清空指定板、加入命令內容並啟動紅光預覽。\r\n   - 預覽時間以該命令的 --preview-time 為準。執行前請先在「連接設定」頁完成初始化。\r\n   - 解析失敗或缺少內容（--line / --lines / --qrcode）會以對話框提示，不會操作雷射。";
+            //
+            // btnParallelTest
+            //
+            this.btnParallelTest.Font = new System.Drawing.Font("Microsoft JhengHei UI", 9F, System.Drawing.FontStyle.Bold);
+            this.btnParallelTest.Location = new System.Drawing.Point(15, 470);
+            this.btnParallelTest.Name = "btnParallelTest";
+            this.btnParallelTest.Size = new System.Drawing.Size(260, 35);
+            this.btnParallelTest.TabIndex = 18;
+            this.btnParallelTest.Text = "並行驗證（所有已初始化板，5 秒）";
+            this.btnParallelTest.UseVisualStyleBackColor = true;
+            this.btnParallelTest.Click += new System.EventHandler(this.btnParallelTest_Click);
+            //
+            // txtParallelResult
+            //
+            this.txtParallelResult.Font = new System.Drawing.Font("Consolas", 9F);
+            this.txtParallelResult.Location = new System.Drawing.Point(15, 515);
+            this.txtParallelResult.Multiline = true;
+            this.txtParallelResult.Name = "txtParallelResult";
+            this.txtParallelResult.ReadOnly = true;
+            this.txtParallelResult.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.txtParallelResult.Size = new System.Drawing.Size(695, 145);
+            this.txtParallelResult.TabIndex = 19;
             //
             // btnExit
             //
@@ -1755,6 +1816,8 @@
         // === 命令提示 tab 控件 ===
         private System.Windows.Forms.TabPage tabPageCmd;
         private System.Windows.Forms.Label lblCmdHeader;
+        private System.Windows.Forms.Label lblBoardCmd;
+        private System.Windows.Forms.ComboBox comboBoardCmd;
         private System.Windows.Forms.Button btnCmdRegen;
         private System.Windows.Forms.Label lblCmd1;
         private System.Windows.Forms.TextBox txtCmd1;
@@ -1772,5 +1835,9 @@
         private System.Windows.Forms.TextBox txtCmd5;
         private System.Windows.Forms.Button btnCmd5;
         private System.Windows.Forms.Label lblCmdHint;
+        // === 並行驗證控件 ===
+        private System.Windows.Forms.Timer timerParallelTest;
+        private System.Windows.Forms.Button btnParallelTest;
+        private System.Windows.Forms.TextBox txtParallelResult;
     }
 }

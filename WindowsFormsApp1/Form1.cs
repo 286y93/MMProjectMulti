@@ -18,7 +18,16 @@ namespace WindowsFormsApp1
 
         private Panel[] m_Panels;
         private bool m_bInit = false;
-        private bool m_bPreviewing = false; // 追蹤是否在紅光預覽中
+        private bool m_bPreviewing = false; // 追蹤是否在紅光預覽中（DXF / QR / 手動 三頁籤共用）
+        // 並行驗證用：獨立於 m_bPreviewing/timerPreview，避免污染既有狀態
+        private bool m_bParallelTesting = false;
+        private List<int> m_ParallelTestBoards = new List<int>();
+        // 命令頁籤的 per-board 狀態 — 允許多板同時跑各自的紅光預覽
+        private bool[] m_bCmdPreviewing = new bool[4];
+        private System.Windows.Forms.Timer[] m_TimerCmdPreview = new System.Windows.Forms.Timer[4];
+
+        // Daemon mode
+        private MarkingMateDaemon m_Daemon;
         private int m_iCurrentBoard = 0;
         private int m_iPreviewBoard = -1;   // 目前紅光預覽的板索引（DXF/QR/手動共用 timerPreview）
 
@@ -94,6 +103,7 @@ namespace WindowsFormsApp1
             comboBoardDXF.SelectedIndex = 0;
             comboBoardLaser.SelectedIndex = 0;
             comboBoardQR.SelectedIndex = 0;
+            comboBoardCmd.SelectedIndex = 0;
             // txtPulseWidth 預設值 5 (在 Designer 中設定)
             m_IsAutoMode = false;
 
@@ -103,6 +113,15 @@ namespace WindowsFormsApp1
 
             this.btnPreviewDXF.Visible = true;
             this.btnClearDXF.Visible = true;
+
+            // 命令頁籤 per-board Timer：各板獨立倒數，於 Tag 紀錄 board index
+            for (int i = 0; i < m_TimerCmdPreview.Length; i++)
+            {
+                var t = new System.Windows.Forms.Timer { Interval = 15000 };
+                t.Tag = i;
+                t.Tick += OnCmdPreviewTimerTick;
+                m_TimerCmdPreview[i] = t;
+            }
 
             // 「命令提示」tab：初次填入 5 組隨機指令
             GenerateCmdPreviews();
@@ -130,27 +149,269 @@ namespace WindowsFormsApp1
             // 如果是自動模式，啟動自動執行
             if (m_IsAutoMode && m_AutoModeArgs != null)
             {
-                // 自動模式下，為了避免顯示不必要的視窗，可以設定 Opacity = 0 或WindowState = Minimized
-                // 但不能 Hide，否則 Handle 不會建立，導致 OCX 初始化異常
-                // this.WindowState = FormWindowState.Minimized; // 可選
-
-                // 使用 Timer 延遲執行，確保 Form 完全載入
                 System.Windows.Forms.Timer startTimer = new System.Windows.Forms.Timer();
                 startTimer.Interval = 100;
                 startTimer.Tick += (s, ev) =>
                 {
                     startTimer.Stop();
-                    ExecuteAutoMode();
+                    if (m_AutoModeArgs.DaemonMode)
+                        StartDaemonMode();
+                    else
+                        ExecuteAutoMode();
                 };
                 startTimer.Start();
             }
 
-            // 如果是自動模式，最小化視窗以減少干擾，但不能隱藏（OCX 需要 Window Handle）
+            // 自動模式（包含 daemon）：最小化但不隱藏（OCX 需要 Window Handle）
             if (m_IsAutoMode)
             {
                 this.WindowState = FormWindowState.Minimized;
                 this.ShowInTaskbar = false;
             }
+        }
+
+        /// <summary>
+        /// Daemon mode：一次 init 全 4 板後，啟動 HttpListener 等命令。
+        /// 不會自動 Close，必須由 /shutdown 或使用者強制結束。
+        /// </summary>
+        private void StartDaemonMode()
+        {
+            try
+            {
+                Console.WriteLine("[Daemon] 啟動中，初始化全部 4 塊板...");
+                if (!InitializeBoardAuto(m_bBoardInit.Length - 1, m_ConfigPaths[m_bBoardInit.Length - 1]))
+                {
+                    Console.Error.WriteLine("[Daemon] 初始化失敗，退出。");
+                    ExitCode = 1;
+                    this.Close();
+                    return;
+                }
+
+                m_Daemon = new MarkingMateDaemon(this, m_AutoModeArgs.DaemonPort);
+                m_Daemon.Start();
+                Console.WriteLine($"[Daemon] 就緒，listening on http://localhost:{m_AutoModeArgs.DaemonPort}/");
+                Console.WriteLine("[Daemon] Endpoints: POST /cmd, POST /shutdown, GET /health");
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[Daemon] 啟動失敗：{ex.Message}");
+                ExitCode = 1;
+                this.Close();
+            }
+        }
+
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            try { m_Daemon?.Stop(); } catch { }
+            base.OnFormClosed(e);
+        }
+
+        /// <summary>
+        /// Daemon 派發進入點：解析 CLI 字串成 spec、在 UI thread 上備內容、啟動 marking、
+        /// 用一個 per-spec 的 Timer 等完成（mode 3 看 preview-time，mode 4 看 IsMarking==0），
+        /// 完成時 SetResult 給 TCS。回傳的 Task 可以被 HttpListener 的 handler thread await。
+        /// </summary>
+        public System.Threading.Tasks.Task<DaemonSpecResult> RunDaemonSpec(string cliArgs)
+        {
+            var tcs = new System.Threading.Tasks.TaskCompletionSource<DaemonSpecResult>();
+
+            // 必須切到 UI thread（SDK STA 要求）
+            this.BeginInvoke((Action)(() =>
+            {
+                var sbLog = new StringBuilder();
+                int board = -1;
+                try
+                {
+                    var argv = SplitCommandLine(cliArgs ?? "");
+                    // 去掉開頭的 exe 名稱（網頁直接送 args 不會有，CLI client 也不會送）
+                    if (argv.Length > 0 && !argv[0].StartsWith("-") &&
+                        argv[0].EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var rest = new string[argv.Length - 1];
+                        Array.Copy(argv, 1, rest, 0, rest.Length);
+                        argv = rest;
+                    }
+
+                    CommandLineArgs spec;
+                    try { spec = CommandLineArgs.Parse(argv); }
+                    catch (Exception parseEx)
+                    {
+                        tcs.SetResult(new DaemonSpecResult { ExitCode = 4, Logs = $"parse failed: {parseEx.Message}" });
+                        return;
+                    }
+
+                    board = spec.BoardIndex;
+                    if (board < 0 || board >= m_bBoardInit.Length || !m_bBoardInit[board])
+                    {
+                        tcs.SetResult(new DaemonSpecResult { ExitCode = 4, Logs = $"board {board + 1} not initialized" });
+                        return;
+                    }
+
+                    if (IsBoardBusy(board))
+                    {
+                        tcs.SetResult(new DaemonSpecResult { ExitCode = 5, Logs = $"board {board + 1} busy" });
+                        return;
+                    }
+
+                    if (spec.Lines == null || spec.Lines.Count == 0)
+                    {
+                        if (string.IsNullOrEmpty(spec.QRContent))
+                        {
+                            tcs.SetResult(new DaemonSpecResult { ExitCode = 4, Logs = "no content (need --line / --lines / --qrcode)" });
+                            return;
+                        }
+                    }
+
+                    // 1. 清板 + 加入內容
+                    m_MMMark[board].ResetFile();
+                    Application.DoEvents();
+                    Thread.Sleep(50);
+
+                    if (spec.Lines != null && spec.Lines.Count > 0)
+                    {
+                        double halfSize = m_WorkspaceSize / 2.0;
+                        foreach (var line in spec.Lines)
+                        {
+                            bool isCenterBased = line.X1 < 0 || line.X2 < 0 || line.Y1 < 0 || line.Y2 < 0;
+                            double x1, y1, x2, y2;
+                            if (isCenterBased)
+                            {
+                                x1 = line.X1; y1 = line.Y1; x2 = line.X2; y2 = line.Y2;
+                            }
+                            else
+                            {
+                                x1 = line.X1 - halfSize; y1 = line.Y1 - halfSize;
+                                x2 = line.X2 - halfSize; y2 = line.Y2 - halfSize;
+                            }
+                            m_MMEdit[board].AddLine(x1, y1, x2, y2, "", "");
+                        }
+                        sbLog.AppendLine($"[Board {board + 1}] added {spec.Lines.Count} line(s)");
+                    }
+                    else
+                    {
+                        m_MMMark[board].AddBarcode(BARCODE_TYPE_QRCODE, spec.QRContent,
+                            spec.QRPosX, spec.QRPosY, spec.QRWidth, spec.QRHeight, "", "");
+                        sbLog.AppendLine($"[Board {board + 1}] added QR \"{spec.QRContent}\"");
+                    }
+
+                    Application.DoEvents();
+                    Thread.Sleep(50);
+                    m_MMMark[board].Redraw();
+                    Thread.Sleep(100);
+
+                    // 2. 套用雷射參數（若有指定）— 用臨時換 m_AutoModeArgs 的小 hack 重用既有 method
+                    if (spec.Power.HasValue || spec.Speed.HasValue || spec.Frequency.HasValue
+                        || spec.PulseWidth.HasValue || spec.MarkRepeat.HasValue || spec.WobbleWidth.HasValue)
+                    {
+                        var savedArgs = m_AutoModeArgs;
+                        m_AutoModeArgs = spec;
+                        try { ApplyLaserParamsAuto(board); }
+                        finally { m_AutoModeArgs = savedArgs; }
+                    }
+
+                    // 3. 啟動 marking
+                    int markMode = spec.PreviewMode > 0 ? 3 : 4;
+                    if (spec.PreviewMode > 0)
+                        m_MMMark[board].SetPreviewMode(spec.PreviewMode);
+                    m_MMMark[board].MarkStandBy();
+                    Application.DoEvents();
+
+                    int rc = m_MMMark[board].StartMarking(markMode);
+                    if (rc != 0)
+                    {
+                        tcs.SetResult(new DaemonSpecResult
+                        {
+                            ExitCode = 3,
+                            Logs = sbLog.ToString() + $"[Board {board + 1}] StartMarking({markMode}) returned {rc}"
+                        });
+                        return;
+                    }
+
+                    m_bCmdPreviewing[board] = true;
+                    sbLog.AppendLine($"[Board {board + 1}] StartMarking({markMode}) OK");
+
+                    // 4. per-spec 監控 Timer：mode 3 計時 preview-time + 自動重啟；mode 4 等 IsMarking==0
+                    var sw = System.Diagnostics.Stopwatch.StartNew();
+                    int previewTimeMs = Math.Max(spec.PreviewTime, 1) * 1000;
+                    const int markTimeoutMs = 60000;
+                    long lastRestartMs = 0;
+                    System.Windows.Forms.Timer monitor = new System.Windows.Forms.Timer { Interval = 100 };
+                    int capturedBoard = board;
+                    int capturedMode = markMode;
+                    monitor.Tick += (mts, mte) =>
+                    {
+                        try
+                        {
+                            long elapsed = sw.ElapsedMilliseconds;
+                            if (capturedMode == 3)
+                            {
+                                if (elapsed >= previewTimeMs)
+                                {
+                                    monitor.Stop();
+                                    try { m_MMMark[capturedBoard].StopMarking(); } catch { }
+                                    m_bCmdPreviewing[capturedBoard] = false;
+                                    sbLog.AppendLine($"[Board {capturedBoard + 1}] preview done @{elapsed}ms");
+                                    tcs.SetResult(new DaemonSpecResult { ExitCode = 0, Logs = sbLog.ToString() });
+                                    return;
+                                }
+                                long sinceRestart = elapsed - lastRestartMs;
+                                if (sinceRestart >= 1000
+                                    && m_MMMark[capturedBoard].IsMarking() == 0
+                                    && elapsed < previewTimeMs - 500)
+                                {
+                                    m_MMMark[capturedBoard].MarkStandBy();
+                                    Application.DoEvents();
+                                    m_MMMark[capturedBoard].StartMarking(3);
+                                    lastRestartMs = elapsed;
+                                }
+                            }
+                            else
+                            {
+                                long im = 0;
+                                try { im = m_MMMark[capturedBoard].IsMarking(); } catch { }
+                                if (im == 0)
+                                {
+                                    monitor.Stop();
+                                    try { m_MMMark[capturedBoard].MarkShutdown(); } catch { }
+                                    m_bCmdPreviewing[capturedBoard] = false;
+                                    sbLog.AppendLine($"[Board {capturedBoard + 1}] mark done @{elapsed}ms");
+                                    tcs.SetResult(new DaemonSpecResult { ExitCode = 0, Logs = sbLog.ToString() });
+                                    return;
+                                }
+                                if (elapsed > markTimeoutMs)
+                                {
+                                    monitor.Stop();
+                                    try { m_MMMark[capturedBoard].StopMarking(); } catch { }
+                                    m_bCmdPreviewing[capturedBoard] = false;
+                                    sbLog.AppendLine($"[Board {capturedBoard + 1}] mark timeout @{elapsed}ms");
+                                    tcs.SetResult(new DaemonSpecResult { ExitCode = 3, Logs = sbLog.ToString() });
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            monitor.Stop();
+                            m_bCmdPreviewing[capturedBoard] = false;
+                            tcs.SetResult(new DaemonSpecResult { ExitCode = 1, Logs = sbLog.ToString() + $"monitor exception: {ex.Message}" });
+                        }
+                    };
+                    monitor.Start();
+                }
+                catch (Exception ex)
+                {
+                    if (board >= 0 && board < m_bCmdPreviewing.Length)
+                        m_bCmdPreviewing[board] = false;
+                    tcs.SetResult(new DaemonSpecResult { ExitCode = 1, Logs = sbLog.ToString() + $"exception: {ex.Message}" });
+                }
+            }));
+
+            return tcs.Task;
+        }
+
+        public class DaemonSpecResult
+        {
+            public int ExitCode;
+            public string Logs;
         }
 
         /// <summary>
@@ -381,6 +642,13 @@ namespace WindowsFormsApp1
                     return;
                 }
 
+                if (IsBoardBusy(m_iCurrentBoard))
+                {
+                    MessageBox.Show($"晶片板 {m_iCurrentBoard + 1} 正在執行其他預覽 / 打標，請先停止再試。",
+                        "板忙碌中", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
                 // 打標前自動套用雷射參數
                 if (!ApplyLaserParamsFromUI(m_iCurrentBoard))
                     return;
@@ -430,6 +698,13 @@ namespace WindowsFormsApp1
                 if (!m_bBoardInit[boardIndex])
                 {
                     MessageBox.Show($"晶片板 {boardIndex + 1} 未成功初始化，無法操作！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                if (IsBoardBusy(boardIndex))
+                {
+                    MessageBox.Show($"晶片板 {boardIndex + 1} 正在執行其他預覽 / 打標，請先停止再試。",
+                        "板忙碌中", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
@@ -1091,20 +1366,7 @@ namespace WindowsFormsApp1
                 // 以免殺掉其他實例正在使用的驅動程序
                 try
                 {
-                    int currentPid = System.Diagnostics.Process.GetCurrentProcess().Id;
-                    string currentName = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
-                    var otherInstances = System.Diagnostics.Process.GetProcessesByName(currentName);
-                    bool hasOtherInstances = false;
-                    foreach (var p in otherInstances)
-                    {
-                        if (p.Id != currentPid)
-                        {
-                            hasOtherInstances = true;
-                            break;
-                        }
-                    }
-
-                    if (hasOtherInstances)
+                    if (HasOtherMarkingMateInstance())
                     {
                         System.Diagnostics.Debug.WriteLine("偵測到其他 MarkingMateMulti 實例執行中，跳過 MM27Dx64 清理以避免干擾其他實例");
                     }
@@ -1274,55 +1536,131 @@ namespace WindowsFormsApp1
         }
 
         /// <summary>
+        /// 偵測是否有其他 MarkingMate 實例（同 process name）正在執行。
+        /// 用於 multi-process 並行模式：判斷是否要跳過會干擾他人的破壞性動作
+        /// （如 MM27Dx64 kill、配置檔覆寫部署）。
+        /// </summary>
+        private static bool HasOtherMarkingMateInstance()
+        {
+            try
+            {
+                int currentPid = System.Diagnostics.Process.GetCurrentProcess().Id;
+                string currentName = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
+                var others = System.Diagnostics.Process.GetProcessesByName(currentName);
+                foreach (var p in others)
+                {
+                    if (p.Id != currentPid) return true;
+                }
+            }
+            catch { /* 查詢失敗就當作沒有 */ }
+            return false;
+        }
+
+        /// <summary>
+        /// Multi-process 模式：驗證已部署的主 IP 表存在且 DEV0~DEV(boardCount-1) 都已填值。
+        /// 跳過實際檔案部署時用，避免覆寫其他 process 正在使用的設定。
+        /// </summary>
+        private bool ValidateDeployedMasterIpTable(int boardCount, out string errorInfo)
+        {
+            errorInfo = null;
+            string deployedMasterIp = Path.Combine(MarkingMateRoot, MasterIPRelativePath);
+            if (!File.Exists(deployedMasterIp))
+            {
+                errorInfo = $"已部署的主 IP 表不存在：{deployedMasterIp}\n（請先以單一 process 模式跑一次完成初次部署）";
+                return false;
+            }
+            var sb = new StringBuilder();
+            for (int i = 0; i < boardCount; i++)
+            {
+                string ip = ReadDevFromIni(deployedMasterIp, i);
+                if (string.IsNullOrWhiteSpace(ip))
+                {
+                    sb.AppendLine($"已部署的主 IP 表 DEV{i} 為空（對應 MM{i + 1} / CARD{i}）：{deployedMasterIp}");
+                }
+            }
+            if (sb.Length > 0)
+            {
+                errorInfo = sb.ToString();
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>
         /// 自動模式：初始化指定的板
         /// </summary>
         private bool InitializeBoardAuto(int boardIndex, string configPath)
         {
             try
             {
-                // 在 InitialExt 之前部署並驗證 MM1~MM(boardIndex+1) 雷射頭設定
+                int totalBoards = m_bBoardInit.Length;
+
+                // 在 InitialExt 之前部署並驗證所有 MM1~MM{totalBoards} 雷射頭設定
                 // 來源：主 IP 表 Drivers\EMC6\DevIPAddress.ini（DEV0~3 = MM1~4 對應 CARD0~3）
-                if (!DeployAndValidateLaserHeadConfigs(boardIndex + 1, out string deployError))
+                // multi-process 並行：若已有其他 MarkingMate 實例在跑，跳過實際檔案部署，
+                // 只驗證已部署的設定可用，避免覆寫對方正在使用的檔案。
+                if (HasOtherMarkingMateInstance())
                 {
-                    Console.Error.WriteLine($"Error: 雷射頭設定部署 / 驗證失敗（板 {boardIndex}）：");
+                    if (!ValidateDeployedMasterIpTable(totalBoards, out string vErr))
+                    {
+                        Console.Error.WriteLine("Error: 跳過部署但驗證已部署設定失敗：");
+                        Console.Error.WriteLine(vErr);
+                        return false;
+                    }
+                    Console.WriteLine("[AutoMode] 偵測到其他 MarkingMate 實例，沿用已部署配置，跳過部署寫檔。");
+                }
+                else if (!DeployAndValidateLaserHeadConfigs(totalBoards, out string deployError))
+                {
+                    Console.Error.WriteLine("Error: 雷射頭設定部署 / 驗證失敗：");
                     Console.Error.WriteLine(deployError);
                     System.Diagnostics.Debug.WriteLine(
-                        $"自動模式：雷射頭設定部署 / 驗證失敗，板 {boardIndex} 無法初始化：\n{deployError}");
+                        $"自動模式：雷射頭設定部署 / 驗證失敗，無法初始化：\n{deployError}");
                     return false;
                 }
 
-                // 建立控件
-                m_MMMark[boardIndex] = new AxMMMarkx641();
-                m_MMEdit[boardIndex] = new AxMMEditx641();
+                // 一律 init 全部 4 塊板的 OCX：
+                // - SDK 要求按序 init（要用 board N 必須先 init 0..N-1）
+                // - 統一 init 全部，target 之外的板雖然這個 process 不會主動操作，
+                //   但 SDK 需要他們存在；同 process 內若已 init 過則跳過。
+                // target board 用傳入的 configPath（允許 --config 覆寫），其餘用預設。
+                for (int i = 0; i < totalBoards; i++)
+                {
+                    if (m_bBoardInit[i]) continue;
 
-                m_MMMark[boardIndex].Left = 0;
-                m_MMMark[boardIndex].Top = 0;
-                m_MMMark[boardIndex].Width = m_Panels[boardIndex].Width;
-                m_MMMark[boardIndex].Height = m_Panels[boardIndex].Height;
+                    string cfg = (i == boardIndex) ? configPath : m_ConfigPaths[i];
 
-                m_Panels[boardIndex].Controls.Add(m_MMMark[boardIndex]);
+                    m_MMMark[i] = new AxMMMarkx641();
+                    m_MMEdit[i] = new AxMMEditx641();
 
-                this.Controls.Add(m_MMEdit[boardIndex]);
-                m_MMEdit[boardIndex].Visible = false;
+                    m_MMMark[i].Left = 0;
+                    m_MMMark[i].Top = 0;
+                    m_MMMark[i].Width = m_Panels[i].Width;
+                    m_MMMark[i].Height = m_Panels[i].Height;
 
-                Application.DoEvents();
+                    m_Panels[i].Controls.Add(m_MMMark[i]);
+                    this.Controls.Add(m_MMEdit[i]);
+                    m_MMEdit[i].Visible = false;
 
-                // 初始化 MMMark
-                m_MMMark[boardIndex].InitialExt(configPath);
-                m_MMMark[boardIndex].SetDesktopCenter(0, 0);
-                m_MMMark[boardIndex].SetDesktopSize(m_WorkspaceSize, m_WorkspaceSize);
-                m_MMMark[boardIndex].SetActiveDB(0);
-                m_MMMark[boardIndex].MarkStandBy();
-                m_MMMark[boardIndex].SetCurEditFun(2);
-                m_MMMark[boardIndex].SetLensXReverse(1); // X 軸鏡像修正
-                m_MMMark[boardIndex].Redraw();
+                    Application.DoEvents();
 
-                m_bBoardInit[boardIndex] = true;
+                    m_MMMark[i].InitialExt(cfg);
+                    m_MMMark[i].SetDesktopCenter(0, 0);
+                    m_MMMark[i].SetDesktopSize(m_WorkspaceSize, m_WorkspaceSize);
+                    m_MMMark[i].SetActiveDB(0);
+                    m_MMMark[i].MarkStandBy();
+                    m_MMMark[i].SetCurEditFun(2);
+                    m_MMMark[i].SetLensXReverse(1);
+                    m_MMMark[i].Redraw();
 
-                Application.DoEvents();
+                    m_bBoardInit[i] = true;
 
-                // 初始化 MMEdit
-                m_MMEdit[boardIndex].InitialExt(configPath);
+                    Application.DoEvents();
+
+                    m_MMEdit[i].InitialExt(cfg);
+
+                    string role = (i == boardIndex) ? "TARGET" : "prereq";
+                    Console.WriteLine($"[Board {i + 1}] OCX 初始化完成 ({role})");
+                }
 
                 m_bInit = true;
                 return true;
@@ -1652,7 +1990,7 @@ namespace WindowsFormsApp1
 
                 if (objCount == 0)
                 {
-                    Console.WriteLine("Warning: No objects to apply laser params.");
+                    Console.WriteLine($"[Board {boardIndex + 1}] Warning: No objects to apply laser params.");
                     return;
                 }
 
@@ -1694,7 +2032,7 @@ namespace WindowsFormsApp1
                 // 套用參數後 Redraw，確保標記引擎載入新設定
                 m_MMMark[boardIndex].Redraw();
 
-                Console.WriteLine($"Laser params applied to {objCount} objects." +
+                Console.WriteLine($"[Board {boardIndex + 1}] Laser params applied to {objCount} objects." +
                     $" Power={m_AutoModeArgs.Power?.ToString() ?? "default"}" +
                     $" Speed={m_AutoModeArgs.Speed?.ToString() ?? "default"}" +
                     $" Freq={m_AutoModeArgs.Frequency?.ToString() ?? "default"}" +
@@ -1706,7 +2044,7 @@ namespace WindowsFormsApp1
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Warning: Failed to apply laser params - {ex.Message}");
+                Console.Error.WriteLine($"[Board {boardIndex + 1}] Warning: Failed to apply laser params - {ex.Message}");
             }
         }
 
@@ -1965,6 +2303,13 @@ namespace WindowsFormsApp1
                     return;
                 }
 
+                if (IsBoardBusy(boardIndex))
+                {
+                    MessageBox.Show($"晶片板 {boardIndex + 1} 正在執行其他預覽 / 打標，請先停止再試。",
+                        "板忙碌中", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
                 // 打標前自動套用雷射參數
                 if (!ApplyLaserParamsFromUI(boardIndex))
                     return;
@@ -2016,6 +2361,13 @@ namespace WindowsFormsApp1
                 if (!m_bBoardInit[boardIndex])
                 {
                     MessageBox.Show($"晶片板 {boardIndex + 1} 未成功初始化，無法操作！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                if (IsBoardBusy(boardIndex))
+                {
+                    MessageBox.Show($"晶片板 {boardIndex + 1} 正在執行其他預覽 / 打標，請先停止再試。",
+                        "板忙碌中", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
@@ -2168,17 +2520,29 @@ namespace WindowsFormsApp1
         private void GenerateCmdPreviews()
         {
             var textboxes = new[] { txtCmd1, txtCmd2, txtCmd3, txtCmd4, txtCmd5 };
+            // round-robin 分配到所有已初始化板，讓 5 條命令可並行打到不同板
+            var initBoards = new List<int>();
+            for (int i = 0; i < m_bBoardInit.Length; i++)
+                if (m_bBoardInit[i]) initBoards.Add(i);
+            // 尚未初始化（如初次啟動）就退回到 comboBoardCmd 的選擇
+            if (initBoards.Count == 0)
+            {
+                int fallback = (comboBoardCmd != null && comboBoardCmd.SelectedIndex >= 0)
+                    ? comboBoardCmd.SelectedIndex : 0;
+                initBoards.Add(fallback);
+            }
             for (int i = 0; i < 5; i++)
             {
-                textboxes[i].Text = GenerateOneCmdSpec().DisplayText;
+                int boardIdx = initBoards[i % initBoards.Count];
+                textboxes[i].Text = GenerateOneCmdSpec(boardIdx).DisplayText;
             }
         }
 
-        private CmdPreviewSpec GenerateOneCmdSpec()
+        private CmdPreviewSpec GenerateOneCmdSpec(int boardIdx)
         {
             var spec = new CmdPreviewSpec
             {
-                BoardIndex = m_CmdRandom.Next(0, 4),
+                BoardIndex = boardIdx,
                 PreviewMode = m_CmdRandom.Next(0, 2) == 0 ? 1 : 2,
                 PreviewTime = new[] { 5, 10, 15 }[m_CmdRandom.Next(0, 3)]
             };
@@ -2242,6 +2606,28 @@ namespace WindowsFormsApp1
         private void btnCmd3_Click(object sender, EventArgs e) => RunCmdPreview(2);
         private void btnCmd4_Click(object sender, EventArgs e) => RunCmdPreview(3);
         private void btnCmd5_Click(object sender, EventArgs e) => RunCmdPreview(4);
+
+        /// <summary>
+        /// 命令提示頁籤：板下拉選單變動 → 不再強制同步 textbox，
+        /// 因為 5 條命令現在可獨立指向不同板並行執行。
+        /// combo 僅作為「初始化前的 fallback 預設板號」。
+        /// </summary>
+        private void comboBoardCmd_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            // no-op: 每條命令的 --board 由使用者編輯 textbox 自行決定
+        }
+
+        /// <summary>
+        /// 查詢指定板是否正在被任一頁籤佔用（DXF/QR/手動 共用 m_bPreviewing，
+        /// 命令頁籤用 m_bCmdPreviewing 陣列）。同板撞車的所有 click handler 都應先查這個。
+        /// </summary>
+        private bool IsBoardBusy(int board)
+        {
+            if (board < 0 || board >= m_bBoardInit.Length) return false;
+            if (m_bCmdPreviewing[board]) return true;
+            if (m_bPreviewing && m_iPreviewBoard == board) return true;
+            return false;
+        }
 
         /// <summary>
         /// 把 textbox 內的命令字串切成 argv（支援雙引號包夾，無需處理 \ 跳脫）。
@@ -2322,14 +2708,14 @@ namespace WindowsFormsApp1
             try { spec = ParseCmdToSpec(cmdText); }
             catch (Exception parseEx)
             {
-                MessageBox.Show($"命令解析失敗：{parseEx.Message}", "錯誤",
+                MessageBox.Show($"命令 #{idx + 1} 解析失敗：{parseEx.Message}", "錯誤",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
             if (spec == null || (spec.Lines == null && string.IsNullOrEmpty(spec.QRContent)))
             {
-                MessageBox.Show("命令缺少內容：需要 --line / --lines / --qrcode 至少其中一項。", "錯誤",
+                MessageBox.Show($"命令 #{idx + 1} 缺少內容：需要 --line / --lines / --qrcode 至少其中一項。", "錯誤",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
@@ -2337,19 +2723,24 @@ namespace WindowsFormsApp1
             int board = spec.BoardIndex;
             if (board < 0 || board >= m_bBoardInit.Length || !m_bBoardInit[board])
             {
-                MessageBox.Show($"晶片板 {board + 1} 未初始化（請先在「連接設定」頁設定板數為 {board + 1} 以上並完成初始化）。", "錯誤",
+                MessageBox.Show($"命令 #{idx + 1} 指定的晶片板 {board + 1} 未初始化。", "錯誤",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (IsBoardBusy(board))
+            {
+                MessageBox.Show($"晶片板 {board + 1} 正在執行其他預覽 / 打標，請先停止再試。",
+                    "板忙碌中", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             try
             {
-                // 1. 清空板上現有內容
                 m_MMMark[board].ResetFile();
                 Application.DoEvents();
                 Thread.Sleep(100);
 
-                // 2. 加入命令所述內容
                 if (spec.Lines != null && spec.Lines.Count > 0)
                 {
                     double halfSize = m_WorkspaceSize / 2.0;
@@ -2381,7 +2772,6 @@ namespace WindowsFormsApp1
                 m_MMMark[board].Redraw();
                 Thread.Sleep(200);
 
-                // 3. 啟動紅光預覽
                 m_MMMark[board].SetPreviewMode(spec.PreviewMode);
                 m_MMMark[board].MarkStandBy();
                 Application.DoEvents();
@@ -2393,33 +2783,169 @@ namespace WindowsFormsApp1
                     return;
                 }
 
-                m_bPreviewing = true;
-                m_iPreviewBoard = board;
-
-                // 4. 套用該命令的 preview-time（之後 ResetPreviewButtonsAfterStop 會恢復 15s）
-                timerPreview.Stop();
-                timerPreview.Interval = spec.PreviewTime * 1000;
-                timerPreview.Start();
-
-                // 5. 全域停用其他預覽 / 打標按鈕
-                btnCmd1.Enabled = false;
-                btnCmd2.Enabled = false;
-                btnCmd3.Enabled = false;
-                btnCmd4.Enabled = false;
-                btnCmd5.Enabled = false;
-                btnCmdRegen.Enabled = false;
-                btnMark.Enabled = false;
-                btnPreviewManual.Enabled = false;
-                btnMarkDXF.Enabled = false;
-                btnPreviewDXF.Enabled = false;
-                btnMarkQR.Enabled = false;
-                btnPreviewQR.Enabled = false;
+                // per-board state：不影響其他板，也不停用其他 btnCmd
+                m_bCmdPreviewing[board] = true;
+                m_TimerCmdPreview[board].Stop();
+                m_TimerCmdPreview[board].Interval = Math.Max(spec.PreviewTime, 1) * 1000;
+                m_TimerCmdPreview[board].Start();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"啟動命令預覽失敗：{ex.Message}", "錯誤",
+                MessageBox.Show($"啟動命令 #{idx + 1} 預覽失敗：{ex.Message}", "錯誤",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        /// <summary>
+        /// 命令頁籤 per-board Timer 到期 → 該板自動停止紅光預覽。
+        /// Tag 由建構子設成 boardIndex。
+        /// </summary>
+        private void OnCmdPreviewTimerTick(object sender, EventArgs e)
+        {
+            var timer = sender as System.Windows.Forms.Timer;
+            if (timer == null || !(timer.Tag is int)) return;
+            int board = (int)timer.Tag;
+            timer.Stop();
+            if (board >= 0 && board < m_bBoardInit.Length && m_bBoardInit[board])
+            {
+                try { m_MMMark[board].StopMarking(); } catch { /* 容忍硬體未就緒 */ }
+            }
+            if (board >= 0 && board < m_bCmdPreviewing.Length)
+            {
+                m_bCmdPreviewing[board] = false;
+            }
+        }
+
+        // ============================================================
+        // 並行驗證：對所有已初始化板同時觸發紅光預覽，驗證 SDK 是否支援
+        // 多板並行（背靠背呼叫 StartMarking(3)，5 秒後一起停止）
+        // ============================================================
+        private void btnParallelTest_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit)
+            {
+                MessageBox.Show("請先到「連接設定」頁按「初始化」！", "錯誤",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            if (m_bPreviewing || m_bParallelTesting)
+            {
+                MessageBox.Show("已有預覽正在進行，請先停止。", "錯誤",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            var initBoards = new List<int>();
+            for (int i = 0; i < m_bBoardInit.Length; i++)
+                if (m_bBoardInit[i]) initBoards.Add(i);
+
+            if (initBoards.Count < 2)
+            {
+                MessageBox.Show($"並行驗證至少需要 2 塊板已初始化（目前 {initBoards.Count} 塊）。",
+                    "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            txtParallelResult.Clear();
+            AppendParallelLog($"=== 並行驗證開始：{initBoards.Count} 塊板 ===");
+
+            // 對照 RunCmdPreview 的可運作流程，加入必要 sleeps 讓 SDK 內部 file 落地
+            foreach (var b in initBoards)
+            {
+                try
+                {
+                    m_MMMark[b].ResetFile();
+                    Application.DoEvents();
+                    Thread.Sleep(100);
+                    m_MMEdit[b].AddLine(-30, -30, 30, 30, "", "");
+                    Application.DoEvents();
+                    Thread.Sleep(100);
+                    m_MMMark[b].Redraw();
+                    Thread.Sleep(200);
+                    m_MMMark[b].SetPreviewMode(2);
+                    m_MMMark[b].MarkStandBy();
+                    Application.DoEvents();
+                    AppendParallelLog($"板 {b + 1}: 內容就緒（對角線）");
+                }
+                catch (Exception ex)
+                {
+                    AppendParallelLog($"板 {b + 1}: 內容準備失敗 - {ex.Message}");
+                }
+            }
+
+            AppendParallelLog("--- 連續觸發 StartMarking(3)，呼叫後立刻查 IsMarking ---");
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            var immediateMarking = new Dictionary<int, long>();
+            foreach (var b in initBoards)
+            {
+                long t0 = sw.ElapsedMilliseconds;
+                try
+                {
+                    int rc = m_MMMark[b].StartMarking(3);
+                    long t1 = sw.ElapsedMilliseconds;
+                    long isNow = 0;
+                    try { isNow = m_MMMark[b].IsMarking(); } catch { }
+                    immediateMarking[b] = isNow;
+                    AppendParallelLog($"板 {b + 1}: StartMarking 返回 {rc} (t={t0}→{t1}ms), 緊接 IsMarking={isNow}");
+                }
+                catch (Exception ex)
+                {
+                    AppendParallelLog($"板 {b + 1}: StartMarking 例外 - {ex.Message}");
+                }
+            }
+
+            Application.DoEvents();
+            Thread.Sleep(500);
+            AppendParallelLog("--- 500ms 後再查 IsMarking ---");
+            int activeCount = 0;
+            foreach (var b in initBoards)
+            {
+                try
+                {
+                    long isMarking = m_MMMark[b].IsMarking();
+                    bool active = isMarking != 0;
+                    if (active) activeCount++;
+                    AppendParallelLog($"板 {b + 1}: IsMarking = {isMarking} ({(active ? "✓ 紅光中" : "✗ 未啟動")})");
+                }
+                catch (Exception ex)
+                {
+                    AppendParallelLog($"板 {b + 1}: IsMarking 例外 - {ex.Message}");
+                }
+            }
+            AppendParallelLog($">>> 500ms 後仍在紅光中的板數：{activeCount}/{initBoards.Count}");
+
+            m_ParallelTestBoards = initBoards;
+            m_bParallelTesting = true;
+            btnParallelTest.Enabled = false;
+            AppendParallelLog("--- 5 秒後自動停止 ---");
+            AppendParallelLog("** 請目視確認：所有板的紅光是否同時亮起 **");
+
+            timerParallelTest.Start();
+        }
+
+        private void timerParallelTest_Tick(object sender, EventArgs e)
+        {
+            timerParallelTest.Stop();
+            foreach (var b in m_ParallelTestBoards)
+            {
+                try
+                {
+                    m_MMMark[b].StopMarking();
+                    AppendParallelLog($"板 {b + 1}: StopMarking OK");
+                }
+                catch (Exception ex)
+                {
+                    AppendParallelLog($"板 {b + 1}: StopMarking 失敗 - {ex.Message}");
+                }
+            }
+            AppendParallelLog("=== 並行驗證結束 ===");
+            m_bParallelTesting = false;
+            btnParallelTest.Enabled = true;
+        }
+
+        private void AppendParallelLog(string line)
+        {
+            txtParallelResult.AppendText(line + "\r\n");
         }
 
         private void btnStopMarkDXF_Click(object sender, EventArgs e)
@@ -3122,6 +3648,13 @@ namespace WindowsFormsApp1
                     return;
                 }
 
+                if (IsBoardBusy(boardIndex))
+                {
+                    MessageBox.Show($"晶片板 {boardIndex + 1} 正在執行其他預覽 / 打標，請先停止再試。",
+                        "板忙碌中", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
                 // 打標前自動套用雷射參數
                 if (!ApplyLaserParamsFromUI(boardIndex))
                     return;
@@ -3209,6 +3742,13 @@ namespace WindowsFormsApp1
                 if (!m_bBoardInit[boardIndex])
                 {
                     MessageBox.Show($"晶片板 {boardIndex + 1} 未成功初始化，無法操作！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                if (IsBoardBusy(boardIndex))
+                {
+                    MessageBox.Show($"晶片板 {boardIndex + 1} 正在執行其他預覽 / 打標，請先停止再試。",
+                        "板忙碌中", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
