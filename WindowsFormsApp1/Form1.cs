@@ -263,7 +263,11 @@ namespace WindowsFormsApp1
                     }
 
                     // 1. 清板 + 加入內容
+                    // ResetFile 後 SDK 文件的工作區會回到 config 預設值（通常小於 m_WorkspaceSize），
+                    // 必須重新 SetDesktopCenter/SetDesktopSize，否則首次 AddLine 會被 OCX 判定為「超出工作範圍」。
                     m_MMMark[board].ResetFile();
+                    m_MMMark[board].SetDesktopCenter(0, 0);
+                    m_MMMark[board].SetDesktopSize(m_WorkspaceSize, m_WorkspaceSize);
                     Application.DoEvents();
                     Thread.Sleep(50);
 
@@ -2737,7 +2741,11 @@ namespace WindowsFormsApp1
 
             try
             {
+                // ResetFile 後 SDK 文件的工作區會回到 config 預設值（通常小於 m_WorkspaceSize），
+                // 必須重新 SetDesktopCenter/SetDesktopSize，否則首次 AddLine 會被 OCX 判定為「超出工作範圍」。
                 m_MMMark[board].ResetFile();
+                m_MMMark[board].SetDesktopCenter(0, 0);
+                m_MMMark[board].SetDesktopSize(m_WorkspaceSize, m_WorkspaceSize);
                 Application.DoEvents();
                 Thread.Sleep(100);
 
@@ -2854,7 +2862,10 @@ namespace WindowsFormsApp1
             {
                 try
                 {
+                    // ResetFile 後須重新 SetDesktopCenter/SetDesktopSize，否則首次 AddLine 會被 OCX 判定為「超出工作範圍」。
                     m_MMMark[b].ResetFile();
+                    m_MMMark[b].SetDesktopCenter(0, 0);
+                    m_MMMark[b].SetDesktopSize(m_WorkspaceSize, m_WorkspaceSize);
                     Application.DoEvents();
                     Thread.Sleep(100);
                     m_MMEdit[b].AddLine(-30, -30, 30, 30, "", "");
@@ -3831,7 +3842,11 @@ namespace WindowsFormsApp1
             try
             {
                 // 刪除所有物件後重繪
+                // ResetFile 後須重新 SetDesktopCenter/SetDesktopSize，保持工作區與 m_WorkspaceSize 一致，
+                // 後續若立即 AddLine/AddBarcode 才不會被 OCX 判定為「超出工作範圍」。
                 m_MMMark[boardIndex].ResetFile();
+                m_MMMark[boardIndex].SetDesktopCenter(0, 0);
+                m_MMMark[boardIndex].SetDesktopSize(m_WorkspaceSize, m_WorkspaceSize);
                 Application.DoEvents();
                 Thread.Sleep(100);
                 m_MMMark[boardIndex].Redraw();
