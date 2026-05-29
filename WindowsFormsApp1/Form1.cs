@@ -134,6 +134,9 @@ namespace WindowsFormsApp1
             // 改為依據 args.IsAutoMode 來設定，而非強制設為 true
             m_IsAutoMode = args.IsAutoMode;
             m_WorkspaceSize = args.WorkspaceSize;
+            // 預設建構子已把 textbox 設成預設 150，這裡同步成 args 帶進來的值，
+            // 後續若呼叫 ReadWorkspaceSettings() 才不會把正確值蓋回 stale UI。
+            txtWorkspace.Text = m_WorkspaceSize.ToString();
 
             if (m_IsAutoMode)
             {
@@ -222,6 +225,10 @@ namespace WindowsFormsApp1
                 int board = -1;
                 try
                 {
+                    // 每次接到指令前重新讀取工作區設定，確保 m_WorkspaceSize 與 UI 一致，
+                    // 後續 SetDesktopSize / 座標檢查不會用到過期值。
+                    ReadWorkspaceSettings();
+
                     var argv = SplitCommandLine(cliArgs ?? "");
                     // 去掉開頭的 exe 名稱（網頁直接送 args 不會有，CLI client 也不會送）
                     if (argv.Length > 0 && !argv[0].StartsWith("-") &&
