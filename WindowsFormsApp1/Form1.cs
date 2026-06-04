@@ -525,7 +525,7 @@ namespace WindowsFormsApp1
                     m_MMMark[i].SetActiveDB(0);
                     m_MMMark[i].MarkStandBy();
                     m_MMMark[i].SetCurEditFun(2);
-                    m_MMMark[i].SetLensXReverse(1); // X 軸鏡像修正
+                    // 不再自動覆寫鏡頭 X 反向設定，尊重 MarkingMate GUI 中各板手動校正的鏡頭設定
                     m_MMMark[i].Redraw();
 
                     m_bBoardInit[i] = true;
@@ -1660,7 +1660,7 @@ namespace WindowsFormsApp1
                     m_MMMark[i].SetActiveDB(0);
                     m_MMMark[i].MarkStandBy();
                     m_MMMark[i].SetCurEditFun(2);
-                    m_MMMark[i].SetLensXReverse(1);
+                    // 不再自動覆寫鏡頭 X 反向設定，尊重 MarkingMate GUI 中各板手動校正的鏡頭設定
                     m_MMMark[i].Redraw();
 
                     m_bBoardInit[i] = true;
