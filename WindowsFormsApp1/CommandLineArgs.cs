@@ -384,7 +384,7 @@ namespace WindowsFormsApp1
   --freq <kHz>, -f <kHz>               脈衝頻率 kHz (不指定則使用預設值)
   --pulse-width <val>, --pw <val>      脈波寬度 (不指定則使用預設值)
   --repeat <n>, -r <n>                 雷射次數 (不指定則使用預設值)
-  --wobble-width <val>, --wobble <val> 擺動寬度 (不指定則不啟動擺動)
+  --wobble-width <mm>, --wobble <mm>   線條寬度 mm（雷射加粗，不指定則為細線）
   --wobble-overlap <n>                  擺動重疊率 % (預設: 50)
   --wobble-speed <mm/s>                 擺動速度 mm/s (預設: 5026.55)
   --qrcode <content>, -qr <content>   QR Code 內容字串
@@ -431,6 +431,12 @@ namespace WindowsFormsApp1
 
   # 指定工作區大小 200mm 載入 DXF
   MarkingMateMulti.exe --board 0 --workspace 200 --dxf ""File\上翼板-2.dxf"" --mark
+
+  # 線條加粗到 0.5mm（用 wobble 控制線條寬度）
+  MarkingMateMulti.exe --board 0 --line 0,0,50,50 --wobble-width 0.5 --mark
+
+  # 線條加粗到 2mm + 自訂雷射參數
+  MarkingMateMulti.exe --board 0 --lines ""-50,-50,50,50;0,-50,0,50"" --power 60 --speed 800 --wobble-width 2.0 --mark
 
   # QR Code 打標
   MarkingMateMulti.exe --board 0 --qrcode ""Hello World"" --qr-width 10 --qr-height 10 --power 50 --speed 1000 --mark
