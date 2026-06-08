@@ -63,7 +63,7 @@ namespace WindowsFormsApp1
             Frequency = null;
             PulseWidth = null;
             MarkRepeat = null;
-            WobbleWidth = null;
+            WobbleWidth = 0.5;   // 預設線條寬度 0.5 mm；--wobble-width 有指定就會覆寫
             WobbleOverlap = null;
             WobbleSpeed = null;
             QRContent = null;
@@ -384,7 +384,7 @@ namespace WindowsFormsApp1
   --freq <kHz>, -f <kHz>               脈衝頻率 kHz (不指定則使用預設值)
   --pulse-width <val>, --pw <val>      脈波寬度 (不指定則使用預設值)
   --repeat <n>, -r <n>                 雷射次數 (不指定則使用預設值)
-  --wobble-width <val>, --wobble <val> 擺動寬度 (不指定則不啟動擺動)
+  --wobble-width <mm>, --wobble <mm>   線條寬度 mm，雷射加粗 (預設: 0.5)
   --wobble-overlap <n>                  擺動重疊率 % (預設: 50)
   --wobble-speed <mm/s>                 擺動速度 mm/s (預設: 5026.55)
   --qrcode <content>, -qr <content>   QR Code 內容字串

@@ -2035,8 +2035,19 @@ namespace WindowsFormsApp1
                         double wobSpeed = m_AutoModeArgs.WobbleSpeed ?? 5026.55;
                         double wobWidth = m_AutoModeArgs.WobbleWidth.Value;
                         int wobbleFreq = (int)(wobSpeed / (Math.PI * wobWidth));
-                        m_MMMark[boardIndex].SetWobble(objName, wobWidth, wobbleFreq);
-                        m_MMMark[boardIndex].SetWobbleSwitch(objName, 1);
+                        long r6 = m_MMMark[boardIndex].SetWobble(objName, wobWidth, wobbleFreq);
+                        long r7 = m_MMMark[boardIndex].SetWobbleSwitch(objName, 1);
+                        double readWt = m_MMMark[boardIndex].GetWobbleThick(objName);
+                        long readWf = m_MMMark[boardIndex].GetWobbleFreq(objName);
+                        long readWs = m_MMMark[boardIndex].GetWobbleSwitch(objName);
+                        Console.Error.WriteLine(
+                            $"[Board {boardIndex + 1}] Wobble obj=[{objName}] " +
+                            $"Set: Wobble={r6} Switch={r7} | " +
+                            $"Req: width={wobWidth} freq={wobbleFreq} | " +
+                            $"Read: thick={readWt:F3} freq={readWf} switch={readWs}" +
+                            ((r6 != 0 || r7 != 0) ? " ** SET FAILED **" : "") +
+                            ((Math.Abs(readWt - wobWidth) > 0.001 || readWf != wobbleFreq || readWs != 1)
+                                ? " ** READBACK MISMATCH **" : ""));
                     }
                 }
 
@@ -2512,7 +2523,8 @@ namespace WindowsFormsApp1
         }
 
         // ============================================================
-        // 命令提示頁籤：隨機產生 5 組紅光預覽指令並執行
+        // 命令提示頁籤：隨機產生 5 組指令（含 --wobble-width，正式打標模式）。
+        // 使用者可手動編輯 textbox 加入 --preview 切回紅光預覽。
         // ============================================================
 
         private class CmdPreviewSpec
@@ -2521,8 +2533,10 @@ namespace WindowsFormsApp1
             public List<LineSegment> Lines;     // 線段內容（單條或多條）；null = 非線段類
             public string QRContent;            // QR 內容；null = 非 QR
             public double QRWidth, QRHeight, QRPosX, QRPosY;
-            public int PreviewMode;             // 1=outline, 2=full
-            public int PreviewTime;             // 秒
+            public int PreviewMode;             // 0=正式打標, 1=outline 預覽, 2=full 預覽
+            public int PreviewTime;             // 預覽模式秒數；PreviewMode=0 時忽略
+            public double? WobbleWidth;         // 線條寬度 mm（雷射加粗），null=不啟動 wobble
+            public double? WobbleSpeed;         // 擺動速度 mm/s，null=用 SDK 預設 5026.55
             public string DisplayText;          // 顯示在 textbox 內的命令字串
         }
 
@@ -2554,10 +2568,9 @@ namespace WindowsFormsApp1
             var spec = new CmdPreviewSpec
             {
                 BoardIndex = boardIdx,
-                PreviewMode = m_CmdRandom.Next(0, 2) == 0 ? 1 : 2,
-                PreviewTime = new[] { 5, 10, 15 }[m_CmdRandom.Next(0, 3)]
+                PreviewMode = 0,    // 取消預覽，按鈕按下即正式打標
+                PreviewTime = 0
             };
-            string previewModeText = spec.PreviewMode == 1 ? "outline" : "full";
 
             var sb = new StringBuilder();
             sb.Append("MarkingMate.exe");
@@ -2606,7 +2619,12 @@ namespace WindowsFormsApp1
                 sb.Append($" --qr-y {spec.QRPosY}");
             }
 
-            sb.Append($" --mark --preview {previewModeText} --preview-time {spec.PreviewTime}");
+            // 線條寬度（wobble）：固定 0.5 mm 預設值
+            double wobbleWidth = 0.5;
+            spec.WobbleWidth = wobbleWidth;
+            sb.Append($" --wobble-width {wobbleWidth:0.0}");
+
+            sb.Append(" --mark");
             spec.DisplayText = sb.ToString();
             return spec;
         }
@@ -2681,10 +2699,12 @@ namespace WindowsFormsApp1
             var spec = new CmdPreviewSpec
             {
                 BoardIndex = cli.BoardIndex,
-                // 若未指定 --preview，預設用全路徑預覽
-                PreviewMode = cli.PreviewMode > 0 ? cli.PreviewMode : 2,
-                // 若未指定 --preview-time，使用 CLI 預設 15 秒
-                PreviewTime = cli.PreviewTime > 0 ? cli.PreviewTime : 15,
+                // 沒指定 --preview → PreviewMode=0 = 正式打標
+                PreviewMode = cli.PreviewMode,
+                PreviewTime = cli.PreviewTime,
+                // 沒指定 --wobble-width → 用預設 0.5；有指定就用使用者的值
+                WobbleWidth = cli.WobbleWidth ?? 0.5,
+                WobbleSpeed = cli.WobbleSpeed,
                 DisplayText = cmdLine
             };
 
@@ -2784,25 +2804,82 @@ namespace WindowsFormsApp1
 
                 Application.DoEvents();
                 Thread.Sleep(100);
+
+                // 套用線條寬度（wobble）到所有物件 — 同 ApplyLaserParamsAuto 流程
+                if (spec.WobbleWidth.HasValue && spec.WobbleWidth.Value > 0)
+                {
+                    double wobSpeed = spec.WobbleSpeed ?? 5026.55;
+                    double wobWidth = spec.WobbleWidth.Value;
+                    int wobbleFreq = (int)(wobSpeed / (Math.PI * wobWidth));
+
+                    m_MMMark[board].SelectAllObjects();
+                    long objCount = m_MMMark[board].SelectGetCount();
+                    System.Diagnostics.Debug.WriteLine($"[Cmd] Board {board + 1} wobble apply: objCount={objCount}");
+                    for (int i = 0; i < objCount; i++)
+                    {
+                        string objName = "";
+                        m_MMMark[board].SelectEnum(i, ref objName);
+                        if (string.IsNullOrEmpty(objName)) continue;
+                        m_MMMark[board].SetWobble(objName, wobWidth, wobbleFreq);
+                        m_MMMark[board].SetWobbleSwitch(objName, 1);
+                    }
+                }
+
                 m_MMMark[board].Redraw();
                 Thread.Sleep(200);
 
-                m_MMMark[board].SetPreviewMode(spec.PreviewMode);
-                m_MMMark[board].MarkStandBy();
-                Application.DoEvents();
-
-                if (m_MMMark[board].StartMarking(3) != 0)
+                if (spec.PreviewMode > 0)
                 {
-                    MessageBox.Show($"晶片板 {board + 1} 預覽啟動失敗！", "錯誤",
-                        MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
+                    // === 紅光預覽（保留原行為，可由 textbox 編輯 --preview 觸發） ===
+                    m_MMMark[board].SetPreviewMode(spec.PreviewMode);
+                    m_MMMark[board].MarkStandBy();
+                    Application.DoEvents();
 
-                // per-board state：不影響其他板，也不停用其他 btnCmd
-                m_bCmdPreviewing[board] = true;
-                m_TimerCmdPreview[board].Stop();
-                m_TimerCmdPreview[board].Interval = Math.Max(spec.PreviewTime, 1) * 1000;
-                m_TimerCmdPreview[board].Start();
+                    if (m_MMMark[board].StartMarking(3) != 0)
+                    {
+                        MessageBox.Show($"晶片板 {board + 1} 預覽啟動失敗！", "錯誤",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    int previewSec = spec.PreviewTime > 0 ? spec.PreviewTime : 15;
+                    m_bCmdPreviewing[board] = true;
+                    m_TimerCmdPreview[board].Stop();
+                    m_TimerCmdPreview[board].Interval = previewSec * 1000;
+                    m_TimerCmdPreview[board].Start();
+                }
+                else
+                {
+                    // === 正式打標：StartMarking(4) + 阻塞輪詢直到完成 ===
+                    m_MMMark[board].MarkStandBy();
+                    Application.DoEvents();
+
+                    int startResult = m_MMMark[board].StartMarking(4);
+                    if (startResult != 0)
+                    {
+                        MessageBox.Show($"晶片板 {board + 1} 打標啟動失敗，錯誤碼：{startResult}",
+                            "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    m_bCmdPreviewing[board] = true;
+                    int loopCount = 0;
+                    while (m_MMMark[board].IsMarking() != 0)
+                    {
+                        Application.DoEvents();
+                        Thread.Sleep(100);
+                        loopCount++;
+                        if (loopCount > 600) // 60 秒安全超時
+                        {
+                            m_MMMark[board].StopMarking();
+                            MessageBox.Show($"晶片板 {board + 1} 打標超時 60s，已強制停止。",
+                                "超時", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            break;
+                        }
+                    }
+                    try { m_MMMark[board].MarkShutdown(); } catch { /* 容忍 */ }
+                    m_bCmdPreviewing[board] = false;
+                }
             }
             catch (Exception ex)
             {
