@@ -80,7 +80,10 @@ namespace WindowsFormsApp1
         private TextBox[] m_txtIPs;
 
         // 工作區大小設定（mm），影響 SetDesktopSize 和 DXF 縮放
+        // m_WorkspaceSize 代表「寬 W」，m_WorkspaceHeight 代表「高 H」；
+        // 允許 W != H，DXF 縮放會用 min(W, H) 以保持原始比例。
         private double m_WorkspaceSize = 150.0;
+        private double m_WorkspaceHeight = 150.0;
         private double m_MarginPercent = 0.9;
 
         // 自動模式相關
@@ -109,6 +112,7 @@ namespace WindowsFormsApp1
 
             // 同步 UI 顯示初始值
             txtWorkspace.Text = m_WorkspaceSize.ToString();
+            txtWorkspaceHeight.Text = m_WorkspaceHeight.ToString();
             txtMargin.Text = (m_MarginPercent * 100).ToString();
 
             this.btnPreviewDXF.Visible = true;
@@ -134,9 +138,11 @@ namespace WindowsFormsApp1
             // 改為依據 args.IsAutoMode 來設定，而非強制設為 true
             m_IsAutoMode = args.IsAutoMode;
             m_WorkspaceSize = args.WorkspaceSize;
+            m_WorkspaceHeight = args.WorkspaceHeight;
             // 預設建構子已把 textbox 設成預設 150，這裡同步成 args 帶進來的值，
             // 後續若呼叫 ReadWorkspaceSettings() 才不會把正確值蓋回 stale UI。
             txtWorkspace.Text = m_WorkspaceSize.ToString();
+            txtWorkspaceHeight.Text = m_WorkspaceHeight.ToString();
 
             if (m_IsAutoMode)
             {
@@ -274,13 +280,14 @@ namespace WindowsFormsApp1
                     // 必須重新 SetDesktopCenter/SetDesktopSize，否則首次 AddLine 會被 OCX 判定為「超出工作範圍」。
                     m_MMMark[board].ResetFile();
                     m_MMMark[board].SetDesktopCenter(0, 0);
-                    m_MMMark[board].SetDesktopSize(m_WorkspaceSize, m_WorkspaceSize);
+                    m_MMMark[board].SetDesktopSize(m_WorkspaceSize, m_WorkspaceHeight);
                     Application.DoEvents();
                     Thread.Sleep(50);
 
                     if (spec.Lines != null && spec.Lines.Count > 0)
                     {
-                        double halfSize = m_WorkspaceSize / 2.0;
+                        double halfW = m_WorkspaceSize / 2.0;
+                        double halfH = m_WorkspaceHeight / 2.0;
                         foreach (var line in spec.Lines)
                         {
                             bool isCenterBased = line.X1 < 0 || line.X2 < 0 || line.Y1 < 0 || line.Y2 < 0;
@@ -291,8 +298,8 @@ namespace WindowsFormsApp1
                             }
                             else
                             {
-                                x1 = line.X1 - halfSize; y1 = line.Y1 - halfSize;
-                                x2 = line.X2 - halfSize; y2 = line.Y2 - halfSize;
+                                x1 = line.X1 - halfW; y1 = line.Y1 - halfH;
+                                x2 = line.X2 - halfW; y2 = line.Y2 - halfH;
                             }
                             m_MMEdit[board].AddLine(x1, y1, x2, y2, "", "");
                         }
@@ -435,6 +442,11 @@ namespace WindowsFormsApp1
                 m_WorkspaceSize = ws;
             }
 
+            if (double.TryParse(txtWorkspaceHeight.Text.Trim(), out double wh) && wh > 0)
+            {
+                m_WorkspaceHeight = wh;
+            }
+
             if (double.TryParse(txtMargin.Text.Trim(), out double mg) && mg > 0 && mg <= 100)
             {
                 m_MarginPercent = mg / 100.0;
@@ -521,7 +533,7 @@ namespace WindowsFormsApp1
                     // 步驟 2：立即初始化 MMMark
                     m_MMMark[i].InitialExt(m_ConfigPaths[i]);
                     m_MMMark[i].SetDesktopCenter(0, 0);
-                    m_MMMark[i].SetDesktopSize(m_WorkspaceSize, m_WorkspaceSize);
+                    m_MMMark[i].SetDesktopSize(m_WorkspaceSize, m_WorkspaceHeight);
                     m_MMMark[i].SetActiveDB(0);
                     m_MMMark[i].MarkStandBy();
                     m_MMMark[i].SetCurEditFun(2);
@@ -1656,7 +1668,7 @@ namespace WindowsFormsApp1
 
                     m_MMMark[i].InitialExt(cfg);
                     m_MMMark[i].SetDesktopCenter(0, 0);
-                    m_MMMark[i].SetDesktopSize(m_WorkspaceSize, m_WorkspaceSize);
+                    m_MMMark[i].SetDesktopSize(m_WorkspaceSize, m_WorkspaceHeight);
                     m_MMMark[i].SetActiveDB(0);
                     m_MMMark[i].MarkStandBy();
                     m_MMMark[i].SetCurEditFun(2);
@@ -1697,7 +1709,8 @@ namespace WindowsFormsApp1
                 // 假設 workspaceSize = 150，範圍是 [-75, 75]
                 // 如果傳入的是 [0, 150]，則需要平移 -75
 
-                double halfSize = m_WorkspaceSize / 2.0;
+                double halfW = m_WorkspaceSize / 2.0;
+                double halfH = m_WorkspaceHeight / 2.0;
 
                 // 先套用一個簡單的平移修正：將輸入座標視為以左下角為(0,0)的絕對座標，轉換為以中心為(0,0)的相對座標
                 // 但是！如果使用者已經提供了負座標（例如 -111, 50），這表示他們可能已經使用了中心原點座標
@@ -1719,11 +1732,11 @@ namespace WindowsFormsApp1
                 }
                 else
                 {
-                    // 全正數，假設是 Corner 原點，進行平移
-                    x1 = line.X1 - halfSize;
-                    y1 = line.Y1 - halfSize;
-                    x2 = line.X2 - halfSize;
-                    y2 = line.Y2 - halfSize;
+                    // 全正數，假設是 Corner 原點，進行平移（X 用半寬、Y 用半高）
+                    x1 = line.X1 - halfW;
+                    y1 = line.Y1 - halfH;
+                    x2 = line.X2 - halfW;
+                    y2 = line.Y2 - halfH;
                 }
 
                 // 改用轉換後的座標
@@ -1829,9 +1842,11 @@ namespace WindowsFormsApp1
                 double origCenterY = (minY + maxY) / 2.0;
 
                 double maxSpan = Math.Max(origWidth, origHeight);
-                double scaleFactor = (m_WorkspaceSize * m_MarginPercent) / maxSpan;
+                // 工作區短邊決定縮放極限，避免長邊裝得下、短邊卻溢出
+                double minWorkspace = Math.Min(m_WorkspaceSize, m_WorkspaceHeight);
+                double scaleFactor = (minWorkspace * m_MarginPercent) / maxSpan;
 
-                System.Diagnostics.Debug.WriteLine($"DXF 解析完成：{lines.Count} 條線段，工作區：{m_WorkspaceSize}，縮放比例：{scaleFactor:F4}");
+                System.Diagnostics.Debug.WriteLine($"DXF 解析完成：{lines.Count} 條線段，工作區：{m_WorkspaceSize}x{m_WorkspaceHeight}，縮放比例：{scaleFactor:F4}");
 
                 // 轉換座標並加入到 MMEdit
                 foreach (var line in lines)
@@ -2153,8 +2168,10 @@ namespace WindowsFormsApp1
                 double origCenterY = (minY + maxY) / 2.0;
 
                 // 自動縮放和平移到工作區
+                // 工作區短邊決定縮放極限，避免長邊裝得下、短邊卻溢出
                 double maxSpan = Math.Max(origWidth, origHeight);
-                double scaleFactor = (m_WorkspaceSize * m_MarginPercent) / maxSpan;
+                double minWorkspace = Math.Min(m_WorkspaceSize, m_WorkspaceHeight);
+                double scaleFactor = (minWorkspace * m_MarginPercent) / maxSpan;
 
                 // 轉換座標
                 var transformedLines = new List<DXFLine>();
@@ -2772,13 +2789,14 @@ namespace WindowsFormsApp1
                 // 必須重新 SetDesktopCenter/SetDesktopSize，否則首次 AddLine 會被 OCX 判定為「超出工作範圍」。
                 m_MMMark[board].ResetFile();
                 m_MMMark[board].SetDesktopCenter(0, 0);
-                m_MMMark[board].SetDesktopSize(m_WorkspaceSize, m_WorkspaceSize);
+                m_MMMark[board].SetDesktopSize(m_WorkspaceSize, m_WorkspaceHeight);
                 Application.DoEvents();
                 Thread.Sleep(100);
 
                 if (spec.Lines != null && spec.Lines.Count > 0)
                 {
-                    double halfSize = m_WorkspaceSize / 2.0;
+                    double halfW = m_WorkspaceSize / 2.0;
+                    double halfH = m_WorkspaceHeight / 2.0;
                     foreach (var line in spec.Lines)
                     {
                         // 與 DrawLineAuto 相同的座標規則：任一負值 → 中心原點；全正 → 左下角原點需平移
@@ -2790,8 +2808,8 @@ namespace WindowsFormsApp1
                         }
                         else
                         {
-                            x1 = line.X1 - halfSize; y1 = line.Y1 - halfSize;
-                            x2 = line.X2 - halfSize; y2 = line.Y2 - halfSize;
+                            x1 = line.X1 - halfW; y1 = line.Y1 - halfH;
+                            x2 = line.X2 - halfW; y2 = line.Y2 - halfH;
                         }
                         m_MMEdit[board].AddLine(x1, y1, x2, y2, "", "");
                     }
@@ -2949,7 +2967,7 @@ namespace WindowsFormsApp1
                     // ResetFile 後須重新 SetDesktopCenter/SetDesktopSize，否則首次 AddLine 會被 OCX 判定為「超出工作範圍」。
                     m_MMMark[b].ResetFile();
                     m_MMMark[b].SetDesktopCenter(0, 0);
-                    m_MMMark[b].SetDesktopSize(m_WorkspaceSize, m_WorkspaceSize);
+                    m_MMMark[b].SetDesktopSize(m_WorkspaceSize, m_WorkspaceHeight);
                     Application.DoEvents();
                     Thread.Sleep(100);
                     m_MMEdit[b].AddLine(-30, -30, 30, 30, "", "");
@@ -3930,7 +3948,7 @@ namespace WindowsFormsApp1
                 // 後續若立即 AddLine/AddBarcode 才不會被 OCX 判定為「超出工作範圍」。
                 m_MMMark[boardIndex].ResetFile();
                 m_MMMark[boardIndex].SetDesktopCenter(0, 0);
-                m_MMMark[boardIndex].SetDesktopSize(m_WorkspaceSize, m_WorkspaceSize);
+                m_MMMark[boardIndex].SetDesktopSize(m_WorkspaceSize, m_WorkspaceHeight);
                 Application.DoEvents();
                 Thread.Sleep(100);
                 m_MMMark[boardIndex].Redraw();

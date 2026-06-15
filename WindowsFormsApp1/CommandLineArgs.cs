@@ -15,7 +15,11 @@ namespace WindowsFormsApp1
         public bool AutoMark { get; private set; }
         public bool ShowHelp { get; private set; }
         public string DxfPath { get; private set; }
-        public double WorkspaceSize { get; private set; }
+        public double WorkspaceSize { get; private set; }      // 寬 W
+        public double WorkspaceHeight { get; private set; }    // 高 H（預設等於 W，向後相容）
+
+        // 是否使用者明確指定了 --workspace-h（決定是否要在 --workspace 變動時同步 H）
+        private bool m_WorkspaceHeightExplicit = false;
 
         // 雷射參數（null 表示不設定，使用預設值）
         public double? Power { get; private set; }
@@ -58,6 +62,7 @@ namespace WindowsFormsApp1
             ShowHelp = false;
             DxfPath = null;
             WorkspaceSize = 150.0;
+            WorkspaceHeight = 150.0;
             Power = null;
             Speed = null;
             Frequency = null;
@@ -169,11 +174,25 @@ namespace WindowsFormsApp1
                         result.IsAutoMode = true;
                     }
                 }
-                else if (argLower == "--workspace" || argLower == "-w")
+                else if (argLower == "--workspace" || argLower == "-w" || argLower == "--workspace-w")
                 {
+                    // --workspace / --workspace-w：設定寬度。
+                    // 若使用者尚未明確指定 --workspace-h，則同步把高度也設成同值（向後相容：原本傳一個值就是正方形）。
                     if (i + 1 < args.Length && double.TryParse(args[i + 1], out double ws))
                     {
                         result.WorkspaceSize = ws;
+                        if (!result.m_WorkspaceHeightExplicit)
+                            result.WorkspaceHeight = ws;
+                        i++;
+                    }
+                }
+                else if (argLower == "--workspace-h")
+                {
+                    // 明確設定高度；之後即使再用 --workspace 也不會同步覆寫 H。
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double wh))
+                    {
+                        result.WorkspaceHeight = wh;
+                        result.m_WorkspaceHeightExplicit = true;
                         i++;
                     }
                 }
@@ -378,7 +397,9 @@ namespace WindowsFormsApp1
   --line <x1,y1,x2,y2>, -l <x1,y1,x2,y2>  新增單一線段
   --lines <線段列表>                    新增多條線段 (以分號分隔)
   --dxf <path>, -d <path>              載入 DXF 檔案（手動解析線段）
-  --workspace <size>, -w <size>        工作區大小 mm (預設: 150)
+  --workspace <size>, -w <size>        工作區大小 mm (預設: 150)；同時設定寬高為等值
+  --workspace-w <mm>                    工作區寬 W mm（等同 --workspace）
+  --workspace-h <mm>                    工作區高 H mm（可與 W 不同，DXF 縮放會用 min(W,H) 保持比例）
   --power <0-100>, -p <0-100>          雷射功率 % (不指定則使用預設值)
   --speed <mm/s>, -s <mm/s>            打標速度 mm/s (不指定則使用預設值)
   --freq <kHz>, -f <kHz>               脈衝頻率 kHz (不指定則使用預設值)
@@ -431,6 +452,9 @@ namespace WindowsFormsApp1
 
   # 指定工作區大小 200mm 載入 DXF
   MarkingMateMulti.exe --board 0 --workspace 200 --dxf ""File\上翼板-2.dxf"" --mark
+
+  # 長寬不同（W=200, H=120），長邊 200 / 短邊 120
+  MarkingMateMulti.exe --board 0 --workspace-w 200 --workspace-h 120 --dxf ""File\上翼板-2.dxf"" --mark
 
   # QR Code 打標
   MarkingMateMulti.exe --board 0 --qrcode ""Hello World"" --qr-width 10 --qr-height 10 --power 50 --speed 1000 --mark

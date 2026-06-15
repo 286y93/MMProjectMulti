@@ -49,6 +49,8 @@
             this.tabPageParams = new System.Windows.Forms.TabPage();
             this.lblWorkspace = new System.Windows.Forms.Label();
             this.txtWorkspace = new System.Windows.Forms.TextBox();
+            this.lblWorkspaceHeight = new System.Windows.Forms.Label();
+            this.txtWorkspaceHeight = new System.Windows.Forms.TextBox();
             this.lblMargin = new System.Windows.Forms.Label();
             this.txtMargin = new System.Windows.Forms.TextBox();
             this.groupBoxIP = new System.Windows.Forms.GroupBox();
@@ -376,6 +378,8 @@
             // 
             this.tabPageParams.Controls.Add(this.lblWorkspace);
             this.tabPageParams.Controls.Add(this.txtWorkspace);
+            this.tabPageParams.Controls.Add(this.lblWorkspaceHeight);
+            this.tabPageParams.Controls.Add(this.txtWorkspaceHeight);
             this.tabPageParams.Controls.Add(this.lblMargin);
             this.tabPageParams.Controls.Add(this.txtMargin);
             this.tabPageParams.Controls.Add(this.groupBoxIP);
@@ -386,39 +390,56 @@
             this.tabPageParams.TabIndex = 3;
             this.tabPageParams.Text = "2. 雷射參數";
             this.tabPageParams.UseVisualStyleBackColor = true;
-            // 
+            //
             // lblWorkspace
-            // 
+            //
             this.lblWorkspace.AutoSize = true;
             this.lblWorkspace.Location = new System.Drawing.Point(20, 20);
             this.lblWorkspace.Name = "lblWorkspace";
-            this.lblWorkspace.Size = new System.Drawing.Size(88, 15);
+            this.lblWorkspace.Size = new System.Drawing.Size(108, 15);
             this.lblWorkspace.TabIndex = 0;
-            this.lblWorkspace.Text = "工作區(mm):";
-            // 
+            this.lblWorkspace.Text = "工作區寬 W(mm):";
+            //
             // txtWorkspace
-            // 
-            this.txtWorkspace.Location = new System.Drawing.Point(120, 17);
+            //
+            this.txtWorkspace.Location = new System.Drawing.Point(140, 17);
             this.txtWorkspace.Name = "txtWorkspace";
             this.txtWorkspace.Size = new System.Drawing.Size(80, 25);
             this.txtWorkspace.TabIndex = 1;
             this.txtWorkspace.Text = "150";
-            // 
+            //
+            // lblWorkspaceHeight
+            //
+            this.lblWorkspaceHeight.AutoSize = true;
+            this.lblWorkspaceHeight.Location = new System.Drawing.Point(20, 55);
+            this.lblWorkspaceHeight.Name = "lblWorkspaceHeight";
+            this.lblWorkspaceHeight.Size = new System.Drawing.Size(108, 15);
+            this.lblWorkspaceHeight.TabIndex = 2;
+            this.lblWorkspaceHeight.Text = "工作區高 H(mm):";
+            //
+            // txtWorkspaceHeight
+            //
+            this.txtWorkspaceHeight.Location = new System.Drawing.Point(140, 52);
+            this.txtWorkspaceHeight.Name = "txtWorkspaceHeight";
+            this.txtWorkspaceHeight.Size = new System.Drawing.Size(80, 25);
+            this.txtWorkspaceHeight.TabIndex = 3;
+            this.txtWorkspaceHeight.Text = "150";
+            //
             // lblMargin
-            // 
+            //
             this.lblMargin.AutoSize = true;
-            this.lblMargin.Location = new System.Drawing.Point(20, 55);
+            this.lblMargin.Location = new System.Drawing.Point(20, 90);
             this.lblMargin.Name = "lblMargin";
             this.lblMargin.Size = new System.Drawing.Size(63, 15);
-            this.lblMargin.TabIndex = 2;
+            this.lblMargin.TabIndex = 4;
             this.lblMargin.Text = "邊距(%):";
-            // 
+            //
             // txtMargin
-            // 
-            this.txtMargin.Location = new System.Drawing.Point(120, 52);
+            //
+            this.txtMargin.Location = new System.Drawing.Point(140, 87);
             this.txtMargin.Name = "txtMargin";
             this.txtMargin.Size = new System.Drawing.Size(80, 25);
-            this.txtMargin.TabIndex = 3;
+            this.txtMargin.TabIndex = 5;
             this.txtMargin.Text = "90";
             // 
             // groupBoxIP
@@ -433,7 +454,7 @@
             this.groupBoxIP.Controls.Add(this.txtIP4);
             this.groupBoxIP.Controls.Add(this.btnReadIP);
             this.groupBoxIP.Controls.Add(this.btnSaveIP);
-            this.groupBoxIP.Location = new System.Drawing.Point(8, 90);
+            this.groupBoxIP.Location = new System.Drawing.Point(8, 130);
             this.groupBoxIP.Margin = new System.Windows.Forms.Padding(4);
             this.groupBoxIP.Name = "groupBoxIP";
             this.groupBoxIP.Padding = new System.Windows.Forms.Padding(4);
@@ -1764,6 +1785,8 @@
         private System.Windows.Forms.TabPage tabPageParams;
         private System.Windows.Forms.Label lblWorkspace;
         private System.Windows.Forms.TextBox txtWorkspace;
+        private System.Windows.Forms.Label lblWorkspaceHeight;
+        private System.Windows.Forms.TextBox txtWorkspaceHeight;
         private System.Windows.Forms.Label lblMargin;
         private System.Windows.Forms.TextBox txtMargin;
         private System.Windows.Forms.TabPage tabPageLaserPower;
