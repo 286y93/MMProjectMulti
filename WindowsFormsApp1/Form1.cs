@@ -308,7 +308,7 @@ namespace WindowsFormsApp1
                     else
                     {
                         m_MMMark[board].AddBarcode(BARCODE_TYPE_QRCODE, spec.QRContent,
-                            spec.QRPosX, spec.QRPosY, spec.QRWidth, spec.QRHeight, "", "");
+                            0, 0, spec.QRWidth, spec.QRHeight, "", "");
                         sbLog.AppendLine($"[Board {board + 1}] added QR \"{spec.QRContent}\"");
                     }
 
@@ -1430,7 +1430,7 @@ namespace WindowsFormsApp1
                 }
 
                 // Debug: 輸出解析後的參數
-                Console.WriteLine($"[AutoMode] DxfPath={m_AutoModeArgs.DxfPath ?? "(null)"}, Lines={m_AutoModeArgs.Lines?.Count ?? 0}, QRContent={m_AutoModeArgs.QRContent ?? "(null)"}, QRSize={m_AutoModeArgs.QRWidth}x{m_AutoModeArgs.QRHeight}, QRPos=({m_AutoModeArgs.QRPosX},{m_AutoModeArgs.QRPosY})");
+                Console.WriteLine($"[AutoMode] DxfPath={m_AutoModeArgs.DxfPath ?? "(null)"}, Lines={m_AutoModeArgs.Lines?.Count ?? 0}, QRContent={m_AutoModeArgs.QRContent ?? "(null)"}, QRSize={m_AutoModeArgs.QRWidth}x{m_AutoModeArgs.QRHeight}");
 
                 // 步驟 2: 載入 DXF 檔案或繪製手動線段
                 bool hasContent = false;
@@ -1497,7 +1497,6 @@ namespace WindowsFormsApp1
                 else if (!string.IsNullOrEmpty(m_AutoModeArgs.QRContent))
                 {
                     if (!DrawQRCodeAuto(m_AutoModeArgs.BoardIndex, m_AutoModeArgs.QRContent,
-                        m_AutoModeArgs.QRPosX, m_AutoModeArgs.QRPosY,
                         m_AutoModeArgs.QRWidth, m_AutoModeArgs.QRHeight))
                     {
                         Console.Error.WriteLine("Error: Failed to draw QR Code.");
@@ -1763,14 +1762,14 @@ namespace WindowsFormsApp1
         }
 
         /// <summary>
-        /// 自動模式：繪製 QR Code
+        /// 自動模式：繪製 QR Code（位置固定為鏡頭中心 0,0）
         /// </summary>
-        private bool DrawQRCodeAuto(int boardIndex, string content, double posX, double posY, double width, double height)
+        private bool DrawQRCodeAuto(int boardIndex, string content, double width, double height)
         {
             try
             {
                 long result = m_MMMark[boardIndex].AddBarcode(
-                    BARCODE_TYPE_QRCODE, content, posX, posY, width, height, "", "");
+                    BARCODE_TYPE_QRCODE, content, 0, 0, width, height, "", "");
 
                 if (result != 0)
                 {
@@ -1785,7 +1784,7 @@ namespace WindowsFormsApp1
                 Application.DoEvents();
                 Thread.Sleep(300);
 
-                System.Diagnostics.Debug.WriteLine($"已繪製 QR Code: content={content}, pos=({posX},{posY}), size={width}x{height}");
+                System.Diagnostics.Debug.WriteLine($"已繪製 QR Code: content={content}, size={width}x{height}");
                 return true;
             }
             catch (Exception ex)
@@ -2045,7 +2044,10 @@ namespace WindowsFormsApp1
 
                     // 擺動：有指定寬度則啟動
                     // 頻率 = 擺動速度 / (π × 擺動寬度)，不覆蓋標記速度
-                    if (m_AutoModeArgs.WobbleWidth.HasValue)
+                    // QR 物件不套用 wobble — EMC6 對 QR 套擺動會回 Unknown Commands；
+                    // GUI 的 QR 載入按鈕也刻意沒呼叫 SetWobble。要加粗請改 --qr-width/--qr-height。
+                    if (m_AutoModeArgs.WobbleWidth.HasValue
+                        && string.IsNullOrEmpty(m_AutoModeArgs.QRContent))
                     {
                         double wobSpeed = m_AutoModeArgs.WobbleSpeed ?? 5026.55;
                         double wobWidth = m_AutoModeArgs.WobbleWidth.Value;
@@ -2549,7 +2551,7 @@ namespace WindowsFormsApp1
             public int BoardIndex;
             public List<LineSegment> Lines;     // 線段內容（單條或多條）；null = 非線段類
             public string QRContent;            // QR 內容；null = 非 QR
-            public double QRWidth, QRHeight, QRPosX, QRPosY;
+            public double QRWidth, QRHeight;
             public int PreviewMode;             // 0=正式打標, 1=outline 預覽, 2=full 預覽
             public int PreviewTime;             // 預覽模式秒數；PreviewMode=0 時忽略
             public double? WobbleWidth;         // 線條寬度 mm（雷射加粗），null=不啟動 wobble
@@ -2627,13 +2629,9 @@ namespace WindowsFormsApp1
                 spec.QRContent = samples[m_CmdRandom.Next(samples.Length)];
                 spec.QRWidth = m_CmdRandom.Next(8, 26);
                 spec.QRHeight = spec.QRWidth;
-                spec.QRPosX = m_CmdRandom.Next(-20, 21);
-                spec.QRPosY = m_CmdRandom.Next(-20, 21);
                 sb.Append($" --qrcode \"{spec.QRContent}\"");
                 sb.Append($" --qr-width {spec.QRWidth}");
                 sb.Append($" --qr-height {spec.QRHeight}");
-                sb.Append($" --qr-x {spec.QRPosX}");
-                sb.Append($" --qr-y {spec.QRPosY}");
             }
 
             // 線條寬度（wobble）：固定 0.5 mm 預設值
@@ -2734,8 +2732,6 @@ namespace WindowsFormsApp1
                 spec.QRContent = cli.QRContent;
                 spec.QRWidth = cli.QRWidth;
                 spec.QRHeight = cli.QRHeight;
-                spec.QRPosX = cli.QRPosX;
-                spec.QRPosY = cli.QRPosY;
             }
             return spec;
         }
@@ -2817,14 +2813,16 @@ namespace WindowsFormsApp1
                 else if (!string.IsNullOrEmpty(spec.QRContent))
                 {
                     m_MMMark[board].AddBarcode(BARCODE_TYPE_QRCODE, spec.QRContent,
-                        spec.QRPosX, spec.QRPosY, spec.QRWidth, spec.QRHeight, "", "");
+                        0, 0, spec.QRWidth, spec.QRHeight, "", "");
                 }
 
                 Application.DoEvents();
                 Thread.Sleep(100);
 
                 // 套用線條寬度（wobble）到所有物件 — 同 ApplyLaserParamsAuto 流程
-                if (spec.WobbleWidth.HasValue && spec.WobbleWidth.Value > 0)
+                // QR 物件跳過：EMC6 對 QR 套擺動會回 Unknown Commands
+                if (spec.WobbleWidth.HasValue && spec.WobbleWidth.Value > 0
+                    && string.IsNullOrEmpty(spec.QRContent))
                 {
                     double wobSpeed = spec.WobbleSpeed ?? 5026.55;
                     double wobWidth = spec.WobbleWidth.Value;
