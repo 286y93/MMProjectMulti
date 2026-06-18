@@ -278,16 +278,25 @@ namespace WindowsFormsApp1
                     // 1. 清板 + 加入內容
                     // ResetFile 後 SDK 文件的工作區會回到 config 預設值（通常小於 m_WorkspaceSize），
                     // 必須重新 SetDesktopCenter/SetDesktopSize，否則首次 AddLine 會被 OCX 判定為「超出工作範圍」。
+                    //
+                    // 工作區 W/H 決定：
+                    //   - 非 QR + spec 有明確 --workspace-w/h → 以 spec 為準（line/DXF 需要）
+                    //   - 其餘（QR、或沒帶 workspace 參數） → 沿用 UI 讀進來的 m_WorkspaceSize/Height
+                    //   QR 物件位置固定 (0,0) 且不做工作範圍平移，這裡 SetDesktopSize 的值對 QR 無實際影響。
+                    bool isQR = !string.IsNullOrEmpty(spec.QRContent);
+                    double effectiveW = (!isQR && spec.WorkspaceWidthExplicit) ? spec.WorkspaceSize : m_WorkspaceSize;
+                    double effectiveH = (!isQR && spec.WorkspaceHeightExplicit) ? spec.WorkspaceHeight : m_WorkspaceHeight;
+
                     m_MMMark[board].ResetFile();
                     m_MMMark[board].SetDesktopCenter(0, 0);
-                    m_MMMark[board].SetDesktopSize(m_WorkspaceSize, m_WorkspaceHeight);
+                    m_MMMark[board].SetDesktopSize(effectiveW, effectiveH);
                     Application.DoEvents();
                     Thread.Sleep(50);
 
                     if (spec.Lines != null && spec.Lines.Count > 0)
                     {
-                        double halfW = m_WorkspaceSize / 2.0;
-                        double halfH = m_WorkspaceHeight / 2.0;
+                        double halfW = effectiveW / 2.0;
+                        double halfH = effectiveH / 2.0;
                         foreach (var line in spec.Lines)
                         {
                             bool isCenterBased = line.X1 < 0 || line.X2 < 0 || line.Y1 < 0 || line.Y2 < 0;
@@ -303,13 +312,19 @@ namespace WindowsFormsApp1
                             }
                             m_MMEdit[board].AddLine(x1, y1, x2, y2, "", "");
                         }
-                        sbLog.AppendLine($"[Board {board + 1}] added {spec.Lines.Count} line(s)");
+                        sbLog.AppendLine($"[Board {board + 1}] added {spec.Lines.Count} line(s) (W={effectiveW},H={effectiveH})");
                     }
                     else
                     {
                         m_MMMark[board].AddBarcode(BARCODE_TYPE_QRCODE, spec.QRContent,
                             0, 0, spec.QRWidth, spec.QRHeight, "", "");
-                        sbLog.AppendLine($"[Board {board + 1}] added QR \"{spec.QRContent}\"");
+                        if (spec.QRInvert)
+                        {
+                            Application.DoEvents();
+                            Thread.Sleep(50);
+                            ApplyQRInvert(board);
+                        }
+                        sbLog.AppendLine($"[Board {board + 1}] added QR \"{spec.QRContent}\"{(spec.QRInvert ? " (invert)" : "")}");
                     }
 
                     Application.DoEvents();
@@ -1430,7 +1445,7 @@ namespace WindowsFormsApp1
                 }
 
                 // Debug: 輸出解析後的參數
-                Console.WriteLine($"[AutoMode] DxfPath={m_AutoModeArgs.DxfPath ?? "(null)"}, Lines={m_AutoModeArgs.Lines?.Count ?? 0}, QRContent={m_AutoModeArgs.QRContent ?? "(null)"}, QRSize={m_AutoModeArgs.QRWidth}x{m_AutoModeArgs.QRHeight}");
+                Console.WriteLine($"[AutoMode] DxfPath={m_AutoModeArgs.DxfPath ?? "(null)"}, Lines={m_AutoModeArgs.Lines?.Count ?? 0}, QRContent={m_AutoModeArgs.QRContent ?? "(null)"}, QRSize={m_AutoModeArgs.QRWidth}x{m_AutoModeArgs.QRHeight}, QRInvert={m_AutoModeArgs.QRInvert}");
 
                 // 步驟 2: 載入 DXF 檔案或繪製手動線段
                 bool hasContent = false;
@@ -1497,7 +1512,8 @@ namespace WindowsFormsApp1
                 else if (!string.IsNullOrEmpty(m_AutoModeArgs.QRContent))
                 {
                     if (!DrawQRCodeAuto(m_AutoModeArgs.BoardIndex, m_AutoModeArgs.QRContent,
-                        m_AutoModeArgs.QRWidth, m_AutoModeArgs.QRHeight))
+                        m_AutoModeArgs.QRWidth, m_AutoModeArgs.QRHeight,
+                        m_AutoModeArgs.QRInvert))
                     {
                         Console.Error.WriteLine("Error: Failed to draw QR Code.");
                         ExitCode = 2;
@@ -1764,7 +1780,7 @@ namespace WindowsFormsApp1
         /// <summary>
         /// 自動模式：繪製 QR Code（位置固定為鏡頭中心 0,0）
         /// </summary>
-        private bool DrawQRCodeAuto(int boardIndex, string content, double width, double height)
+        private bool DrawQRCodeAuto(int boardIndex, string content, double width, double height, bool invert)
         {
             try
             {
@@ -1780,11 +1796,16 @@ namespace WindowsFormsApp1
                 Application.DoEvents();
                 Thread.Sleep(100);
 
+                if (invert)
+                {
+                    ApplyQRInvert(boardIndex);
+                }
+
                 m_MMMark[boardIndex].Redraw();
                 Application.DoEvents();
                 Thread.Sleep(300);
 
-                System.Diagnostics.Debug.WriteLine($"已繪製 QR Code: content={content}, size={width}x{height}");
+                System.Diagnostics.Debug.WriteLine($"已繪製 QR Code: content={content}, size={width}x{height}, invert={invert}");
                 return true;
             }
             catch (Exception ex)
@@ -1792,6 +1813,49 @@ namespace WindowsFormsApp1
                 System.Diagnostics.Debug.WriteLine($"繪製 QR Code 失敗：{ex.Message}");
                 Console.Error.WriteLine($"Error: DrawQRCode exception - {ex.Message}");
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// 對指定板剛 AddBarcode 加入的 QR 物件套用反相（黑白互換）。
+        /// 必須在 AddBarcode 之後、Redraw 之前呼叫；以「列舉到的最後一個物件」當作剛加入的 QR。
+        /// SDK API：m_MMEdit[i].SetBarcodeInvert(objName, 1)。SetBarcodeInvert 對 QR 安全（不同於 SetWobble）。
+        /// 診斷輸出寫到 stderr（CLI/daemon log 都看得到）。
+        /// </summary>
+        private void ApplyQRInvert(int boardIndex)
+        {
+            try
+            {
+                m_MMMark[boardIndex].SelectAllObjects();
+                long objCount = m_MMMark[boardIndex].SelectGetCount();
+                if (objCount <= 0)
+                {
+                    Console.Error.WriteLine($"[Board {boardIndex + 1}] ApplyQRInvert: objCount=0，沒物件可設");
+                    return;
+                }
+
+                string qrObjName = "";
+                m_MMMark[boardIndex].SelectEnum((int)(objCount - 1), ref qrObjName);
+                if (string.IsNullOrEmpty(qrObjName))
+                {
+                    Console.Error.WriteLine($"[Board {boardIndex + 1}] ApplyQRInvert: SelectEnum 拿不到物件名");
+                    return;
+                }
+
+                long setRc = m_MMEdit[boardIndex].SetBarcodeInvert(qrObjName, 1);
+                Application.DoEvents();
+                Thread.Sleep(30);
+                long readBack = m_MMEdit[boardIndex].GetBarcodeInvert(qrObjName);
+                Console.Error.WriteLine(
+                    $"[Board {boardIndex + 1}] ApplyQRInvert obj=[{qrObjName}] " +
+                    $"SetBarcodeInvert(1) rc={setRc} readback={readBack}" +
+                    (setRc != 0 ? " ** SET FAILED **" : "") +
+                    (readBack != 1 ? " ** READBACK MISMATCH **" : ""));
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[Board {boardIndex + 1}] ApplyQRInvert 例外：{ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"ApplyQRInvert 失敗（板 {boardIndex + 1}）：{ex.Message}");
             }
         }
 
@@ -2552,6 +2616,7 @@ namespace WindowsFormsApp1
             public List<LineSegment> Lines;     // 線段內容（單條或多條）；null = 非線段類
             public string QRContent;            // QR 內容；null = 非 QR
             public double QRWidth, QRHeight;
+            public bool QRInvert;               // QR 反相（黑白互換）
             public int PreviewMode;             // 0=正式打標, 1=outline 預覽, 2=full 預覽
             public int PreviewTime;             // 預覽模式秒數；PreviewMode=0 時忽略
             public double? WobbleWidth;         // 線條寬度 mm（雷射加粗），null=不啟動 wobble
@@ -2596,18 +2661,9 @@ namespace WindowsFormsApp1
             sb.Append($" --board {spec.BoardIndex}");
             sb.Append($" --config /cfg_config_MM{spec.BoardIndex + 1}");
 
-            // 隨機選一種內容：單線 / 多線 / QR
-            int contentType = m_CmdRandom.Next(0, 3);
+            // 隨機選一種內容：多線段 / QR（取消單線範例，命令提示一律用 --lines 多段示範）
+            int contentType = m_CmdRandom.Next(0, 2);
             if (contentType == 0)
-            {
-                int x1 = m_CmdRandom.Next(-50, 51);
-                int y1 = m_CmdRandom.Next(-50, 51);
-                int x2 = m_CmdRandom.Next(-50, 51);
-                int y2 = m_CmdRandom.Next(-50, 51);
-                spec.Lines = new List<LineSegment> { new LineSegment(x1, y1, x2, y2) };
-                sb.Append($" --line {x1},{y1},{x2},{y2}");
-            }
-            else if (contentType == 1)
             {
                 int n = m_CmdRandom.Next(2, 5);
                 spec.Lines = new List<LineSegment>();
@@ -2732,6 +2788,7 @@ namespace WindowsFormsApp1
                 spec.QRContent = cli.QRContent;
                 spec.QRWidth = cli.QRWidth;
                 spec.QRHeight = cli.QRHeight;
+                spec.QRInvert = cli.QRInvert;
             }
             return spec;
         }
@@ -2814,6 +2871,12 @@ namespace WindowsFormsApp1
                 {
                     m_MMMark[board].AddBarcode(BARCODE_TYPE_QRCODE, spec.QRContent,
                         0, 0, spec.QRWidth, spec.QRHeight, "", "");
+                    if (spec.QRInvert)
+                    {
+                        Application.DoEvents();
+                        Thread.Sleep(50);
+                        ApplyQRInvert(board);
+                    }
                 }
 
                 Application.DoEvents();

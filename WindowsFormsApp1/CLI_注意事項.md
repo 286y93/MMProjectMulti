@@ -118,12 +118,12 @@ MarkingMate.exe --board 0 --line 0,0,50,50 --mark
 :: 板 1（會自動用 /cfg_config_MM2）
 MarkingMate.exe --board 1 --line 0,0,50,50 --mark
 
-:: QR Code + 紅光全路徑預覽 5 秒
+:: QR Code + 紅光全路徑預覽 5 秒（位置固定為鏡頭中心 0,0，不接受 --qr-x/--qr-y）
 MarkingMate.exe --board 0 --qrcode "TEST" --qr-width 10 --qr-height 10 ^
                 --mark --preview full --preview-time 5
 
-:: 載入 DXF + 雷射參數
-MarkingMate.exe --board 0 --dxf "File\test.dxf" ^
+:: 載入 DXF + 雷射參數 + 自訂工作區
+MarkingMate.exe --board 0 --dxf "File\test.dxf" --workspace-w 200 --workspace-h 120 ^
                 --power 50 --speed 800 --freq 20 --pw 5 --mark
 ```
 
@@ -163,11 +163,16 @@ curl http://localhost:19527/health
 #### B-3. CLI client 發命令
 
 ```cmd
-:: 板 0 紅光預覽 10 秒
-MarkingMate.exe --client --board 0 --line 0,0,50,50 --mark --preview full --preview-time 10
+:: 板 0 紅光預覽 10 秒（多線段範例，命令提示頁籤產生的線段都是多段）
+MarkingMate.exe --client --board 0 --lines "0,0,50,50;10,10,40,40;-20,20,20,-20" ^
+                --mark --preview full --preview-time 10
 
-:: 同時板 1 跑 QR 預覽 8 秒（不會等板 0 結束）
-MarkingMate.exe --client --board 1 --qrcode "TEST" --mark --preview full --preview-time 8
+:: 同時板 1 跑 QR 預覽 8 秒（位置固定 0,0，不會等板 0 結束）
+MarkingMate.exe --client --board 1 --qrcode "TEST" --qr-width 15 --qr-height 15 ^
+                --mark --preview full --preview-time 8
+
+:: 板 2 非 QR 內容 + 自訂工作區（daemon 模式也支援，QR 內容會忽略 workspace）
+MarkingMate.exe --client --board 2 --line 0,0,80,80 --workspace-w 200 --workspace-h 120 --mark
 ```
 
 Client 收到的回應（JSON）：
@@ -185,7 +190,7 @@ async function sendCmd() {
   const r = await fetch('http://localhost:19527/cmd', {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
-    body: '--board 2 --qrcode "ABC-123" --mark --preview full --preview-time 5'
+    body: '--board 2 --qrcode "ABC-123" --qr-width 15 --qr-height 15 --mark --preview full --preview-time 5'
   });
   const result = await r.json();
   console.log('ExitCode:', result.exitCode);
@@ -333,17 +338,29 @@ cmd> MarkingMate.exe --board 0 --line 0,0,50,50 --mark
 
 6. **座標原點偵測**
    - 任一座標為負 → 視為「中心原點座標」，不做平移
-   - 全部非負 → 視為「左下角原點座標」自動平移
+   - 全部非負 → 視為「左下角原點座標」自動用 `halfW/halfH` 平移
 
 7. **預覽時間預設 15 秒**：用 `--preview-time <秒>` 調整
 
-8. **`--workspace`** 影響 `SetDesktopSize` 與 DXF 縮放，但**不**影響 `--line` 座標解讀
+8. **`--workspace-w` / `--workspace-h`（非 QR 內容）**
+   - 模式 A：建構子直接套用，影響 `SetDesktopSize`、DXF 縮放、line corner→center 平移
+   - 模式 B（daemon）：client 若帶 `--workspace-w/h`，daemon 會用 spec 的值做這次命令的 SetDesktopSize 與 halfW/halfH；**沒帶**就沿用 daemon UI 的 workspace 設定。不會把 daemon UI 改掉。
+   - **QR 內容會完全忽略 workspace**（QR 位置固定 0,0，且不做工作範圍平移）
 
-9. **Daemon 目前不支援 `--dxf`（MVP 階段）**
-   要打 DXF 請用模式 A，或之後擴充 `RunDaemonSpec` 加入 `LoadDxfAuto` 呼叫
+9. **QR Code 限制與旗標**
+   - **位置固定為鏡頭中心 (0,0)**：CLI 不接受 `--qr-x` / `--qr-y`，要 QR 就只能定在原點。要移位請改用 GUI 的 QR 載入頁面。
+   - **不會套用 wobble（線條寬度）**：EMC6 對 QR 物件做 `SetWobble` 會回 `Unknown Commands=127` 對話框；CLI/daemon 的 wobble loop 偵測到 QR 內容會跳過。要加粗 QR 請改 `--qr-width` / `--qr-height`。
+   - **`--qr-invert` 反相**（黑白互換）：旗標型參數，不吃下一個 token。內部呼叫 `m_MMEdit.SetBarcodeInvert(name, 1)`（SDK 對 QR 安全，與 SetWobble 不同）。範例：`--qrcode "INV" --qr-width 15 --qr-height 15 --qr-invert --mark`。
 
-10. **Client 引號**
+10. **Daemon 目前不支援 `--dxf`（MVP 階段）**
+    要打 DXF 請用模式 A，或之後擴充 `RunDaemonSpec` 加入 `LoadDxfAuto` 呼叫
+
+11. **Client 引號**
     含空格的值（如 `--qrcode "Hello World"`）一定要在外層 shell 加引號，client 會自動 re-quote 傳給 daemon
+
+12. **命令提示頁籤產生的範例**
+    - 內容類型只有兩種：多線段（`--lines "x1,y1,x2,y2;..."`，2~4 段） / QR（不含位置參數）
+    - 不再產生單線段 `--line` 範例
 
 ---
 
@@ -416,11 +433,14 @@ async function fire(args) {
 }
 
 // 4 塊板同時各做不同事
+//   - 多線段：用 --lines "x1,y1,x2,y2;..." 一次傳多段
+//   - QR：位置固定 0,0，只需 --qr-width/--qr-height
+//   - 非 QR 內容可帶 --workspace-w / --workspace-h 改本次命令的工作區（daemon 也支援）
 const results = await Promise.all([
-  fire('--board 0 --line 0,0,50,50 --mark --preview full --preview-time 5'),
-  fire('--board 1 --qrcode "A" --mark --preview full --preview-time 5'),
-  fire('--board 2 --qrcode "B" --mark --preview full --preview-time 5'),
-  fire('--board 3 --line -30,-30,30,30 --mark --preview full --preview-time 5'),
+  fire('--board 0 --lines "0,0,50,50;10,10,40,40" --mark --preview full --preview-time 5'),
+  fire('--board 1 --qrcode "A" --qr-width 15 --qr-height 15 --mark --preview full --preview-time 5'),
+  fire('--board 2 --qrcode "B" --qr-width 10 --qr-height 10 --mark --preview full --preview-time 5'),
+  fire('--board 3 --line -30,-30,30,30 --workspace-w 200 --workspace-h 120 --mark --preview full --preview-time 5'),
 ]);
 console.log(results);
 ```
@@ -441,6 +461,7 @@ console.log(results);
 | `Error: 初始化板 N 失敗：…` | OCX 初始化失敗 | 檢查 OCX 註冊（`ELOCXRegister.exe`）、Lens 校正檔 |
 | `Error: Failed to load DXF.` | DXF 解析失敗或檔不存在 | 檢查路徑（相對路徑以 exe 所在資料夾為基準） |
 | `Error: StartMarking(N) failed with code 1` | SDK 拒絕啟動（多半是配置 / standby / 內容問題） | 確認 `--config` 對得上 `--board`、有實際內容、`MarkStandBy` 成功 |
+| `EMC6_x64` 對話框：`Unknown Commands=127  PreCommand=200, 26, 29, 26, 9` | 對 QR 物件套了 `SetWobble`（CLI 的 wobble 預設 0.5 mm 被誤套到 barcode） | 已修：CLI/daemon 的 wobble loop 會自動跳過 QR；若仍出現，檢查是否有自寫程式在 AddBarcode 後對 QR 物件呼叫 `SetWobble/SetWobbleSwitch` |
 
 ---
 

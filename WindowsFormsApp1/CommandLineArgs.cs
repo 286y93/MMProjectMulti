@@ -18,8 +18,10 @@ namespace WindowsFormsApp1
         public double WorkspaceSize { get; private set; }      // 寬 W
         public double WorkspaceHeight { get; private set; }    // 高 H（預設等於 W，向後相容）
 
+        // 是否使用者明確指定了 --workspace / --workspace-w（daemon 套用 spec 值時用）
+        public bool WorkspaceWidthExplicit { get; private set; }
         // 是否使用者明確指定了 --workspace-h（決定是否要在 --workspace 變動時同步 H）
-        private bool m_WorkspaceHeightExplicit = false;
+        public bool WorkspaceHeightExplicit { get; private set; }
 
         // 雷射參數（null 表示不設定，使用預設值）
         public double? Power { get; private set; }
@@ -35,6 +37,7 @@ namespace WindowsFormsApp1
         public string QRContent { get; private set; }
         public double QRWidth { get; private set; }
         public double QRHeight { get; private set; }
+        public bool QRInvert { get; private set; }   // 反相（黑白互換），用 SetBarcodeInvert
         // 預覽模式：0=不預覽, 1=外框預覽, 2=全路徑預覽
         public int PreviewMode { get; private set; }
         public double? PreviewSpeed { get; private set; }
@@ -72,6 +75,7 @@ namespace WindowsFormsApp1
             QRContent = null;
             QRWidth = 10.0;
             QRHeight = 10.0;
+            QRInvert = false;
             PreviewMode = 0;
             PreviewSpeed = null;
             PreviewTime = 15;
@@ -177,7 +181,8 @@ namespace WindowsFormsApp1
                     if (i + 1 < args.Length && double.TryParse(args[i + 1], out double ws))
                     {
                         result.WorkspaceSize = ws;
-                        if (!result.m_WorkspaceHeightExplicit)
+                        result.WorkspaceWidthExplicit = true;
+                        if (!result.WorkspaceHeightExplicit)
                             result.WorkspaceHeight = ws;
                         i++;
                     }
@@ -188,7 +193,7 @@ namespace WindowsFormsApp1
                     if (i + 1 < args.Length && double.TryParse(args[i + 1], out double wh))
                     {
                         result.WorkspaceHeight = wh;
-                        result.m_WorkspaceHeightExplicit = true;
+                        result.WorkspaceHeightExplicit = true;
                         i++;
                     }
                 }
@@ -324,6 +329,11 @@ namespace WindowsFormsApp1
                         i++;
                     }
                 }
+                else if (argLower == "--qr-invert" || argLower == "--qr-inverse")
+                {
+                    // 旗標型，不吃下一個 token
+                    result.QRInvert = true;
+                }
                 else if (argLower == "--mark" || argLower == "-m")
                 {
                     result.AutoMark = true;
@@ -391,6 +401,7 @@ namespace WindowsFormsApp1
   --qrcode <content>, -qr <content>   QR Code 內容字串
   --qr-width <mm>                       QR Code 寬度 mm (預設: 10)
   --qr-height <mm>                      QR Code 高度 mm (預設: 10)
+  --qr-invert                           QR Code 反相（黑白互換），預設關閉
   --mark, -m                            自動執行打標
   --preview <outline|full>               紅光預覽模式（不打雷射，需搭配 --mark）
                                           outline = 外框預覽, full = 全路徑預覽 (預設: full)
@@ -439,6 +450,9 @@ namespace WindowsFormsApp1
 
   # QR Code 指定大小（位置固定為鏡頭中心 0,0）
   MarkingMateMulti.exe --board 0 --qrcode ""https://example.com"" --qr-width 15 --qr-height 15 --mark
+
+  # QR Code 反相（黑白互換）
+  MarkingMateMulti.exe --board 0 --qrcode ""INV"" --qr-width 15 --qr-height 15 --qr-invert --mark
 
   # 使用自訂配置
   MarkingMateMulti.exe --board 2 --config /cfg_config_MM3 --line 0,0,100,100
