@@ -882,6 +882,7 @@ namespace WindowsFormsApp1
                 btnLoadQR.Enabled = true;
                 btnPreviewQR.Enabled = true;
                 btnClearQR.Enabled = true;
+                btnQRWhiteBgMark.Enabled = true;
 
                 MessageBox.Show($"晶片板 {boardIndex + 1} 完成！", "完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
@@ -3886,6 +3887,7 @@ namespace WindowsFormsApp1
                 btnPreviewQR.Enabled = true;
                 btnStopPreviewQR.Enabled = false;
                 btnClearQR.Enabled = true;
+                btnQRWhiteBgMark.Enabled = true;
                 btnMarkDXF.Enabled = true;
                 btnMark.Enabled = true;
                 btnStop.Enabled = false;
@@ -4020,6 +4022,165 @@ namespace WindowsFormsApp1
             catch (Exception ex)
             {
                 MessageBox.Show($"清除失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// 取得目前畫面上「最後加入」的物件名稱（一般等同剛 AddBarcode/AddRect 加入的那個）。
+        /// 用 SelectAllObjects + SelectGetCount + SelectEnum(count-1) 取得。
+        /// </summary>
+        private string GetLastAddedObjectName(int boardIndex)
+        {
+            m_MMMark[boardIndex].SelectAllObjects();
+            long count = m_MMMark[boardIndex].SelectGetCount();
+            if (count <= 0) return string.Empty;
+            string name = "";
+            m_MMMark[boardIndex].SelectEnum((int)(count - 1), ref name);
+            return name ?? string.Empty;
+        }
+
+        /// <summary>
+        /// QRCODE_白底：一鍵建立並打標兩個圖層。
+        /// Layer 1：反相 QR Code（"AAA"，30x30mm，連續線段填滿）
+        /// Layer 2：4cm x 4cm 矩形外框，包住 QR 形成白底
+        /// 兩個物件各自設定不同的雷射參數 → StartMarking(4) 連續打標。
+        ///
+        /// 注意（暫定值，依實測調整）：
+        ///   - SetBarcodeMarkStyle = 3 對應「連續線段」
+        ///   - SetFrameLineType = 0 對應「實線」
+        ///   - SetFillStyle = 0（用戶明示，含義依 SDK 解釋）
+        ///   - SetBarcodeSpotDelay 單位視為毫秒：Layer1=1, Layer2=0（0.1ms 在 Int32 下截斷為 0）
+        /// </summary>
+        private void btnQRWhiteBgMark_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit)
+            {
+                MessageBox.Show("請先初始化！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            int boardIndex = comboBoardQR.SelectedIndex;
+            if (!m_bBoardInit[boardIndex])
+            {
+                MessageBox.Show($"晶片板 {boardIndex + 1} 未成功初始化，無法操作！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (IsBoardBusy(boardIndex))
+            {
+                MessageBox.Show($"晶片板 {boardIndex + 1} 正在執行其他預覽 / 打標，請先停止再試。",
+                    "板忙碌中", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                // === 0. 清空畫面 ===
+                m_MMMark[boardIndex].ResetFile();
+                m_MMMark[boardIndex].SetDesktopCenter(0, 0);
+                m_MMMark[boardIndex].SetDesktopSize(m_WorkspaceSize, m_WorkspaceHeight);
+                Application.DoEvents();
+                Thread.Sleep(100);
+
+                // === Layer 1: 反相 QR Code ===
+                // AddBarcode(type, content, x, y, width, height, parent, name)
+                long r1 = m_MMMark[boardIndex].AddBarcode(
+                    BARCODE_TYPE_QRCODE, "AAA", 0, 0, 30, 30, "", "");
+                if (r1 != 0)
+                {
+                    MessageBox.Show($"建立 QR Code 失敗！回傳碼: {r1}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+                Application.DoEvents();
+                Thread.Sleep(100);
+
+                string qrName = GetLastAddedObjectName(boardIndex);
+                if (string.IsNullOrEmpty(qrName))
+                {
+                    MessageBox.Show("取不到 QR Code 物件名稱！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                // QR 屬性
+                m_MMEdit[boardIndex].SetBarcodeInvert(qrName, 1);            // 反相
+                m_MMEdit[boardIndex].SetBarcodeQuietZone(qrName, 3);          // 外框 3 單元
+                m_MMEdit[boardIndex].SetBarcodeMarkStyle(qrName, 3);          // 連續線段
+                m_MMEdit[boardIndex].SetBarcodeSpotSize(qrName, 0.02);        // 每點 X/Y 0.02mm
+                m_MMEdit[boardIndex].SetBarcodeLineTimes(qrName, 2);          // 次數 2
+                m_MMEdit[boardIndex].SetBarcodeLineStepAngle(qrName, 90);     // 累進角度 90
+                m_MMEdit[boardIndex].SetBarcodeLineTwoway(qrName, 1);         // 雙向填滿
+
+                // QR 雷射參數
+                m_MMMark[boardIndex].SetSpeed(qrName, 1000);
+                m_MMMark[boardIndex].SetPower(qrName, 30);
+                m_MMMark[boardIndex].SetFrequency(qrName, 20);
+                m_MMMark[boardIndex].SetMarkRepeat(qrName, 1);
+                m_MMEdit[boardIndex].SetBarcodeSpotDelay(qrName, 1);          // 1 ms
+                m_MMMark[boardIndex].SetPulseWidth(qrName, 13);
+
+                // === Layer 2: 4cm × 4cm 矩形外框 ===
+                // AddRect(dLeft, dTop, dRight, dBottom, dRound, parent, name)
+                // 以 QR 中心 (0,0) 為中心 → 4cm = 40mm → left=-20, top=-20, right=20, bottom=20
+                long r2 = m_MMEdit[boardIndex].AddRect(-20, -20, 20, 20, 0, "", "");
+                if (r2 != 0)
+                {
+                    MessageBox.Show($"建立矩形失敗！回傳碼: {r2}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+                Application.DoEvents();
+                Thread.Sleep(100);
+
+                string rectName = GetLastAddedObjectName(boardIndex);
+                if (string.IsNullOrEmpty(rectName))
+                {
+                    MessageBox.Show("取不到矩形物件名稱！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                // 矩形屬性
+                m_MMEdit[boardIndex].SetFillStyle(rectName, 0);               // SetFillStyle=0
+                m_MMEdit[boardIndex].SetFrameLineType(rectName, 0);           // 外框實線
+
+                // 矩形雷射參數
+                m_MMMark[boardIndex].SetSpeed(rectName, 800);
+                m_MMMark[boardIndex].SetPower(rectName, 90);
+                m_MMMark[boardIndex].SetFrequency(rectName, 20);
+                m_MMMark[boardIndex].SetMarkRepeat(rectName, 1);
+                m_MMEdit[boardIndex].SetBarcodeSpotDelay(rectName, 0);        // 0.1ms 截斷為 0；如不符預期請改用其他 SpotDelay API
+                m_MMMark[boardIndex].SetPulseWidth(rectName, 200);
+
+                // === 重繪 + 打標 ===
+                m_MMMark[boardIndex].Redraw();
+                Application.DoEvents();
+                Thread.Sleep(300);
+
+                m_MMMark[boardIndex].MarkStandBy();
+                if (m_MMMark[boardIndex].StartMarking(4) != 0)
+                {
+                    MessageBox.Show($"晶片板 {boardIndex + 1} 打標啟動失敗！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                // 啟動 Timer 監控
+                timerMark.Tag = boardIndex;
+                timerMark.Start();
+
+                // 停用相關按鈕
+                btnQRWhiteBgMark.Enabled = false;
+                btnMarkQR.Enabled = false;
+                btnLoadQR.Enabled = false;
+                btnPreviewQR.Enabled = false;
+                btnClearQR.Enabled = false;
+                btnStopMarkQR.Enabled = true;
+                btnMarkDXF.Enabled = false;
+                btnMark.Enabled = false;
+                btnStop.Enabled = true;
+
+                txtQRStatus.Text = $"晶片板 {boardIndex + 1} 白底 QR 雙圖層打標中... (QR={qrName}, Rect={rectName})";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"白底 QR 打標失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

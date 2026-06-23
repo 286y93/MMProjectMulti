@@ -144,6 +144,8 @@
             this.btnStopPreviewQR = new System.Windows.Forms.Button();
             this.btnClearQR = new System.Windows.Forms.Button();
             this.txtQRStatus = new System.Windows.Forms.TextBox();
+            this.groupBoxQRWhiteBg = new System.Windows.Forms.GroupBox();
+            this.btnQRWhiteBgMark = new System.Windows.Forms.Button();
             // === 命令提示 tab ===
             this.tabPageCmd = new System.Windows.Forms.TabPage();
             this.lblCmdHeader = new System.Windows.Forms.Label();
@@ -184,6 +186,7 @@
             this.groupBoxLaserParams.SuspendLayout();
             this.tabPageQRCode.SuspendLayout();
             this.groupBoxQRBasic.SuspendLayout();
+            this.groupBoxQRWhiteBg.SuspendLayout();
             this.tabPageCmd.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.trkPower)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numPower)).BeginInit();
@@ -1206,6 +1209,7 @@
             this.tabPageQRCode.Controls.Add(this.btnStopPreviewQR);
             this.tabPageQRCode.Controls.Add(this.btnClearQR);
             this.tabPageQRCode.Controls.Add(this.txtQRStatus);
+            this.tabPageQRCode.Controls.Add(this.groupBoxQRWhiteBg);
             this.tabPageQRCode.Location = new System.Drawing.Point(4, 25);
             this.tabPageQRCode.Name = "tabPageQRCode";
             this.tabPageQRCode.Padding = new System.Windows.Forms.Padding(3);
@@ -1427,6 +1431,27 @@
             this.txtQRStatus.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.txtQRStatus.Size = new System.Drawing.Size(420, 100);
             this.txtQRStatus.TabIndex = 10;
+            //
+            // groupBoxQRWhiteBg
+            //
+            this.groupBoxQRWhiteBg.Controls.Add(this.btnQRWhiteBgMark);
+            this.groupBoxQRWhiteBg.Location = new System.Drawing.Point(450, 42);
+            this.groupBoxQRWhiteBg.Name = "groupBoxQRWhiteBg";
+            this.groupBoxQRWhiteBg.Padding = new System.Windows.Forms.Padding(4);
+            this.groupBoxQRWhiteBg.Size = new System.Drawing.Size(270, 120);
+            this.groupBoxQRWhiteBg.TabIndex = 11;
+            this.groupBoxQRWhiteBg.TabStop = false;
+            this.groupBoxQRWhiteBg.Text = "QRCODE_白底";
+            //
+            // btnQRWhiteBgMark
+            //
+            this.btnQRWhiteBgMark.Location = new System.Drawing.Point(20, 35);
+            this.btnQRWhiteBgMark.Name = "btnQRWhiteBgMark";
+            this.btnQRWhiteBgMark.Size = new System.Drawing.Size(230, 60);
+            this.btnQRWhiteBgMark.TabIndex = 0;
+            this.btnQRWhiteBgMark.Text = "白底 QR 雙圖層打標";
+            this.btnQRWhiteBgMark.UseVisualStyleBackColor = true;
+            this.btnQRWhiteBgMark.Click += new System.EventHandler(this.btnQRWhiteBgMark_Click);
             //
             // === tabPageCmd: 命令提示 ===
             //
@@ -1716,6 +1741,8 @@
             this.tabPageQRCode.PerformLayout();
             this.groupBoxQRBasic.ResumeLayout(false);
             this.groupBoxQRBasic.PerformLayout();
+            this.groupBoxQRWhiteBg.ResumeLayout(false);
+            this.groupBoxQRWhiteBg.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -1836,6 +1863,8 @@
         private System.Windows.Forms.Button btnStopPreviewQR;
         private System.Windows.Forms.Button btnClearQR;
         private System.Windows.Forms.TextBox txtQRStatus;
+        private System.Windows.Forms.GroupBox groupBoxQRWhiteBg;
+        private System.Windows.Forms.Button btnQRWhiteBgMark;
         // === 命令提示 tab 控件 ===
         private System.Windows.Forms.TabPage tabPageCmd;
         private System.Windows.Forms.Label lblCmdHeader;
