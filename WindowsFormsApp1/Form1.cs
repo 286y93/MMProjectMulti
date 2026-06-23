@@ -4040,16 +4040,16 @@ namespace WindowsFormsApp1
         }
 
         /// <summary>
-        /// QRCODE_白底：一鍵建立並打標兩個圖層。
-        /// Layer 1：反相 QR Code（"AAA"，30x30mm，連續線段填滿）
-        /// Layer 2：4cm x 4cm 矩形外框，包住 QR 形成白底
-        /// 兩個物件各自設定不同的雷射參數 → StartMarking(4) 連續打標。
+        /// QRCODE_白底：一鍵建立並打標兩個圖層（順序：先矩形後 QR）。
+        /// Layer 1（先打標）：4cm x 4cm 矩形外框（短虛線+點虛線填滿），形成白底
+        /// Layer 2（後打標）：反相 QR Code "AAA"，30x30mm，連續線段填滿
+        /// 兩個物件各自設定不同的雷射參數 → StartMarking(4) 依加入順序連續打標。
         ///
         /// 注意（暫定值，依實測調整）：
         ///   - SetBarcodeMarkStyle = 3 對應「連續線段」
-        ///   - SetFrameLineType = 0 對應「實線」
+        ///   - SetFrameLineType = 1 對應「短虛線」
         ///   - SetFillStyle = 0（用戶明示，含義依 SDK 解釋）
-        ///   - SetBarcodeSpotDelay 單位視為毫秒：Layer1=1, Layer2=0（0.1ms 在 Int32 下截斷為 0）
+        ///   - SetBarcodeSpotDelay 內部單位假設為 μs：1ms=1000, 0.1ms=100
         /// </summary>
         private void btnQRWhiteBgMark_Click(object sender, EventArgs e)
         {
@@ -4086,22 +4086,56 @@ namespace WindowsFormsApp1
                 Application.DoEvents();
                 Thread.Sleep(200);
 
-                // === Layer 1: 反相 QR Code ===
-                // 重要：第 8 個參數傳明確名稱，避免 SDK 不自動命名導致後續 SelectEnum 拿到空字串
-                string qrName = "QRWhiteBg_QR";
-                long r1 = m_MMMark[boardIndex].AddBarcode(
-                    BARCODE_TYPE_QRCODE, "AAA", 0, 0, 30, 30, "", qrName);
-                Console.Error.WriteLine($"[Board {boardIndex + 1}] AddBarcode rc={r1} name=[{qrName}]");
+                // === Layer 1（先打標）: 4cm × 4cm 矩形外框 ===
+                // AddRect(dLeft, dTop, dRight, dBottom, dRound, parent, name)
+                // 以 QR 中心 (0,0) 為中心 → 4cm = 40mm → left=-20, top=-20, right=20, bottom=20
+                string rectName = "QRWhiteBg_Rect";
+                long r1 = m_MMEdit[boardIndex].AddRect(-20, -20, 20, 20, 0, "", rectName);
+                Console.Error.WriteLine($"[Board {boardIndex + 1}] AddRect rc={r1} name=[{rectName}]");
                 if (r1 != 0)
                 {
-                    MessageBox.Show($"建立 QR Code 失敗！回傳碼: {r1}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show($"建立矩形失敗！回傳碼: {r1}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+                Application.DoEvents();
+                Thread.Sleep(200);
+
+                // 矩形屬性
+                m_MMEdit[boardIndex].SetFillStyle(rectName, 0);               // SetFillStyle=0 (用戶明示)
+                m_MMEdit[boardIndex].SetFrameLineType(rectName, 1);           // 外框短虛線
+                m_MMEdit[boardIndex].SetFillRoundPitch(rectName, 0.04);       // 圈距 0.04
+                m_MMEdit[boardIndex].SetFillPitch(rectName, 0.04);            // 間距 0.04
+
+                // 外框/填滿/填滿優先（皆打勾）
+                m_MMEdit[boardIndex].SetFrameSwitch(rectName, 1);             // 外框打勾
+                m_MMEdit[boardIndex].SetFillSwitch(rectName, 1);              // 填滿打勾
+                m_MMEdit[boardIndex].SetFillFirstExt(rectName, 0, 1);         // 填滿優先打勾
+
+                // 矩形雷射參數
+                m_MMMark[boardIndex].SetSpeed(rectName, 1000);                // 1000 mm/s
+                m_MMMark[boardIndex].SetPower(rectName, 90);                  // 90 %
+                m_MMMark[boardIndex].SetFrequency(rectName, 20);              // 20 kHz
+                m_MMMark[boardIndex].SetMarkRepeat(rectName, 1);              // 雕刻次數 1
+                // 點雕刻時間：API 為 Int32，假設 SDK 內部單位 = μs，所以 0.1ms = 100
+                m_MMEdit[boardIndex].SetBarcodeSpotDelay(rectName, 100);      // 0.1 ms (= 100 μs)
+                m_MMMark[boardIndex].SetPulseWidth(rectName, 200);            // 200 ns
+
+                // === Layer 2（後打標）: 反相 QR Code ===
+                // 重要：第 8 個參數傳明確名稱，避免 SDK 不自動命名導致後續 SelectEnum 拿到空字串
+                string qrName = "QRWhiteBg_QR";
+                long r2 = m_MMMark[boardIndex].AddBarcode(
+                    BARCODE_TYPE_QRCODE, "AAA", 0, 0, 30, 30, "", qrName);
+                Console.Error.WriteLine($"[Board {boardIndex + 1}] AddBarcode rc={r2} name=[{qrName}]");
+                if (r2 != 0)
+                {
+                    MessageBox.Show($"建立 QR Code 失敗！回傳碼: {r2}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
                 Application.DoEvents();
                 Thread.Sleep(200);
 
                 // QR 屬性
-                m_MMEdit[boardIndex].SetBarcodeInvert(qrName, 1);            // 反相
+                m_MMEdit[boardIndex].SetBarcodeInvert(qrName, 1);             // 反相
                 m_MMEdit[boardIndex].SetBarcodeQuietZone(qrName, 3);          // 外框 3 單元
                 m_MMEdit[boardIndex].SetBarcodeMarkStyle(qrName, 3);          // 連續線段
                 m_MMEdit[boardIndex].SetBarcodeSpotSize(qrName, 0.02);        // 每點 A=B=0.02mm
@@ -4119,45 +4153,8 @@ namespace WindowsFormsApp1
                 m_MMMark[boardIndex].SetPower(qrName, 30);                    // 30 %
                 m_MMMark[boardIndex].SetFrequency(qrName, 200);               // 200 kHz
                 m_MMMark[boardIndex].SetMarkRepeat(qrName, 1);                // 雕刻次數 1
-                // 點雕刻時間：API 為 Int32，要表達 0.1ms 唯一方法是假設 SDK 內部單位非 ms。
-                // 暫定 1 ms = 1000 (即 SDK 單位 μs)；若打標效果不對請告知正確倍率。
                 m_MMEdit[boardIndex].SetBarcodeSpotDelay(qrName, 1000);       // 1 ms (= 1000 μs)
                 m_MMMark[boardIndex].SetPulseWidth(qrName, 13);               // 13 ns
-
-                // === Layer 2: 4cm × 4cm 矩形外框 ===
-                // AddRect(dLeft, dTop, dRight, dBottom, dRound, parent, name)
-                // 以 QR 中心 (0,0) 為中心 → 4cm = 40mm → left=-20, top=-20, right=20, bottom=20
-                string rectName = "QRWhiteBg_Rect";
-                long r2 = m_MMEdit[boardIndex].AddRect(-20, -20, 20, 20, 0, "", rectName);
-                Console.Error.WriteLine($"[Board {boardIndex + 1}] AddRect rc={r2} name=[{rectName}]");
-                if (r2 != 0)
-                {
-                    MessageBox.Show($"建立矩形失敗！回傳碼: {r2}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-                Application.DoEvents();
-                Thread.Sleep(200);
-
-                // 矩形屬性
-                m_MMEdit[boardIndex].SetFillStyle(rectName, 0);               // SetFillStyle=0 (用戶明示)
-                // ⚠️ 短虛線 / 點虛線的 enum 值未知，這裡先用「1」當「虛線」嘗試，請依實測調整
-                m_MMEdit[boardIndex].SetFrameLineType(rectName, 1);           // 外框短虛線 (TODO: 確認 enum 值)
-                m_MMEdit[boardIndex].SetFillRoundPitch(rectName, 0.04);       // 圈距 0.04
-                m_MMEdit[boardIndex].SetFillPitch(rectName, 0.04);            // 間距 0.04
-
-                // 外框/填滿/填滿優先（皆打勾）
-                m_MMEdit[boardIndex].SetFrameSwitch(rectName, 1);             // 外框打勾
-                m_MMEdit[boardIndex].SetFillSwitch(rectName, 1);              // 填滿打勾
-                m_MMEdit[boardIndex].SetFillFirstExt(rectName, 0, 1);         // 填滿優先打勾
-
-                // 矩形雷射參數
-                m_MMMark[boardIndex].SetSpeed(rectName, 800);                 // 800 mm/s
-                m_MMMark[boardIndex].SetPower(rectName, 90);                  // 90 %
-                m_MMMark[boardIndex].SetFrequency(rectName, 20);              // 20 kHz
-                m_MMMark[boardIndex].SetMarkRepeat(rectName, 1);              // 雕刻次數 1
-                // 點雕刻時間：與 Layer 1 同單位假設（SDK 內部 = μs）
-                m_MMEdit[boardIndex].SetBarcodeSpotDelay(rectName, 100);      // 0.1 ms (= 100 μs)
-                m_MMMark[boardIndex].SetPulseWidth(rectName, 200);            // 200 ns
 
                 // === 重繪 + 打標 ===
                 m_MMMark[boardIndex].Redraw();
@@ -4186,7 +4183,7 @@ namespace WindowsFormsApp1
                 btnMark.Enabled = false;
                 btnStop.Enabled = true;
 
-                txtQRStatus.Text = $"晶片板 {boardIndex + 1} 白底 QR 雙圖層打標中... (QR={qrName}, Rect={rectName})";
+                txtQRStatus.Text = $"晶片板 {boardIndex + 1} 白底 QR 雙圖層打標中（先 {rectName} 後 {qrName}）";
             }
             catch (Exception ex)
             {
