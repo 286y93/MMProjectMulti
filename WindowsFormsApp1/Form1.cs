@@ -4104,18 +4104,25 @@ namespace WindowsFormsApp1
                 m_MMEdit[boardIndex].SetBarcodeInvert(qrName, 1);            // 反相
                 m_MMEdit[boardIndex].SetBarcodeQuietZone(qrName, 3);          // 外框 3 單元
                 m_MMEdit[boardIndex].SetBarcodeMarkStyle(qrName, 3);          // 連續線段
-                m_MMEdit[boardIndex].SetBarcodeSpotSize(qrName, 0.02);        // 每點 X/Y 0.02mm
+                m_MMEdit[boardIndex].SetBarcodeSpotSize(qrName, 0.02);        // 每點 A=B=0.02mm
                 m_MMEdit[boardIndex].SetBarcodeLineTimes(qrName, 2);          // 次數 2
                 m_MMEdit[boardIndex].SetBarcodeLineStepAngle(qrName, 90);     // 累進角度 90
                 m_MMEdit[boardIndex].SetBarcodeLineTwoway(qrName, 1);         // 雙向填滿
 
+                // 外框/填滿/填滿優先（皆打勾）
+                m_MMEdit[boardIndex].SetFrameSwitch(qrName, 1);               // 外框打勾
+                m_MMEdit[boardIndex].SetFillSwitch(qrName, 1);                // 填滿打勾
+                m_MMEdit[boardIndex].SetFillFirstExt(qrName, 0, 1);           // 填滿優先打勾 (PassIndex=0)
+
                 // QR 雷射參數
-                m_MMMark[boardIndex].SetSpeed(qrName, 1000);
-                m_MMMark[boardIndex].SetPower(qrName, 30);
-                m_MMMark[boardIndex].SetFrequency(qrName, 20);
-                m_MMMark[boardIndex].SetMarkRepeat(qrName, 1);
-                m_MMEdit[boardIndex].SetBarcodeSpotDelay(qrName, 1);          // 1 ms
-                m_MMMark[boardIndex].SetPulseWidth(qrName, 13);
+                m_MMMark[boardIndex].SetSpeed(qrName, 1000);                  // 1000 mm/s
+                m_MMMark[boardIndex].SetPower(qrName, 30);                    // 30 %
+                m_MMMark[boardIndex].SetFrequency(qrName, 200);               // 200 kHz
+                m_MMMark[boardIndex].SetMarkRepeat(qrName, 1);                // 雕刻次數 1
+                // 點雕刻時間：API 為 Int32，要表達 0.1ms 唯一方法是假設 SDK 內部單位非 ms。
+                // 暫定 1 ms = 1000 (即 SDK 單位 μs)；若打標效果不對請告知正確倍率。
+                m_MMEdit[boardIndex].SetBarcodeSpotDelay(qrName, 1000);       // 1 ms (= 1000 μs)
+                m_MMMark[boardIndex].SetPulseWidth(qrName, 13);               // 13 ns
 
                 // === Layer 2: 4cm × 4cm 矩形外框 ===
                 // AddRect(dLeft, dTop, dRight, dBottom, dRound, parent, name)
@@ -4132,16 +4139,25 @@ namespace WindowsFormsApp1
                 Thread.Sleep(200);
 
                 // 矩形屬性
-                m_MMEdit[boardIndex].SetFillStyle(rectName, 0);               // SetFillStyle=0
-                m_MMEdit[boardIndex].SetFrameLineType(rectName, 0);           // 外框實線
+                m_MMEdit[boardIndex].SetFillStyle(rectName, 0);               // SetFillStyle=0 (用戶明示)
+                // ⚠️ 短虛線 / 點虛線的 enum 值未知，這裡先用「1」當「虛線」嘗試，請依實測調整
+                m_MMEdit[boardIndex].SetFrameLineType(rectName, 1);           // 外框短虛線 (TODO: 確認 enum 值)
+                m_MMEdit[boardIndex].SetFillRoundPitch(rectName, 0.04);       // 圈距 0.04
+                m_MMEdit[boardIndex].SetFillPitch(rectName, 0.04);            // 間距 0.04
+
+                // 外框/填滿/填滿優先（皆打勾）
+                m_MMEdit[boardIndex].SetFrameSwitch(rectName, 1);             // 外框打勾
+                m_MMEdit[boardIndex].SetFillSwitch(rectName, 1);              // 填滿打勾
+                m_MMEdit[boardIndex].SetFillFirstExt(rectName, 0, 1);         // 填滿優先打勾
 
                 // 矩形雷射參數
-                m_MMMark[boardIndex].SetSpeed(rectName, 800);
-                m_MMMark[boardIndex].SetPower(rectName, 90);
-                m_MMMark[boardIndex].SetFrequency(rectName, 20);
-                m_MMMark[boardIndex].SetMarkRepeat(rectName, 1);
-                m_MMEdit[boardIndex].SetBarcodeSpotDelay(rectName, 0);        // 0.1ms 截斷為 0；如不符預期請改用其他 SpotDelay API
-                m_MMMark[boardIndex].SetPulseWidth(rectName, 200);
+                m_MMMark[boardIndex].SetSpeed(rectName, 800);                 // 800 mm/s
+                m_MMMark[boardIndex].SetPower(rectName, 90);                  // 90 %
+                m_MMMark[boardIndex].SetFrequency(rectName, 20);              // 20 kHz
+                m_MMMark[boardIndex].SetMarkRepeat(rectName, 1);              // 雕刻次數 1
+                // 點雕刻時間：與 Layer 1 同單位假設（SDK 內部 = μs）
+                m_MMEdit[boardIndex].SetBarcodeSpotDelay(rectName, 100);      // 0.1 ms (= 100 μs)
+                m_MMMark[boardIndex].SetPulseWidth(rectName, 200);            // 200 ns
 
                 // === 重繪 + 打標 ===
                 m_MMMark[boardIndex].Redraw();
