@@ -4087,34 +4087,18 @@ namespace WindowsFormsApp1
                 Thread.Sleep(200);
 
                 // === Layer 1: 反相 QR Code ===
-                // AddBarcode(type, content, x, y, width, height, parent, name)
+                // 重要：第 8 個參數傳明確名稱，避免 SDK 不自動命名導致後續 SelectEnum 拿到空字串
+                string qrName = "QRWhiteBg_QR";
                 long r1 = m_MMMark[boardIndex].AddBarcode(
-                    BARCODE_TYPE_QRCODE, "AAA", 0, 0, 30, 30, "", "");
-                Console.Error.WriteLine($"[Board {boardIndex + 1}] AddBarcode rc={r1}");
+                    BARCODE_TYPE_QRCODE, "AAA", 0, 0, 30, 30, "", qrName);
+                Console.Error.WriteLine($"[Board {boardIndex + 1}] AddBarcode rc={r1} name=[{qrName}]");
                 if (r1 != 0)
                 {
                     MessageBox.Show($"建立 QR Code 失敗！回傳碼: {r1}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
                 Application.DoEvents();
-                Thread.Sleep(300);
-
-                // 取 QR 物件名稱（最多重試 5 次，每次間隔 200ms）
-                string qrName = "";
-                for (int attempt = 0; attempt < 5; attempt++)
-                {
-                    qrName = GetLastAddedObjectName(boardIndex);
-                    long c = m_MMMark[boardIndex].SelectGetCount();
-                    Console.Error.WriteLine($"[Board {boardIndex + 1}] QR attempt={attempt} count={c} name=[{qrName}]");
-                    if (!string.IsNullOrEmpty(qrName)) break;
-                    Application.DoEvents();
-                    Thread.Sleep(200);
-                }
-                if (string.IsNullOrEmpty(qrName))
-                {
-                    MessageBox.Show("取不到 QR Code 物件名稱！（已重試 5 次）\n請開啟 stderr/Debug 視窗確認 count 與 name。", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
+                Thread.Sleep(200);
 
                 // QR 屬性
                 m_MMEdit[boardIndex].SetBarcodeInvert(qrName, 1);            // 反相
@@ -4136,31 +4120,16 @@ namespace WindowsFormsApp1
                 // === Layer 2: 4cm × 4cm 矩形外框 ===
                 // AddRect(dLeft, dTop, dRight, dBottom, dRound, parent, name)
                 // 以 QR 中心 (0,0) 為中心 → 4cm = 40mm → left=-20, top=-20, right=20, bottom=20
-                long r2 = m_MMEdit[boardIndex].AddRect(-20, -20, 20, 20, 0, "", "");
-                Console.Error.WriteLine($"[Board {boardIndex + 1}] AddRect rc={r2}");
+                string rectName = "QRWhiteBg_Rect";
+                long r2 = m_MMEdit[boardIndex].AddRect(-20, -20, 20, 20, 0, "", rectName);
+                Console.Error.WriteLine($"[Board {boardIndex + 1}] AddRect rc={r2} name=[{rectName}]");
                 if (r2 != 0)
                 {
                     MessageBox.Show($"建立矩形失敗！回傳碼: {r2}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
                 Application.DoEvents();
-                Thread.Sleep(300);
-
-                string rectName = "";
-                for (int attempt = 0; attempt < 5; attempt++)
-                {
-                    rectName = GetLastAddedObjectName(boardIndex);
-                    long c = m_MMMark[boardIndex].SelectGetCount();
-                    Console.Error.WriteLine($"[Board {boardIndex + 1}] Rect attempt={attempt} count={c} name=[{rectName}]");
-                    if (!string.IsNullOrEmpty(rectName) && rectName != qrName) break;
-                    Application.DoEvents();
-                    Thread.Sleep(200);
-                }
-                if (string.IsNullOrEmpty(rectName))
-                {
-                    MessageBox.Show("取不到矩形物件名稱！（已重試 5 次）", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
+                Thread.Sleep(200);
 
                 // 矩形屬性
                 m_MMEdit[boardIndex].SetFillStyle(rectName, 0);               // SetFillStyle=0
