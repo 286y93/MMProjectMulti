@@ -4073,6 +4073,16 @@ namespace WindowsFormsApp1
                 return;
             }
 
+            // 讀取 TextBox 內的可調參數（解析失敗則用預設值）
+            if (!double.TryParse(txtWBRectSpeed.Text.Trim(), out double rectSpeed)) rectSpeed = 1500;
+            if (!double.TryParse(txtWBRectPower.Text.Trim(), out double rectPower)) rectPower = 90;
+            if (!double.TryParse(txtWBRectWidth.Text.Trim(), out double rectWidth) || rectWidth <= 0) rectWidth = 40;
+            if (!double.TryParse(txtWBRectHeight.Text.Trim(), out double rectHeight) || rectHeight <= 0) rectHeight = 40;
+            if (!double.TryParse(txtWBQRSpeed.Text.Trim(), out double qrSpeed)) qrSpeed = 1500;
+            if (!double.TryParse(txtWBQRPower.Text.Trim(), out double qrPower)) qrPower = 30;
+            if (!double.TryParse(txtWBQRWidth.Text.Trim(), out double qrWidth) || qrWidth <= 0) qrWidth = 30;
+            if (!double.TryParse(txtWBQRHeight.Text.Trim(), out double qrHeight) || qrHeight <= 0) qrHeight = 30;
+
             try
             {
                 // === 0. 清空畫面（ResetFile 後一定要 Redraw 並等待 OCX 同步，
@@ -4086,11 +4096,13 @@ namespace WindowsFormsApp1
                 Application.DoEvents();
                 Thread.Sleep(200);
 
-                // === Layer 1（先打標）: 4cm × 4cm 矩形外框 ===
+                // === Layer 1（先打標）: 矩形外框 ===
                 // AddRect(dLeft, dTop, dRight, dBottom, dRound, parent, name)
-                // 以 QR 中心 (0,0) 為中心 → 4cm = 40mm → left=-20, top=-20, right=20, bottom=20
+                // 以 QR 中心 (0,0) 為中心 → 長寬從 TextBox 讀，預設 40×40 mm
                 string rectName = "QRWhiteBg_Rect";
-                long r1 = m_MMEdit[boardIndex].AddRect(-20, -20, 20, 20, 0, "", rectName);
+                double rectHalfW = rectWidth / 2.0;
+                double rectHalfH = rectHeight / 2.0;
+                long r1 = m_MMEdit[boardIndex].AddRect(-rectHalfW, -rectHalfH, rectHalfW, rectHalfH, 0, "", rectName);
                 Console.Error.WriteLine($"[Board {boardIndex + 1}] AddRect rc={r1} name=[{rectName}]");
                 if (r1 != 0)
                 {
@@ -4112,8 +4124,8 @@ namespace WindowsFormsApp1
                 m_MMEdit[boardIndex].SetFillFirstExt(rectName, 0, 1);         // 填滿優先打勾
 
                 // 矩形雷射參數
-                m_MMMark[boardIndex].SetSpeed(rectName, 1000);                // 1000 mm/s
-                m_MMMark[boardIndex].SetPower(rectName, 90);                  // 90 %
+                m_MMMark[boardIndex].SetSpeed(rectName, rectSpeed);           // 速度（來自 TextBox，預設 1500 mm/s）
+                m_MMMark[boardIndex].SetPower(rectName, rectPower);           // 功率（來自 TextBox，預設 90%）
                 m_MMMark[boardIndex].SetFrequency(rectName, 20);              // 20 kHz
                 m_MMMark[boardIndex].SetMarkRepeat(rectName, 1);              // 雕刻次數 1
                 // 點雕刻時間：API 為 Int32，假設 SDK 內部單位 = μs，所以 0.1ms = 100
@@ -4122,9 +4134,10 @@ namespace WindowsFormsApp1
 
                 // === Layer 2（後打標）: 反相 QR Code ===
                 // 重要：第 8 個參數傳明確名稱，避免 SDK 不自動命名導致後續 SelectEnum 拿到空字串
+                // 長寬從 TextBox 讀，預設 30×30 mm
                 string qrName = "QRWhiteBg_QR";
                 long r2 = m_MMMark[boardIndex].AddBarcode(
-                    BARCODE_TYPE_QRCODE, "AAA", 0, 0, 30, 30, "", qrName);
+                    BARCODE_TYPE_QRCODE, "AAA", 0, 0, qrWidth, qrHeight, "", qrName);
                 Console.Error.WriteLine($"[Board {boardIndex + 1}] AddBarcode rc={r2} name=[{qrName}]");
                 if (r2 != 0)
                 {
@@ -4149,8 +4162,8 @@ namespace WindowsFormsApp1
                 m_MMEdit[boardIndex].SetFillFirstExt(qrName, 0, 1);           // 填滿優先打勾 (PassIndex=0)
 
                 // QR 雷射參數
-                m_MMMark[boardIndex].SetSpeed(qrName, 1000);                  // 1000 mm/s
-                m_MMMark[boardIndex].SetPower(qrName, 30);                    // 30 %
+                m_MMMark[boardIndex].SetSpeed(qrName, qrSpeed);               // 速度（來自 TextBox，預設 1500 mm/s）
+                m_MMMark[boardIndex].SetPower(qrName, qrPower);               // 功率（來自 TextBox，預設 30%）
                 m_MMMark[boardIndex].SetFrequency(qrName, 200);               // 200 kHz
                 m_MMMark[boardIndex].SetMarkRepeat(qrName, 1);                // 雕刻次數 1
                 m_MMEdit[boardIndex].SetBarcodeSpotDelay(qrName, 1000);       // 1 ms (= 1000 μs)
