@@ -163,6 +163,10 @@
             this.txtWBQuietZone = new System.Windows.Forms.TextBox();
             this.lblWBRectExtra = new System.Windows.Forms.Label();
             this.txtWBRectExtra = new System.Windows.Forms.TextBox();
+            this.lblWBMarkTarget = new System.Windows.Forms.Label();
+            this.rdoWBMarkQR = new System.Windows.Forms.RadioButton();
+            this.rdoWBMarkRect = new System.Windows.Forms.RadioButton();
+            this.rdoWBMarkAll = new System.Windows.Forms.RadioButton();
             // === 命令提示 tab ===
             this.tabPageCmd = new System.Windows.Forms.TabPage();
             this.lblCmdHeader = new System.Windows.Forms.Label();
@@ -1467,12 +1471,16 @@
             this.groupBoxQRWhiteBg.Controls.Add(this.txtWBQuietZone);
             this.groupBoxQRWhiteBg.Controls.Add(this.lblWBRectExtra);
             this.groupBoxQRWhiteBg.Controls.Add(this.txtWBRectExtra);
+            this.groupBoxQRWhiteBg.Controls.Add(this.lblWBMarkTarget);
+            this.groupBoxQRWhiteBg.Controls.Add(this.rdoWBMarkQR);
+            this.groupBoxQRWhiteBg.Controls.Add(this.rdoWBMarkRect);
+            this.groupBoxQRWhiteBg.Controls.Add(this.rdoWBMarkAll);
             this.groupBoxQRWhiteBg.Controls.Add(this.btnQRWhiteBgCreate);
             this.groupBoxQRWhiteBg.Controls.Add(this.btnQRWhiteBgMark);
             this.groupBoxQRWhiteBg.Location = new System.Drawing.Point(450, 42);
             this.groupBoxQRWhiteBg.Name = "groupBoxQRWhiteBg";
             this.groupBoxQRWhiteBg.Padding = new System.Windows.Forms.Padding(4);
-            this.groupBoxQRWhiteBg.Size = new System.Drawing.Size(270, 315);
+            this.groupBoxQRWhiteBg.Size = new System.Drawing.Size(270, 350);
             this.groupBoxQRWhiteBg.TabIndex = 11;
             this.groupBoxQRWhiteBg.TabStop = false;
             this.groupBoxQRWhiteBg.Text = "QRCODE_白底";
@@ -1613,9 +1621,50 @@
             this.txtWBRectExtra.TabIndex = 20;
             this.txtWBRectExtra.Text = "0";
             //
-            // btnQRWhiteBgCreate (依設定建立 QR Code，在打標按鈕上方)
+            // lblWBMarkTarget (打標對象標籤, Row 5)
             //
-            this.btnQRWhiteBgCreate.Location = new System.Drawing.Point(20, 160);
+            this.lblWBMarkTarget.AutoSize = true;
+            this.lblWBMarkTarget.Location = new System.Drawing.Point(10, 158);
+            this.lblWBMarkTarget.Name = "lblWBMarkTarget";
+            this.lblWBMarkTarget.Size = new System.Drawing.Size(45, 15);
+            this.lblWBMarkTarget.TabIndex = 22;
+            this.lblWBMarkTarget.Text = "打標:";
+            //
+            // rdoWBMarkQR
+            //
+            this.rdoWBMarkQR.AutoSize = true;
+            this.rdoWBMarkQR.Location = new System.Drawing.Point(55, 156);
+            this.rdoWBMarkQR.Name = "rdoWBMarkQR";
+            this.rdoWBMarkQR.Size = new System.Drawing.Size(45, 19);
+            this.rdoWBMarkQR.TabIndex = 23;
+            this.rdoWBMarkQR.Text = "QR";
+            this.rdoWBMarkQR.UseVisualStyleBackColor = true;
+            //
+            // rdoWBMarkRect
+            //
+            this.rdoWBMarkRect.AutoSize = true;
+            this.rdoWBMarkRect.Location = new System.Drawing.Point(110, 156);
+            this.rdoWBMarkRect.Name = "rdoWBMarkRect";
+            this.rdoWBMarkRect.Size = new System.Drawing.Size(50, 19);
+            this.rdoWBMarkRect.TabIndex = 24;
+            this.rdoWBMarkRect.Text = "矩形";
+            this.rdoWBMarkRect.UseVisualStyleBackColor = true;
+            //
+            // rdoWBMarkAll (預設選取)
+            //
+            this.rdoWBMarkAll.AutoSize = true;
+            this.rdoWBMarkAll.Checked = true;
+            this.rdoWBMarkAll.Location = new System.Drawing.Point(170, 156);
+            this.rdoWBMarkAll.Name = "rdoWBMarkAll";
+            this.rdoWBMarkAll.Size = new System.Drawing.Size(50, 19);
+            this.rdoWBMarkAll.TabIndex = 25;
+            this.rdoWBMarkAll.TabStop = true;
+            this.rdoWBMarkAll.Text = "全部";
+            this.rdoWBMarkAll.UseVisualStyleBackColor = true;
+            //
+            // btnQRWhiteBgCreate (依設定建立 QR Code)
+            //
+            this.btnQRWhiteBgCreate.Location = new System.Drawing.Point(20, 195);
             this.btnQRWhiteBgCreate.Name = "btnQRWhiteBgCreate";
             this.btnQRWhiteBgCreate.Size = new System.Drawing.Size(230, 45);
             this.btnQRWhiteBgCreate.TabIndex = 21;
@@ -1625,7 +1674,7 @@
             //
             // btnQRWhiteBgMark
             //
-            this.btnQRWhiteBgMark.Location = new System.Drawing.Point(20, 215);
+            this.btnQRWhiteBgMark.Location = new System.Drawing.Point(20, 250);
             this.btnQRWhiteBgMark.Name = "btnQRWhiteBgMark";
             this.btnQRWhiteBgMark.Size = new System.Drawing.Size(230, 80);
             this.btnQRWhiteBgMark.TabIndex = 0;
@@ -2062,6 +2111,10 @@
         private System.Windows.Forms.TextBox txtWBQuietZone;
         private System.Windows.Forms.Label lblWBRectExtra;
         private System.Windows.Forms.TextBox txtWBRectExtra;
+        private System.Windows.Forms.Label lblWBMarkTarget;
+        private System.Windows.Forms.RadioButton rdoWBMarkQR;
+        private System.Windows.Forms.RadioButton rdoWBMarkRect;
+        private System.Windows.Forms.RadioButton rdoWBMarkAll;
         // === 命令提示 tab 控件 ===
         private System.Windows.Forms.TabPage tabPageCmd;
         private System.Windows.Forms.Label lblCmdHeader;
