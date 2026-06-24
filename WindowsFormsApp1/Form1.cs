@@ -4312,7 +4312,7 @@ namespace WindowsFormsApp1
                     m_MMEdit[boardIndex].SetFillTimes(rectName, 1);
                     m_MMEdit[boardIndex].SetFillAverageDistribution(rectName, 1);
                     m_MMEdit[boardIndex].SetFrameSwitch(rectName, 1);
-                    m_MMEdit[boardIndex].SetFillSwitch(rectName, 1);
+                    m_MMEdit[boardIndex].SetFillSwitch(rectName, 0);            // 關閉填滿，矩形只描外框，讓 QR 與外框之間有白邊
                     m_MMEdit[boardIndex].SetFillFirstExt(rectName, 0, 1);
                     m_MMMark[boardIndex].SetSpeed(rectName, rectSpeed);
                     m_MMMark[boardIndex].SetPower(rectName, rectPower);
