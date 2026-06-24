@@ -4074,11 +4074,11 @@ namespace WindowsFormsApp1
             }
 
             // 讀取 TextBox 內的可調參數（解析失敗則用預設值）
-            if (!double.TryParse(txtWBRectSpeed.Text.Trim(), out double rectSpeed)) rectSpeed = 1500;
+            if (!double.TryParse(txtWBRectSpeed.Text.Trim(), out double rectSpeed)) rectSpeed = 1000;
             if (!double.TryParse(txtWBRectPower.Text.Trim(), out double rectPower)) rectPower = 90;
-            if (!double.TryParse(txtWBRectWidth.Text.Trim(), out double rectWidth) || rectWidth <= 0) rectWidth = 40;
-            if (!double.TryParse(txtWBRectHeight.Text.Trim(), out double rectHeight) || rectHeight <= 0) rectHeight = 40;
-            if (!double.TryParse(txtWBQRSpeed.Text.Trim(), out double qrSpeed)) qrSpeed = 1500;
+            if (!double.TryParse(txtWBRectWidth.Text.Trim(), out double rectWidth) || rectWidth <= 0) rectWidth = 50;
+            if (!double.TryParse(txtWBRectHeight.Text.Trim(), out double rectHeight) || rectHeight <= 0) rectHeight = 50;
+            if (!double.TryParse(txtWBQRSpeed.Text.Trim(), out double qrSpeed)) qrSpeed = 1000;
             if (!double.TryParse(txtWBQRPower.Text.Trim(), out double qrPower)) qrPower = 30;
             if (!double.TryParse(txtWBQRWidth.Text.Trim(), out double qrWidth) || qrWidth <= 0) qrWidth = 30;
             if (!double.TryParse(txtWBQRHeight.Text.Trim(), out double qrHeight) || qrHeight <= 0) qrHeight = 30;
@@ -4112,11 +4112,13 @@ namespace WindowsFormsApp1
                 Application.DoEvents();
                 Thread.Sleep(200);
 
-                // 矩形屬性
+                // 矩形屬性 — 外框填滿參數
                 m_MMEdit[boardIndex].SetFillStyle(rectName, 0);               // SetFillStyle=0 (用戶明示)
                 m_MMEdit[boardIndex].SetFrameLineType(rectName, 1);           // 外框短虛線
                 m_MMEdit[boardIndex].SetFillRoundPitch(rectName, 0.04);       // 圈距 0.04
                 m_MMEdit[boardIndex].SetFillPitch(rectName, 0.04);            // 間距 0.04
+                m_MMEdit[boardIndex].SetFillTimes(rectName, 1);               // 次數 1
+                m_MMEdit[boardIndex].SetFillAverageDistribution(rectName, 1); // 最佳化打勾 (TODO: 確認對應 API)
 
                 // 外框/填滿/填滿優先（皆打勾）
                 m_MMEdit[boardIndex].SetFrameSwitch(rectName, 1);             // 外框打勾
@@ -4147,13 +4149,16 @@ namespace WindowsFormsApp1
                 Application.DoEvents();
                 Thread.Sleep(200);
 
-                // QR 屬性
+                // QR 屬性 — 二維條碼參數
                 m_MMEdit[boardIndex].SetBarcodeInvert(qrName, 1);             // 反相
-                m_MMEdit[boardIndex].SetBarcodeQuietZone(qrName, 3);          // 外框 3 單元
-                m_MMEdit[boardIndex].SetBarcodeMarkStyle(qrName, 3);          // 連續線段
+                m_MMEdit[boardIndex].SetBarcodeQuietZone(qrName, 5);          // 外框 5 單元
+                // 二維條碼雕刻參數
+                m_MMEdit[boardIndex].SetBarcodeMarkStyle(qrName, 2);          // 連續的線 (MarkStyle=2)
+                m_MMEdit[boardIndex].SetBarcodeLineType(qrName, 0);           // 連續的線 (LineType=0)
                 m_MMEdit[boardIndex].SetBarcodeSpotSize(qrName, 0.02);        // 每點 A=B=0.02mm
                 m_MMEdit[boardIndex].SetBarcodeLineTimes(qrName, 2);          // 次數 2
-                m_MMEdit[boardIndex].SetBarcodeLineStepAngle(qrName, 90);     // 累進角度 90
+                m_MMEdit[boardIndex].SetFillStartAngle(qrName, 0);            // 起始角度 0
+                m_MMEdit[boardIndex].SetFillStepAngle(qrName, 90);            // 累進角度 90
                 m_MMEdit[boardIndex].SetBarcodeLineTwoway(qrName, 1);         // 雙向填滿
 
                 // 外框/填滿/填滿優先（皆打勾）

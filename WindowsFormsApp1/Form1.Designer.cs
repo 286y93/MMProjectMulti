@@ -1490,7 +1490,7 @@
             this.txtWBRectSpeed.Name = "txtWBRectSpeed";
             this.txtWBRectSpeed.Size = new System.Drawing.Size(50, 25);
             this.txtWBRectSpeed.TabIndex = 2;
-            this.txtWBRectSpeed.Text = "1500";
+            this.txtWBRectSpeed.Text = "1000";
             //
             // lblWBRectPower
             //
@@ -1524,7 +1524,7 @@
             this.txtWBRectWidth.Name = "txtWBRectWidth";
             this.txtWBRectWidth.Size = new System.Drawing.Size(50, 25);
             this.txtWBRectWidth.TabIndex = 10;
-            this.txtWBRectWidth.Text = "40";
+            this.txtWBRectWidth.Text = "50";
             //
             // lblWBRectHeight
             //
@@ -1541,7 +1541,7 @@
             this.txtWBRectHeight.Name = "txtWBRectHeight";
             this.txtWBRectHeight.Size = new System.Drawing.Size(40, 25);
             this.txtWBRectHeight.TabIndex = 12;
-            this.txtWBRectHeight.Text = "40";
+            this.txtWBRectHeight.Text = "50";
             //
             // lblWBQRSpeed (Row 3)
             //
@@ -1558,7 +1558,7 @@
             this.txtWBQRSpeed.Name = "txtWBQRSpeed";
             this.txtWBQRSpeed.Size = new System.Drawing.Size(50, 25);
             this.txtWBQRSpeed.TabIndex = 6;
-            this.txtWBQRSpeed.Text = "1500";
+            this.txtWBQRSpeed.Text = "1000";
             //
             // lblWBQRPower
             //
