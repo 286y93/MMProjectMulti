@@ -4099,7 +4099,7 @@ namespace WindowsFormsApp1
                 // === Step A: 先建立 QR Code（為了拿到實際渲染尺寸） ===
                 // 矩形稍後依 QR 實際 GetWidth/GetHeight 建立，順序最後用 ChangeObjectOrder 調整
 
-                // 1) 建立 QR Code 物件
+                // 1) 建立 QR Code 物件（先用 cellSize=1 預設，之後依 Version 反推真正 cellSize）
                 string qrName = "QRWhiteBg_QR";
                 long rQR = m_MMMark[boardIndex].AddBarcode(
                     BARCODE_TYPE_QRCODE, "AAA", 0, 0, qrWidth, qrHeight, "", qrName);
@@ -4112,7 +4112,7 @@ namespace WindowsFormsApp1
                 Application.DoEvents();
                 Thread.Sleep(200);
 
-                // 2) QR 屬性 + 雷射參數
+                // 2) QR 屬性 + 雷射參數（初始 cellSize=1 為占位值）
                 m_MMEdit[boardIndex].SetBarcodeInvert(qrName, 1);
                 m_MMEdit[boardIndex].Set2DBarcodeFixedType(qrName, 0);
                 m_MMEdit[boardIndex].Set2DBarcodeFixedCellSize(qrName, 1, 1);
@@ -4134,15 +4134,33 @@ namespace WindowsFormsApp1
                 m_MMEdit[boardIndex].SetBarcodeSpotDelay(qrName, 1000);
                 m_MMMark[boardIndex].SetPulseWidth(qrName, 13);
 
-                // 3) Redraw 讓 SDK 依固定單元 + QuietZone 重新計算 QR 實際渲染大小
+                // 3) 第一次 Redraw，讓 SDK 依內容算出 QR Version
                 m_MMMark[boardIndex].Redraw();
                 Application.DoEvents();
                 Thread.Sleep(300);
 
-                // 4) 讀取 QR 實際渲染長寬（包含 QuietZone）
+                // 4) 取得 QR Version 反推所需 cellSize，讓 QR 渲染後等於 TextBox 設定的長寬
+                //    模組數公式：modules = 17 + 4 × Version  (QR Code 規格)
+                //    總大小 = (modules + quietZone × 2) × cellSize
+                //    → cellSize = qrWidth / (modules + quietZone × 2)
+                long qrVersion = m_MMEdit[boardIndex].Get2DBarcodeQRVersion(qrName);
+                if (qrVersion < 1) qrVersion = 1;  // 保護：至少 Version 1
+                int modules = 17 + 4 * (int)qrVersion;
+                double divisor = modules + quietZone * 2;
+                double cellW = qrWidth / divisor;
+                double cellH = qrHeight / divisor;
+                Console.Error.WriteLine($"[Board {boardIndex + 1}] QR Version={qrVersion} modules={modules} → cellW={cellW:F4}mm cellH={cellH:F4}mm");
+
+                // 5) 套用反推後的 cellSize，並再次 Redraw
+                m_MMEdit[boardIndex].Set2DBarcodeFixedCellSize(qrName, cellW, cellH);
+                m_MMMark[boardIndex].Redraw();
+                Application.DoEvents();
+                Thread.Sleep(300);
+
+                // 6) 讀取 QR 實際渲染長寬（包含 QuietZone）
                 double qrActualW = m_MMEdit[boardIndex].GetWidth(qrName);
                 double qrActualH = m_MMEdit[boardIndex].GetHeight(qrName);
-                Console.Error.WriteLine($"[Board {boardIndex + 1}] QR rendered size = {qrActualW} × {qrActualH} mm");
+                Console.Error.WriteLine($"[Board {boardIndex + 1}] QR rendered size = {qrActualW} × {qrActualH} mm (target {qrWidth} × {qrHeight})");
                 if (qrActualW <= 0 || qrActualH <= 0)
                 {
                     MessageBox.Show($"取得 QR 渲染尺寸失敗 ({qrActualW} × {qrActualH})，無法建立矩形。", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
