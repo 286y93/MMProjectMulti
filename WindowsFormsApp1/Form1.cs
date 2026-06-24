@@ -4097,7 +4097,7 @@ namespace WindowsFormsApp1
                 Thread.Sleep(200);
 
                 // 套用屬性 + 雷射參數
-                m_MMEdit[boardIndex].SetBarcodeInvert(qrName, 0);              // 反相關閉
+                m_MMEdit[boardIndex].SetBarcodeInvert(qrName, 1);              // 反相打開（白底反相 QR）
                 m_MMEdit[boardIndex].Set2DBarcodeFixedType(qrName, 0);
                 m_MMEdit[boardIndex].Set2DBarcodeFixedCellSize(qrName, 1, 1);
                 m_MMEdit[boardIndex].SetBarcodeQuietZone(qrName, quietZone);
@@ -4242,7 +4242,7 @@ namespace WindowsFormsApp1
                     Thread.Sleep(200);
 
                     // 2) QR 屬性 + 雷射參數
-                    m_MMEdit[boardIndex].SetBarcodeInvert(qrName, 0);          // 反相關閉
+                    m_MMEdit[boardIndex].SetBarcodeInvert(qrName, 1);          // 反相打開（白底反相 QR）
                     m_MMEdit[boardIndex].Set2DBarcodeFixedType(qrName, 0);
                     m_MMEdit[boardIndex].Set2DBarcodeFixedCellSize(qrName, 1, 1);
                     m_MMEdit[boardIndex].SetBarcodeQuietZone(qrName, quietZone);
@@ -4305,14 +4305,14 @@ namespace WindowsFormsApp1
                     Thread.Sleep(200);
 
                     // 5) 矩形屬性 + 雷射參數
-                    m_MMEdit[boardIndex].SetFillStyle(rectName, 0);            // 依 spec：FillStyle=0
+                    m_MMEdit[boardIndex].SetFillStyle(rectName, 1);            // 1 = 嘗試實心填滿
                     m_MMEdit[boardIndex].SetFrameLineType(rectName, 1);
                     m_MMEdit[boardIndex].SetFillRoundPitch(rectName, 0.04);
                     m_MMEdit[boardIndex].SetFillPitch(rectName, 0.04);
                     m_MMEdit[boardIndex].SetFillTimes(rectName, 1);
                     m_MMEdit[boardIndex].SetFillAverageDistribution(rectName, 1);
                     m_MMEdit[boardIndex].SetFrameSwitch(rectName, 1);
-                    m_MMEdit[boardIndex].SetFillSwitch(rectName, 0);            // 關閉填滿，矩形只描外框，讓 QR 與外框之間有白邊
+                    m_MMEdit[boardIndex].SetFillSwitch(rectName, 1);            // 開啟矩形填滿，配合 QR 反相形成白底反相 QR
                     m_MMEdit[boardIndex].SetFillFirstExt(rectName, 0, 1);
                     m_MMMark[boardIndex].SetSpeed(rectName, rectSpeed);
                     m_MMMark[boardIndex].SetPower(rectName, rectPower);
