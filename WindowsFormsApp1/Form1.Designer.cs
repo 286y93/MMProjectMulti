@@ -146,6 +146,7 @@
             this.txtQRStatus = new System.Windows.Forms.TextBox();
             this.groupBoxQRWhiteBg = new System.Windows.Forms.GroupBox();
             this.btnQRWhiteBgMark = new System.Windows.Forms.Button();
+            this.btnQRWhiteBgCreate = new System.Windows.Forms.Button();
             this.lblWBRectSpeed = new System.Windows.Forms.Label();
             this.txtWBRectSpeed = new System.Windows.Forms.TextBox();
             this.lblWBRectPower = new System.Windows.Forms.Label();
@@ -1466,11 +1467,12 @@
             this.groupBoxQRWhiteBg.Controls.Add(this.txtWBQuietZone);
             this.groupBoxQRWhiteBg.Controls.Add(this.lblWBRectExtra);
             this.groupBoxQRWhiteBg.Controls.Add(this.txtWBRectExtra);
+            this.groupBoxQRWhiteBg.Controls.Add(this.btnQRWhiteBgCreate);
             this.groupBoxQRWhiteBg.Controls.Add(this.btnQRWhiteBgMark);
             this.groupBoxQRWhiteBg.Location = new System.Drawing.Point(450, 42);
             this.groupBoxQRWhiteBg.Name = "groupBoxQRWhiteBg";
             this.groupBoxQRWhiteBg.Padding = new System.Windows.Forms.Padding(4);
-            this.groupBoxQRWhiteBg.Size = new System.Drawing.Size(270, 270);
+            this.groupBoxQRWhiteBg.Size = new System.Drawing.Size(270, 315);
             this.groupBoxQRWhiteBg.TabIndex = 11;
             this.groupBoxQRWhiteBg.TabStop = false;
             this.groupBoxQRWhiteBg.Text = "QRCODE_白底";
@@ -1611,11 +1613,21 @@
             this.txtWBRectExtra.TabIndex = 20;
             this.txtWBRectExtra.Text = "0";
             //
+            // btnQRWhiteBgCreate (依設定建立 QR Code，在打標按鈕上方)
+            //
+            this.btnQRWhiteBgCreate.Location = new System.Drawing.Point(20, 160);
+            this.btnQRWhiteBgCreate.Name = "btnQRWhiteBgCreate";
+            this.btnQRWhiteBgCreate.Size = new System.Drawing.Size(230, 45);
+            this.btnQRWhiteBgCreate.TabIndex = 21;
+            this.btnQRWhiteBgCreate.Text = "依設定建立 QR Code";
+            this.btnQRWhiteBgCreate.UseVisualStyleBackColor = true;
+            this.btnQRWhiteBgCreate.Click += new System.EventHandler(this.btnQRWhiteBgCreate_Click);
+            //
             // btnQRWhiteBgMark
             //
-            this.btnQRWhiteBgMark.Location = new System.Drawing.Point(20, 165);
+            this.btnQRWhiteBgMark.Location = new System.Drawing.Point(20, 215);
             this.btnQRWhiteBgMark.Name = "btnQRWhiteBgMark";
-            this.btnQRWhiteBgMark.Size = new System.Drawing.Size(230, 90);
+            this.btnQRWhiteBgMark.Size = new System.Drawing.Size(230, 80);
             this.btnQRWhiteBgMark.TabIndex = 0;
             this.btnQRWhiteBgMark.Text = "白底 QR 雙圖層打標";
             this.btnQRWhiteBgMark.UseVisualStyleBackColor = true;
@@ -2033,6 +2045,7 @@
         private System.Windows.Forms.TextBox txtQRStatus;
         private System.Windows.Forms.GroupBox groupBoxQRWhiteBg;
         private System.Windows.Forms.Button btnQRWhiteBgMark;
+        private System.Windows.Forms.Button btnQRWhiteBgCreate;
         private System.Windows.Forms.Label lblWBRectSpeed;
         private System.Windows.Forms.TextBox txtWBRectSpeed;
         private System.Windows.Forms.Label lblWBRectPower;

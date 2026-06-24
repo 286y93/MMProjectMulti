@@ -4040,6 +4040,119 @@ namespace WindowsFormsApp1
         }
 
         /// <summary>
+        /// QRCODE_白底：依使用者 TextBox 設定建立 QR Code（不建立矩形、不打標）。
+        /// 主要供使用者預覽 / 確認 QR 渲染後實際大小。
+        /// </summary>
+        private void btnQRWhiteBgCreate_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit)
+            {
+                MessageBox.Show("請先初始化！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            int boardIndex = comboBoardQR.SelectedIndex;
+            if (!m_bBoardInit[boardIndex])
+            {
+                MessageBox.Show($"晶片板 {boardIndex + 1} 未成功初始化，無法操作！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (IsBoardBusy(boardIndex))
+            {
+                MessageBox.Show($"晶片板 {boardIndex + 1} 正在執行其他預覽 / 打標，請先停止再試。",
+                    "板忙碌中", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // 讀取 TextBox（與 Mark handler 同步）
+            if (!double.TryParse(txtWBQRSpeed.Text.Trim(), out double qrSpeed)) qrSpeed = 1000;
+            if (!double.TryParse(txtWBQRPower.Text.Trim(), out double qrPower)) qrPower = 30;
+            if (!double.TryParse(txtWBQRWidth.Text.Trim(), out double qrWidth) || qrWidth <= 0) qrWidth = 30;
+            if (!double.TryParse(txtWBQRHeight.Text.Trim(), out double qrHeight) || qrHeight <= 0) qrHeight = 30;
+            if (!double.TryParse(txtWBQuietZone.Text.Trim(), out double quietZone) || quietZone < 0) quietZone = 5;
+
+            try
+            {
+                // 清空畫面
+                m_MMMark[boardIndex].ResetFile();
+                m_MMMark[boardIndex].SetDesktopCenter(0, 0);
+                m_MMMark[boardIndex].SetDesktopSize(m_WorkspaceSize, m_WorkspaceHeight);
+                Application.DoEvents();
+                Thread.Sleep(100);
+                m_MMMark[boardIndex].Redraw();
+                Application.DoEvents();
+                Thread.Sleep(200);
+
+                // AddBarcode QR
+                string qrName = "QRWhiteBg_QR";
+                long rQR = m_MMMark[boardIndex].AddBarcode(
+                    BARCODE_TYPE_QRCODE, "AAA", 0, 0, qrWidth, qrHeight, "", qrName);
+                if (rQR != 0)
+                {
+                    MessageBox.Show($"建立 QR Code 失敗！回傳碼: {rQR}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+                Application.DoEvents();
+                Thread.Sleep(200);
+
+                // 套用屬性 + 雷射參數
+                m_MMEdit[boardIndex].SetBarcodeInvert(qrName, 1);
+                m_MMEdit[boardIndex].Set2DBarcodeFixedType(qrName, 0);
+                m_MMEdit[boardIndex].Set2DBarcodeFixedCellSize(qrName, 1, 1);
+                m_MMEdit[boardIndex].SetBarcodeQuietZone(qrName, quietZone);
+                m_MMEdit[boardIndex].SetBarcodeMarkStyle(qrName, 2);
+                m_MMEdit[boardIndex].SetBarcodeLineType(qrName, 0);
+                m_MMEdit[boardIndex].SetBarcodeSpotSize(qrName, 0.02);
+                m_MMEdit[boardIndex].SetBarcodeLineTimes(qrName, 2);
+                m_MMEdit[boardIndex].SetFillStartAngle(qrName, 0);
+                m_MMEdit[boardIndex].SetFillStepAngle(qrName, 90);
+                m_MMEdit[boardIndex].SetBarcodeLineTwoway(qrName, 1);
+                m_MMEdit[boardIndex].SetFrameSwitch(qrName, 1);
+                m_MMEdit[boardIndex].SetFillSwitch(qrName, 1);
+                m_MMEdit[boardIndex].SetFillFirstExt(qrName, 0, 1);
+                m_MMMark[boardIndex].SetSpeed(qrName, qrSpeed);
+                m_MMMark[boardIndex].SetPower(qrName, qrPower);
+                m_MMMark[boardIndex].SetFrequency(qrName, 200);
+                m_MMMark[boardIndex].SetMarkRepeat(qrName, 1);
+                m_MMEdit[boardIndex].SetBarcodeSpotDelay(qrName, 1000);
+                m_MMMark[boardIndex].SetPulseWidth(qrName, 13);
+
+                // 第一次 Redraw → 拿 QR Version → 反推 cellSize
+                m_MMMark[boardIndex].Redraw();
+                Application.DoEvents();
+                Thread.Sleep(300);
+
+                long qrVersion = m_MMEdit[boardIndex].Get2DBarcodeQRVersion(qrName);
+                if (qrVersion < 1) qrVersion = 1;
+                int modules = 17 + 4 * (int)qrVersion;
+                double divisor = modules + quietZone * 2;
+                double cellW = qrWidth / divisor;
+                double cellH = qrHeight / divisor;
+
+                m_MMEdit[boardIndex].Set2DBarcodeFixedCellSize(qrName, cellW, cellH);
+                m_MMMark[boardIndex].Redraw();
+                Application.DoEvents();
+                Thread.Sleep(300);
+
+                double qrActualW = m_MMEdit[boardIndex].GetWidth(qrName);
+                double qrActualH = m_MMEdit[boardIndex].GetHeight(qrName);
+
+                txtQRStatus.Text =
+                    $"晶片板 {boardIndex + 1} 已建立 QR Code\r\n" +
+                    $"目標尺寸: {qrWidth} × {qrHeight} mm\r\n" +
+                    $"渲染尺寸: {qrActualW:F2} × {qrActualH:F2} mm\r\n" +
+                    $"QR Version: {qrVersion} (modules={modules})\r\n" +
+                    $"單元寬高: {cellW:F4} × {cellH:F4} mm\r\n" +
+                    $"外框: {quietZone} 單元";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"建立 QR Code 失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
         /// QRCODE_白底：一鍵建立並打標兩個圖層（順序：先矩形後 QR）。
         /// Layer 1（先打標）：4cm x 4cm 矩形外框（短虛線+點虛線填滿），形成白底
         /// Layer 2（後打標）：反相 QR Code "AAA"，30x30mm，連續線段填滿
