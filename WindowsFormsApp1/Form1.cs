@@ -4126,9 +4126,9 @@ namespace WindowsFormsApp1
                 long qrVersion = m_MMEdit[boardIndex].Get2DBarcodeQRVersion(qrName);
                 if (qrVersion < 1) qrVersion = 1;
                 int modules = 17 + 4 * (int)qrVersion;
-                double divisor = modules + quietZone * 2;
-                double cellW = qrWidth / divisor;
-                double cellH = qrHeight / divisor;
+                // Option B：UI 長寬 = 模組區大小，cellSize 只由 modules 決定，外框會額外加大 QR 總尺寸
+                double cellW = qrWidth / modules;
+                double cellH = qrHeight / modules;
 
                 m_MMEdit[boardIndex].Set2DBarcodeFixedCellSize(qrName, cellW, cellH);
                 m_MMMark[boardIndex].Redraw();
@@ -4270,10 +4270,10 @@ namespace WindowsFormsApp1
                     long qrVersion = m_MMEdit[boardIndex].Get2DBarcodeQRVersion(qrName);
                     if (qrVersion < 1) qrVersion = 1;
                     int modules = 17 + 4 * (int)qrVersion;
-                    double divisor = modules + quietZone * 2;
-                    double cellW = qrWidth / divisor;
-                    double cellH = qrHeight / divisor;
-                    Console.Error.WriteLine($"[Board {boardIndex + 1}] QR Version={qrVersion} modules={modules} → cellW={cellW:F4} cellH={cellH:F4}");
+                    // Option B：UI 長寬 = 模組區大小，cellSize 只由 modules 決定，外框會額外加大 QR 總尺寸
+                    double cellW = qrWidth / modules;
+                    double cellH = qrHeight / modules;
+                    Console.Error.WriteLine($"[Board {boardIndex + 1}] QR Version={qrVersion} modules={modules} quietZone={quietZone} → cellW={cellW:F4} cellH={cellH:F4}");
                     m_MMEdit[boardIndex].Set2DBarcodeFixedCellSize(qrName, cellW, cellH);
                     m_MMMark[boardIndex].Redraw();
                     Application.DoEvents();
