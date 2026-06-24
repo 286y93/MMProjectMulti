@@ -4223,6 +4223,10 @@ namespace WindowsFormsApp1
                 string qrName = "QRWhiteBg_QR";
                 string rectName = "QRWhiteBg_Rect";
 
+                // 矩形基準尺寸：預設 UI 設定值；若 QR 有建立則改用 QR 實際渲染尺寸（消除 SDK cellSize 捨入誤差）
+                double rectBaseW = qrWidth;
+                double rectBaseH = qrHeight;
+
                 if (markQR)
                 {
                     // 1) 建立 QR Code 物件（先用 cellSize=1 占位）
@@ -4274,17 +4278,24 @@ namespace WindowsFormsApp1
                     m_MMMark[boardIndex].Redraw();
                     Application.DoEvents();
                     Thread.Sleep(300);
+
+                    // 取 QR 實際渲染尺寸作為矩形基準（避免 SDK cellSize 內部捨入造成的視覺不對齊）
+                    double actualW = m_MMEdit[boardIndex].GetWidth(qrName);
+                    double actualH = m_MMEdit[boardIndex].GetHeight(qrName);
+                    if (actualW > 0) rectBaseW = actualW;
+                    if (actualH > 0) rectBaseH = actualH;
+                    Console.Error.WriteLine($"[Board {boardIndex + 1}] QR rendered = {actualW}x{actualH} (UI {qrWidth}x{qrHeight}) → rectBase={rectBaseW}x{rectBaseH}");
                 }
 
                 if (markRect)
                 {
-                    // 4) 用 UI 設定 QR 長寬 + X 建立矩形
-                    double rectW = qrWidth + rectExtra;
-                    double rectH = qrHeight + rectExtra;
+                    // 4) 矩形 SIZE = QR 實際渲染大小 + X（若沒有 QR，fallback 用 UI 值）
+                    double rectW = rectBaseW + rectExtra;
+                    double rectH = rectBaseH + rectExtra;
                     double rectHalfW = rectW / 2.0;
                     double rectHalfH = rectH / 2.0;
                     long rR = m_MMEdit[boardIndex].AddRect(-rectHalfW, -rectHalfH, rectHalfW, rectHalfH, 0, "", rectName);
-                    Console.Error.WriteLine($"[Board {boardIndex + 1}] AddRect rc={rR} name=[{rectName}] size={rectW}x{rectH} (UI QR={qrWidth}x{qrHeight} + X={rectExtra})");
+                    Console.Error.WriteLine($"[Board {boardIndex + 1}] AddRect rc={rR} name=[{rectName}] size={rectW}x{rectH} (base={rectBaseW}x{rectBaseH} + X={rectExtra})");
                     if (rR != 0)
                     {
                         MessageBox.Show($"建立矩形失敗！回傳碼: {rR}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
