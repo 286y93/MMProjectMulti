@@ -4281,14 +4281,14 @@ namespace WindowsFormsApp1
                     return;
                 }
 
-                // 5) 用「QR 實際尺寸 + X」建立矩形（中心於 0,0；X = TextBox 矩形+X 值）
+                // 5) 用「UI 設定 QR 長寬 + X」建立矩形（中心於 0,0；嚴格按 UI 值，不受 SDK 渲染捨入影響）
                 string rectName = "QRWhiteBg_Rect";
-                double rectW = qrActualW + rectExtra;
-                double rectH = qrActualH + rectExtra;
+                double rectW = qrWidth + rectExtra;
+                double rectH = qrHeight + rectExtra;
                 double rectHalfW = rectW / 2.0;
                 double rectHalfH = rectH / 2.0;
                 long rR = m_MMEdit[boardIndex].AddRect(-rectHalfW, -rectHalfH, rectHalfW, rectHalfH, 0, "", rectName);
-                Console.Error.WriteLine($"[Board {boardIndex + 1}] AddRect rc={rR} name=[{rectName}] size={rectW}x{rectH} (QR={qrActualW}x{qrActualH} + X={rectExtra})");
+                Console.Error.WriteLine($"[Board {boardIndex + 1}] AddRect rc={rR} name=[{rectName}] size={rectW}x{rectH} (UI QR={qrWidth}x{qrHeight} + X={rectExtra}; renderedQR={qrActualW}x{qrActualH})");
                 if (rR != 0)
                 {
                     MessageBox.Show($"建立矩形失敗！回傳碼: {rR}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
