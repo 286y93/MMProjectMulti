@@ -1611,7 +1611,7 @@
             this.lblWBRectExtra.Name = "lblWBRectExtra";
             this.lblWBRectExtra.Size = new System.Drawing.Size(50, 15);
             this.lblWBRectExtra.TabIndex = 19;
-            this.lblWBRectExtra.Text = "矩形+X:";
+            this.lblWBRectExtra.Text = "X:";
             //
             // txtWBRectExtra
             //

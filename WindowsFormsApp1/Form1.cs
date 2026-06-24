@@ -4294,7 +4294,7 @@ namespace WindowsFormsApp1
                     Thread.Sleep(200);
 
                     // 5) 矩形屬性 + 雷射參數
-                    m_MMEdit[boardIndex].SetFillStyle(rectName, 1);            // 1 = 實線填滿
+                    m_MMEdit[boardIndex].SetFillStyle(rectName, 0);            // 依 spec：FillStyle=0
                     m_MMEdit[boardIndex].SetFrameLineType(rectName, 1);
                     m_MMEdit[boardIndex].SetFillRoundPitch(rectName, 0.04);
                     m_MMEdit[boardIndex].SetFillPitch(rectName, 0.04);
