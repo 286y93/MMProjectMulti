@@ -154,10 +154,6 @@
             this.txtWBQRSpeed = new System.Windows.Forms.TextBox();
             this.lblWBQRPower = new System.Windows.Forms.Label();
             this.txtWBQRPower = new System.Windows.Forms.TextBox();
-            this.lblWBRectWidth = new System.Windows.Forms.Label();
-            this.txtWBRectWidth = new System.Windows.Forms.TextBox();
-            this.lblWBRectHeight = new System.Windows.Forms.Label();
-            this.txtWBRectHeight = new System.Windows.Forms.TextBox();
             this.lblWBQRWidth = new System.Windows.Forms.Label();
             this.txtWBQRWidth = new System.Windows.Forms.TextBox();
             this.lblWBQRHeight = new System.Windows.Forms.Label();
@@ -1454,10 +1450,6 @@
             this.groupBoxQRWhiteBg.Controls.Add(this.txtWBRectSpeed);
             this.groupBoxQRWhiteBg.Controls.Add(this.lblWBRectPower);
             this.groupBoxQRWhiteBg.Controls.Add(this.txtWBRectPower);
-            this.groupBoxQRWhiteBg.Controls.Add(this.lblWBRectWidth);
-            this.groupBoxQRWhiteBg.Controls.Add(this.txtWBRectWidth);
-            this.groupBoxQRWhiteBg.Controls.Add(this.lblWBRectHeight);
-            this.groupBoxQRWhiteBg.Controls.Add(this.txtWBRectHeight);
             this.groupBoxQRWhiteBg.Controls.Add(this.lblWBQRSpeed);
             this.groupBoxQRWhiteBg.Controls.Add(this.txtWBQRSpeed);
             this.groupBoxQRWhiteBg.Controls.Add(this.lblWBQRPower);
@@ -1470,7 +1462,7 @@
             this.groupBoxQRWhiteBg.Location = new System.Drawing.Point(450, 42);
             this.groupBoxQRWhiteBg.Name = "groupBoxQRWhiteBg";
             this.groupBoxQRWhiteBg.Padding = new System.Windows.Forms.Padding(4);
-            this.groupBoxQRWhiteBg.Size = new System.Drawing.Size(270, 280);
+            this.groupBoxQRWhiteBg.Size = new System.Drawing.Size(270, 240);
             this.groupBoxQRWhiteBg.TabIndex = 11;
             this.groupBoxQRWhiteBg.TabStop = false;
             this.groupBoxQRWhiteBg.Text = "QRCODE_白底";
@@ -1509,44 +1501,10 @@
             this.txtWBRectPower.TabIndex = 4;
             this.txtWBRectPower.Text = "90";
             //
-            // lblWBRectWidth (矩形長, Row 2)
-            //
-            this.lblWBRectWidth.AutoSize = true;
-            this.lblWBRectWidth.Location = new System.Drawing.Point(10, 60);
-            this.lblWBRectWidth.Name = "lblWBRectWidth";
-            this.lblWBRectWidth.Size = new System.Drawing.Size(50, 15);
-            this.lblWBRectWidth.TabIndex = 9;
-            this.lblWBRectWidth.Text = "矩形長:";
-            //
-            // txtWBRectWidth
-            //
-            this.txtWBRectWidth.Location = new System.Drawing.Point(85, 57);
-            this.txtWBRectWidth.Name = "txtWBRectWidth";
-            this.txtWBRectWidth.Size = new System.Drawing.Size(50, 25);
-            this.txtWBRectWidth.TabIndex = 10;
-            this.txtWBRectWidth.Text = "50";
-            //
-            // lblWBRectHeight
-            //
-            this.lblWBRectHeight.AutoSize = true;
-            this.lblWBRectHeight.Location = new System.Drawing.Point(150, 60);
-            this.lblWBRectHeight.Name = "lblWBRectHeight";
-            this.lblWBRectHeight.Size = new System.Drawing.Size(50, 15);
-            this.lblWBRectHeight.TabIndex = 11;
-            this.lblWBRectHeight.Text = "矩形寬:";
-            //
-            // txtWBRectHeight
-            //
-            this.txtWBRectHeight.Location = new System.Drawing.Point(220, 57);
-            this.txtWBRectHeight.Name = "txtWBRectHeight";
-            this.txtWBRectHeight.Size = new System.Drawing.Size(40, 25);
-            this.txtWBRectHeight.TabIndex = 12;
-            this.txtWBRectHeight.Text = "50";
-            //
-            // lblWBQRSpeed (Row 3)
+            // lblWBQRSpeed (Row 2)
             //
             this.lblWBQRSpeed.AutoSize = true;
-            this.lblWBQRSpeed.Location = new System.Drawing.Point(10, 92);
+            this.lblWBQRSpeed.Location = new System.Drawing.Point(10, 60);
             this.lblWBQRSpeed.Name = "lblWBQRSpeed";
             this.lblWBQRSpeed.Size = new System.Drawing.Size(58, 15);
             this.lblWBQRSpeed.TabIndex = 5;
@@ -1554,7 +1512,7 @@
             //
             // txtWBQRSpeed
             //
-            this.txtWBQRSpeed.Location = new System.Drawing.Point(85, 89);
+            this.txtWBQRSpeed.Location = new System.Drawing.Point(85, 57);
             this.txtWBQRSpeed.Name = "txtWBQRSpeed";
             this.txtWBQRSpeed.Size = new System.Drawing.Size(50, 25);
             this.txtWBQRSpeed.TabIndex = 6;
@@ -1563,7 +1521,7 @@
             // lblWBQRPower
             //
             this.lblWBQRPower.AutoSize = true;
-            this.lblWBQRPower.Location = new System.Drawing.Point(150, 92);
+            this.lblWBQRPower.Location = new System.Drawing.Point(150, 60);
             this.lblWBQRPower.Name = "lblWBQRPower";
             this.lblWBQRPower.Size = new System.Drawing.Size(58, 15);
             this.lblWBQRPower.TabIndex = 7;
@@ -1571,16 +1529,16 @@
             //
             // txtWBQRPower
             //
-            this.txtWBQRPower.Location = new System.Drawing.Point(220, 89);
+            this.txtWBQRPower.Location = new System.Drawing.Point(220, 57);
             this.txtWBQRPower.Name = "txtWBQRPower";
             this.txtWBQRPower.Size = new System.Drawing.Size(40, 25);
             this.txtWBQRPower.TabIndex = 8;
             this.txtWBQRPower.Text = "30";
             //
-            // lblWBQRWidth (QR 長, Row 4)
+            // lblWBQRWidth (QR 長, Row 3)
             //
             this.lblWBQRWidth.AutoSize = true;
-            this.lblWBQRWidth.Location = new System.Drawing.Point(10, 124);
+            this.lblWBQRWidth.Location = new System.Drawing.Point(10, 92);
             this.lblWBQRWidth.Name = "lblWBQRWidth";
             this.lblWBQRWidth.Size = new System.Drawing.Size(45, 15);
             this.lblWBQRWidth.TabIndex = 13;
@@ -1588,7 +1546,7 @@
             //
             // txtWBQRWidth
             //
-            this.txtWBQRWidth.Location = new System.Drawing.Point(85, 121);
+            this.txtWBQRWidth.Location = new System.Drawing.Point(85, 89);
             this.txtWBQRWidth.Name = "txtWBQRWidth";
             this.txtWBQRWidth.Size = new System.Drawing.Size(50, 25);
             this.txtWBQRWidth.TabIndex = 14;
@@ -1597,7 +1555,7 @@
             // lblWBQRHeight
             //
             this.lblWBQRHeight.AutoSize = true;
-            this.lblWBQRHeight.Location = new System.Drawing.Point(150, 124);
+            this.lblWBQRHeight.Location = new System.Drawing.Point(150, 92);
             this.lblWBQRHeight.Name = "lblWBQRHeight";
             this.lblWBQRHeight.Size = new System.Drawing.Size(45, 15);
             this.lblWBQRHeight.TabIndex = 15;
@@ -1605,7 +1563,7 @@
             //
             // txtWBQRHeight
             //
-            this.txtWBQRHeight.Location = new System.Drawing.Point(220, 121);
+            this.txtWBQRHeight.Location = new System.Drawing.Point(220, 89);
             this.txtWBQRHeight.Name = "txtWBQRHeight";
             this.txtWBQRHeight.Size = new System.Drawing.Size(40, 25);
             this.txtWBQRHeight.TabIndex = 16;
@@ -1613,7 +1571,7 @@
             //
             // btnQRWhiteBgMark
             //
-            this.btnQRWhiteBgMark.Location = new System.Drawing.Point(20, 175);
+            this.btnQRWhiteBgMark.Location = new System.Drawing.Point(20, 135);
             this.btnQRWhiteBgMark.Name = "btnQRWhiteBgMark";
             this.btnQRWhiteBgMark.Size = new System.Drawing.Size(230, 90);
             this.btnQRWhiteBgMark.TabIndex = 0;
@@ -2041,10 +1999,6 @@
         private System.Windows.Forms.TextBox txtWBQRSpeed;
         private System.Windows.Forms.Label lblWBQRPower;
         private System.Windows.Forms.TextBox txtWBQRPower;
-        private System.Windows.Forms.Label lblWBRectWidth;
-        private System.Windows.Forms.TextBox txtWBRectWidth;
-        private System.Windows.Forms.Label lblWBRectHeight;
-        private System.Windows.Forms.TextBox txtWBRectHeight;
         private System.Windows.Forms.Label lblWBQRWidth;
         private System.Windows.Forms.TextBox txtWBQRWidth;
         private System.Windows.Forms.Label lblWBQRHeight;
