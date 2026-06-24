@@ -4080,9 +4080,13 @@ namespace WindowsFormsApp1
             if (!double.TryParse(txtWBQRPower.Text.Trim(), out double qrPower)) qrPower = 30;
             if (!double.TryParse(txtWBQRWidth.Text.Trim(), out double qrWidth) || qrWidth <= 0) qrWidth = 30;
             if (!double.TryParse(txtWBQRHeight.Text.Trim(), out double qrHeight) || qrHeight <= 0) qrHeight = 30;
-            // 矩形長寬與 QR 同步（外框跟 QR 同尺寸）
-            double rectWidth = qrWidth;
-            double rectHeight = qrHeight;
+            if (!double.TryParse(txtWBQuietZone.Text.Trim(), out double quietZone) || quietZone < 0) quietZone = 5;
+            // 矩形長寬 = QR 長寬 + (外框單元數 - 1) × 單元寬 × 2
+            // 單元寬 = 1 mm（Set2DBarcodeFixedCellSize 寫死於下面）
+            const double QR_CELL_SIZE_MM = 1.0;
+            double rectPadding = (quietZone - 1) * QR_CELL_SIZE_MM * 2;
+            double rectWidth = qrWidth + rectPadding;
+            double rectHeight = qrHeight + rectPadding;
 
             try
             {
@@ -4154,7 +4158,7 @@ namespace WindowsFormsApp1
                 m_MMEdit[boardIndex].SetBarcodeInvert(qrName, 1);             // 反相
                 m_MMEdit[boardIndex].Set2DBarcodeFixedType(qrName, 0);        // 固定單元 (FixedType=0)
                 m_MMEdit[boardIndex].Set2DBarcodeFixedCellSize(qrName, 1, 1); // 單元大小 寬高 1mm × 1mm
-                m_MMEdit[boardIndex].SetBarcodeQuietZone(qrName, 5);          // 外框 5 單元
+                m_MMEdit[boardIndex].SetBarcodeQuietZone(qrName, quietZone);  // 外框單元（來自 TextBox）
                 // 二維條碼雕刻參數
                 m_MMEdit[boardIndex].SetBarcodeMarkStyle(qrName, 2);          // 連續的線 (MarkStyle=2)
                 m_MMEdit[boardIndex].SetBarcodeLineType(qrName, 0);           // 連續的線 (LineType=0)

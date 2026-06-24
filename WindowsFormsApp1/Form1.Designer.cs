@@ -158,6 +158,8 @@
             this.txtWBQRWidth = new System.Windows.Forms.TextBox();
             this.lblWBQRHeight = new System.Windows.Forms.Label();
             this.txtWBQRHeight = new System.Windows.Forms.TextBox();
+            this.lblWBQuietZone = new System.Windows.Forms.Label();
+            this.txtWBQuietZone = new System.Windows.Forms.TextBox();
             // === 命令提示 tab ===
             this.tabPageCmd = new System.Windows.Forms.TabPage();
             this.lblCmdHeader = new System.Windows.Forms.Label();
@@ -1458,11 +1460,13 @@
             this.groupBoxQRWhiteBg.Controls.Add(this.txtWBQRWidth);
             this.groupBoxQRWhiteBg.Controls.Add(this.lblWBQRHeight);
             this.groupBoxQRWhiteBg.Controls.Add(this.txtWBQRHeight);
+            this.groupBoxQRWhiteBg.Controls.Add(this.lblWBQuietZone);
+            this.groupBoxQRWhiteBg.Controls.Add(this.txtWBQuietZone);
             this.groupBoxQRWhiteBg.Controls.Add(this.btnQRWhiteBgMark);
             this.groupBoxQRWhiteBg.Location = new System.Drawing.Point(450, 42);
             this.groupBoxQRWhiteBg.Name = "groupBoxQRWhiteBg";
             this.groupBoxQRWhiteBg.Padding = new System.Windows.Forms.Padding(4);
-            this.groupBoxQRWhiteBg.Size = new System.Drawing.Size(270, 240);
+            this.groupBoxQRWhiteBg.Size = new System.Drawing.Size(270, 270);
             this.groupBoxQRWhiteBg.TabIndex = 11;
             this.groupBoxQRWhiteBg.TabStop = false;
             this.groupBoxQRWhiteBg.Text = "QRCODE_白底";
@@ -1569,9 +1573,26 @@
             this.txtWBQRHeight.TabIndex = 16;
             this.txtWBQRHeight.Text = "30";
             //
+            // lblWBQuietZone (Row 4)
+            //
+            this.lblWBQuietZone.AutoSize = true;
+            this.lblWBQuietZone.Location = new System.Drawing.Point(10, 124);
+            this.lblWBQuietZone.Name = "lblWBQuietZone";
+            this.lblWBQuietZone.Size = new System.Drawing.Size(70, 15);
+            this.lblWBQuietZone.TabIndex = 17;
+            this.lblWBQuietZone.Text = "外框單元:";
+            //
+            // txtWBQuietZone
+            //
+            this.txtWBQuietZone.Location = new System.Drawing.Point(85, 121);
+            this.txtWBQuietZone.Name = "txtWBQuietZone";
+            this.txtWBQuietZone.Size = new System.Drawing.Size(50, 25);
+            this.txtWBQuietZone.TabIndex = 18;
+            this.txtWBQuietZone.Text = "5";
+            //
             // btnQRWhiteBgMark
             //
-            this.btnQRWhiteBgMark.Location = new System.Drawing.Point(20, 135);
+            this.btnQRWhiteBgMark.Location = new System.Drawing.Point(20, 165);
             this.btnQRWhiteBgMark.Name = "btnQRWhiteBgMark";
             this.btnQRWhiteBgMark.Size = new System.Drawing.Size(230, 90);
             this.btnQRWhiteBgMark.TabIndex = 0;
@@ -2003,6 +2024,8 @@
         private System.Windows.Forms.TextBox txtWBQRWidth;
         private System.Windows.Forms.Label lblWBQRHeight;
         private System.Windows.Forms.TextBox txtWBQRHeight;
+        private System.Windows.Forms.Label lblWBQuietZone;
+        private System.Windows.Forms.TextBox txtWBQuietZone;
         // === 命令提示 tab 控件 ===
         private System.Windows.Forms.TabPage tabPageCmd;
         private System.Windows.Forms.Label lblCmdHeader;
