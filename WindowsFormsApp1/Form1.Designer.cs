@@ -160,6 +160,8 @@
             this.txtWBQRHeight = new System.Windows.Forms.TextBox();
             this.lblWBQuietZone = new System.Windows.Forms.Label();
             this.txtWBQuietZone = new System.Windows.Forms.TextBox();
+            this.lblWBRectExtra = new System.Windows.Forms.Label();
+            this.txtWBRectExtra = new System.Windows.Forms.TextBox();
             // === 命令提示 tab ===
             this.tabPageCmd = new System.Windows.Forms.TabPage();
             this.lblCmdHeader = new System.Windows.Forms.Label();
@@ -1462,6 +1464,8 @@
             this.groupBoxQRWhiteBg.Controls.Add(this.txtWBQRHeight);
             this.groupBoxQRWhiteBg.Controls.Add(this.lblWBQuietZone);
             this.groupBoxQRWhiteBg.Controls.Add(this.txtWBQuietZone);
+            this.groupBoxQRWhiteBg.Controls.Add(this.lblWBRectExtra);
+            this.groupBoxQRWhiteBg.Controls.Add(this.txtWBRectExtra);
             this.groupBoxQRWhiteBg.Controls.Add(this.btnQRWhiteBgMark);
             this.groupBoxQRWhiteBg.Location = new System.Drawing.Point(450, 42);
             this.groupBoxQRWhiteBg.Name = "groupBoxQRWhiteBg";
@@ -1589,6 +1593,23 @@
             this.txtWBQuietZone.Size = new System.Drawing.Size(50, 25);
             this.txtWBQuietZone.TabIndex = 18;
             this.txtWBQuietZone.Text = "5";
+            //
+            // lblWBRectExtra (矩形 +X, same row as 外框單元)
+            //
+            this.lblWBRectExtra.AutoSize = true;
+            this.lblWBRectExtra.Location = new System.Drawing.Point(150, 124);
+            this.lblWBRectExtra.Name = "lblWBRectExtra";
+            this.lblWBRectExtra.Size = new System.Drawing.Size(50, 15);
+            this.lblWBRectExtra.TabIndex = 19;
+            this.lblWBRectExtra.Text = "矩形+X:";
+            //
+            // txtWBRectExtra
+            //
+            this.txtWBRectExtra.Location = new System.Drawing.Point(220, 121);
+            this.txtWBRectExtra.Name = "txtWBRectExtra";
+            this.txtWBRectExtra.Size = new System.Drawing.Size(40, 25);
+            this.txtWBRectExtra.TabIndex = 20;
+            this.txtWBRectExtra.Text = "0";
             //
             // btnQRWhiteBgMark
             //
@@ -2026,6 +2047,8 @@
         private System.Windows.Forms.TextBox txtWBQRHeight;
         private System.Windows.Forms.Label lblWBQuietZone;
         private System.Windows.Forms.TextBox txtWBQuietZone;
+        private System.Windows.Forms.Label lblWBRectExtra;
+        private System.Windows.Forms.TextBox txtWBRectExtra;
         // === 命令提示 tab 控件 ===
         private System.Windows.Forms.TabPage tabPageCmd;
         private System.Windows.Forms.Label lblCmdHeader;

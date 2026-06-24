@@ -4081,7 +4081,8 @@ namespace WindowsFormsApp1
             if (!double.TryParse(txtWBQRWidth.Text.Trim(), out double qrWidth) || qrWidth <= 0) qrWidth = 30;
             if (!double.TryParse(txtWBQRHeight.Text.Trim(), out double qrHeight) || qrHeight <= 0) qrHeight = 30;
             if (!double.TryParse(txtWBQuietZone.Text.Trim(), out double quietZone) || quietZone < 0) quietZone = 5;
-            // 矩形長寬將在 QR 建立後從 GetWidth/GetHeight 動態取得（與 QR 渲染後實際大小一致）
+            if (!double.TryParse(txtWBRectExtra.Text.Trim(), out double rectExtra)) rectExtra = 0;
+            // 矩形長寬將在 QR 建立後從 GetWidth/GetHeight 動態取得 + rectExtra (TextBox 設定的 X)
 
             try
             {
@@ -4167,12 +4168,14 @@ namespace WindowsFormsApp1
                     return;
                 }
 
-                // 5) 用 QR 實際尺寸建立矩形（與 QR 中心對齊於 0,0）
+                // 5) 用「QR 實際尺寸 + X」建立矩形（中心於 0,0；X = TextBox 矩形+X 值）
                 string rectName = "QRWhiteBg_Rect";
-                double rectHalfW = qrActualW / 2.0;
-                double rectHalfH = qrActualH / 2.0;
+                double rectW = qrActualW + rectExtra;
+                double rectH = qrActualH + rectExtra;
+                double rectHalfW = rectW / 2.0;
+                double rectHalfH = rectH / 2.0;
                 long rR = m_MMEdit[boardIndex].AddRect(-rectHalfW, -rectHalfH, rectHalfW, rectHalfH, 0, "", rectName);
-                Console.Error.WriteLine($"[Board {boardIndex + 1}] AddRect rc={rR} name=[{rectName}] size={qrActualW}x{qrActualH}");
+                Console.Error.WriteLine($"[Board {boardIndex + 1}] AddRect rc={rR} name=[{rectName}] size={rectW}x{rectH} (QR={qrActualW}x{qrActualH} + X={rectExtra})");
                 if (rR != 0)
                 {
                     MessageBox.Show($"建立矩形失敗！回傳碼: {rR}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
