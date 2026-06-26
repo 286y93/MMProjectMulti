@@ -167,6 +167,48 @@
             this.rdoWBMarkQR = new System.Windows.Forms.RadioButton();
             this.rdoWBMarkRect = new System.Windows.Forms.RadioButton();
             this.rdoWBMarkAll = new System.Windows.Forms.RadioButton();
+            // === CLI Builder 頁籤 ===
+            this.tabPageCLIBuilder = new System.Windows.Forms.TabPage();
+            this.grpCLIBuilder = new System.Windows.Forms.GroupBox();
+            this.lblCLIBoard = new System.Windows.Forms.Label();
+            this.txtCLIBoard = new System.Windows.Forms.TextBox();
+            this.lblCLIConfig = new System.Windows.Forms.Label();
+            this.txtCLIConfig = new System.Windows.Forms.TextBox();
+            this.lblCLIWsW = new System.Windows.Forms.Label();
+            this.txtCLIWsW = new System.Windows.Forms.TextBox();
+            this.lblCLIWsH = new System.Windows.Forms.Label();
+            this.txtCLIWsH = new System.Windows.Forms.TextBox();
+            this.lblCLIDxf = new System.Windows.Forms.Label();
+            this.txtCLIDxf = new System.Windows.Forms.TextBox();
+            this.lblCLILines = new System.Windows.Forms.Label();
+            this.txtCLILines = new System.Windows.Forms.TextBox();
+            this.lblCLIPower = new System.Windows.Forms.Label();
+            this.txtCLIPower = new System.Windows.Forms.TextBox();
+            this.lblCLISpeed = new System.Windows.Forms.Label();
+            this.txtCLISpeed = new System.Windows.Forms.TextBox();
+            this.lblCLIFreq = new System.Windows.Forms.Label();
+            this.txtCLIFreq = new System.Windows.Forms.TextBox();
+            this.lblCLIPulseWidth = new System.Windows.Forms.Label();
+            this.txtCLIPulseWidth = new System.Windows.Forms.TextBox();
+            this.lblCLIRepeat = new System.Windows.Forms.Label();
+            this.txtCLIRepeat = new System.Windows.Forms.TextBox();
+            this.lblCLIWobbleWidth = new System.Windows.Forms.Label();
+            this.txtCLIWobbleWidth = new System.Windows.Forms.TextBox();
+            this.lblCLIWobbleOverlap = new System.Windows.Forms.Label();
+            this.txtCLIWobbleOverlap = new System.Windows.Forms.TextBox();
+            this.lblCLIWobbleSpeed = new System.Windows.Forms.Label();
+            this.txtCLIWobbleSpeed = new System.Windows.Forms.TextBox();
+            this.lblCLIPreview = new System.Windows.Forms.Label();
+            this.txtCLIPreview = new System.Windows.Forms.TextBox();
+            this.lblCLIPreviewSpeed = new System.Windows.Forms.Label();
+            this.txtCLIPreviewSpeed = new System.Windows.Forms.TextBox();
+            this.lblCLIPreviewTime = new System.Windows.Forms.Label();
+            this.txtCLIPreviewTime = new System.Windows.Forms.TextBox();
+            this.chkCLIMark = new System.Windows.Forms.CheckBox();
+            this.lblCLIOutput = new System.Windows.Forms.Label();
+            this.txtCLIOutput = new System.Windows.Forms.TextBox();
+            this.btnCLIRefresh = new System.Windows.Forms.Button();
+            this.btnCLIExecuteMark = new System.Windows.Forms.Button();
             // === 命令提示 tab ===
             this.tabPageCmd = new System.Windows.Forms.TabPage();
             this.lblCmdHeader = new System.Windows.Forms.Label();
@@ -208,6 +250,8 @@
             this.tabPageQRCode.SuspendLayout();
             this.groupBoxQRBasic.SuspendLayout();
             this.groupBoxQRWhiteBg.SuspendLayout();
+            this.tabPageCLIBuilder.SuspendLayout();
+            this.grpCLIBuilder.SuspendLayout();
             this.tabPageCmd.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.trkPower)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numPower)).BeginInit();
@@ -321,6 +365,7 @@
             this.tabControl1.Controls.Add(this.tabPageDraw);
             this.tabControl1.Controls.Add(this.tabPageLaserPower);
             this.tabControl1.Controls.Add(this.tabPageQRCode);
+            this.tabControl1.Controls.Add(this.tabPageCLIBuilder);
             this.tabControl1.Controls.Add(this.tabPageCmd);
             this.tabControl1.Location = new System.Drawing.Point(8, 8);
             this.tabControl1.Margin = new System.Windows.Forms.Padding(4);
@@ -1682,6 +1727,246 @@
             this.btnQRWhiteBgMark.UseVisualStyleBackColor = true;
             this.btnQRWhiteBgMark.Click += new System.EventHandler(this.btnQRWhiteBgMark_Click);
             //
+            // === tabPageCLIBuilder: CLI 編輯器 ===
+            //
+            this.tabPageCLIBuilder.Controls.Add(this.grpCLIBuilder);
+            this.tabPageCLIBuilder.Controls.Add(this.lblCLIOutput);
+            this.tabPageCLIBuilder.Controls.Add(this.txtCLIOutput);
+            this.tabPageCLIBuilder.Controls.Add(this.btnCLIRefresh);
+            this.tabPageCLIBuilder.Controls.Add(this.btnCLIExecuteMark);
+            this.tabPageCLIBuilder.Location = new System.Drawing.Point(4, 25);
+            this.tabPageCLIBuilder.Name = "tabPageCLIBuilder";
+            this.tabPageCLIBuilder.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPageCLIBuilder.Size = new System.Drawing.Size(728, 715);
+            this.tabPageCLIBuilder.TabIndex = 7;
+            this.tabPageCLIBuilder.Text = "7. CLI 編輯器";
+            this.tabPageCLIBuilder.UseVisualStyleBackColor = true;
+            //
+            // grpCLIBuilder
+            //
+            this.grpCLIBuilder.Controls.Add(this.lblCLIBoard);
+            this.grpCLIBuilder.Controls.Add(this.txtCLIBoard);
+            this.grpCLIBuilder.Controls.Add(this.lblCLIConfig);
+            this.grpCLIBuilder.Controls.Add(this.txtCLIConfig);
+            this.grpCLIBuilder.Controls.Add(this.lblCLIWsW);
+            this.grpCLIBuilder.Controls.Add(this.txtCLIWsW);
+            this.grpCLIBuilder.Controls.Add(this.lblCLIWsH);
+            this.grpCLIBuilder.Controls.Add(this.txtCLIWsH);
+            this.grpCLIBuilder.Controls.Add(this.lblCLIDxf);
+            this.grpCLIBuilder.Controls.Add(this.txtCLIDxf);
+            this.grpCLIBuilder.Controls.Add(this.lblCLILines);
+            this.grpCLIBuilder.Controls.Add(this.txtCLILines);
+            this.grpCLIBuilder.Controls.Add(this.lblCLIPower);
+            this.grpCLIBuilder.Controls.Add(this.txtCLIPower);
+            this.grpCLIBuilder.Controls.Add(this.lblCLISpeed);
+            this.grpCLIBuilder.Controls.Add(this.txtCLISpeed);
+            this.grpCLIBuilder.Controls.Add(this.lblCLIFreq);
+            this.grpCLIBuilder.Controls.Add(this.txtCLIFreq);
+            this.grpCLIBuilder.Controls.Add(this.lblCLIPulseWidth);
+            this.grpCLIBuilder.Controls.Add(this.txtCLIPulseWidth);
+            this.grpCLIBuilder.Controls.Add(this.lblCLIRepeat);
+            this.grpCLIBuilder.Controls.Add(this.txtCLIRepeat);
+            this.grpCLIBuilder.Controls.Add(this.lblCLIWobbleWidth);
+            this.grpCLIBuilder.Controls.Add(this.txtCLIWobbleWidth);
+            this.grpCLIBuilder.Controls.Add(this.lblCLIWobbleOverlap);
+            this.grpCLIBuilder.Controls.Add(this.txtCLIWobbleOverlap);
+            this.grpCLIBuilder.Controls.Add(this.lblCLIWobbleSpeed);
+            this.grpCLIBuilder.Controls.Add(this.txtCLIWobbleSpeed);
+            this.grpCLIBuilder.Controls.Add(this.lblCLIPreview);
+            this.grpCLIBuilder.Controls.Add(this.txtCLIPreview);
+            this.grpCLIBuilder.Controls.Add(this.lblCLIPreviewSpeed);
+            this.grpCLIBuilder.Controls.Add(this.txtCLIPreviewSpeed);
+            this.grpCLIBuilder.Controls.Add(this.lblCLIPreviewTime);
+            this.grpCLIBuilder.Controls.Add(this.txtCLIPreviewTime);
+            this.grpCLIBuilder.Controls.Add(this.chkCLIMark);
+            this.grpCLIBuilder.Location = new System.Drawing.Point(8, 8);
+            this.grpCLIBuilder.Name = "grpCLIBuilder";
+            this.grpCLIBuilder.Size = new System.Drawing.Size(712, 410);
+            this.grpCLIBuilder.TabIndex = 0;
+            this.grpCLIBuilder.TabStop = false;
+            this.grpCLIBuilder.Text = "命令參數編輯";
+            //
+            // Row 1: 板號 + 配置
+            //
+            this.lblCLIBoard.AutoSize = true;
+            this.lblCLIBoard.Location = new System.Drawing.Point(10, 28);
+            this.lblCLIBoard.Text = "板號 (0-3):";
+            this.txtCLIBoard.Location = new System.Drawing.Point(90, 25);
+            this.txtCLIBoard.Size = new System.Drawing.Size(40, 25);
+            this.txtCLIBoard.Text = "0";
+            this.lblCLIConfig.AutoSize = true;
+            this.lblCLIConfig.Location = new System.Drawing.Point(150, 28);
+            this.lblCLIConfig.Text = "配置路徑:";
+            this.txtCLIConfig.Location = new System.Drawing.Point(220, 25);
+            this.txtCLIConfig.Size = new System.Drawing.Size(180, 25);
+            this.txtCLIConfig.Text = "/cfg_config_MM1";
+            //
+            // Row 2: 工作區寬 + 工作區高
+            //
+            this.lblCLIWsW.AutoSize = true;
+            this.lblCLIWsW.Location = new System.Drawing.Point(10, 60);
+            this.lblCLIWsW.Text = "工作區寬 (mm):";
+            this.txtCLIWsW.Location = new System.Drawing.Point(110, 57);
+            this.txtCLIWsW.Size = new System.Drawing.Size(60, 25);
+            this.txtCLIWsW.Text = "150";
+            this.lblCLIWsH.AutoSize = true;
+            this.lblCLIWsH.Location = new System.Drawing.Point(190, 60);
+            this.lblCLIWsH.Text = "工作區高 (mm):";
+            this.txtCLIWsH.Location = new System.Drawing.Point(290, 57);
+            this.txtCLIWsH.Size = new System.Drawing.Size(60, 25);
+            this.txtCLIWsH.Text = "150";
+            //
+            // Row 3: DXF 路徑（完整一行）
+            //
+            this.lblCLIDxf.AutoSize = true;
+            this.lblCLIDxf.Location = new System.Drawing.Point(10, 92);
+            this.lblCLIDxf.Text = "DXF 路徑:";
+            this.txtCLIDxf.Location = new System.Drawing.Point(90, 89);
+            this.txtCLIDxf.Size = new System.Drawing.Size(610, 25);
+            //
+            // Row 4: 線段（多行）
+            //
+            this.lblCLILines.AutoSize = true;
+            this.lblCLILines.Location = new System.Drawing.Point(10, 124);
+            this.lblCLILines.Text = "線段 (分號分隔):";
+            this.txtCLILines.Location = new System.Drawing.Point(10, 145);
+            this.txtCLILines.Size = new System.Drawing.Size(690, 60);
+            this.txtCLILines.Multiline = true;
+            this.txtCLILines.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.txtCLILines.Font = new System.Drawing.Font("Consolas", 9F);
+            this.txtCLILines.Text = "1,8,-25,8;23,44,-5,-14;32,-48,9,3";
+            //
+            // Row 5: 功率 / 速度 / 頻率
+            //
+            this.lblCLIPower.AutoSize = true;
+            this.lblCLIPower.Location = new System.Drawing.Point(10, 218);
+            this.lblCLIPower.Text = "功率 (%):";
+            this.txtCLIPower.Location = new System.Drawing.Point(80, 215);
+            this.txtCLIPower.Size = new System.Drawing.Size(60, 25);
+            this.txtCLIPower.Text = "80";
+            this.lblCLISpeed.AutoSize = true;
+            this.lblCLISpeed.Location = new System.Drawing.Point(160, 218);
+            this.lblCLISpeed.Text = "速度 (mm/s):";
+            this.txtCLISpeed.Location = new System.Drawing.Point(255, 215);
+            this.txtCLISpeed.Size = new System.Drawing.Size(70, 25);
+            this.txtCLISpeed.Text = "1800";
+            this.lblCLIFreq.AutoSize = true;
+            this.lblCLIFreq.Location = new System.Drawing.Point(345, 218);
+            this.lblCLIFreq.Text = "頻率 (kHz):";
+            this.txtCLIFreq.Location = new System.Drawing.Point(435, 215);
+            this.txtCLIFreq.Size = new System.Drawing.Size(60, 25);
+            this.txtCLIFreq.Text = "20";
+            //
+            // Row 6: 脈衝寬度 / 雷射次數
+            //
+            this.lblCLIPulseWidth.AutoSize = true;
+            this.lblCLIPulseWidth.Location = new System.Drawing.Point(10, 250);
+            this.lblCLIPulseWidth.Text = "脈衝寬度:";
+            this.txtCLIPulseWidth.Location = new System.Drawing.Point(80, 247);
+            this.txtCLIPulseWidth.Size = new System.Drawing.Size(60, 25);
+            this.txtCLIPulseWidth.Text = "600";
+            this.lblCLIRepeat.AutoSize = true;
+            this.lblCLIRepeat.Location = new System.Drawing.Point(160, 250);
+            this.lblCLIRepeat.Text = "雷射次數:";
+            this.txtCLIRepeat.Location = new System.Drawing.Point(255, 247);
+            this.txtCLIRepeat.Size = new System.Drawing.Size(50, 25);
+            this.txtCLIRepeat.Text = "3";
+            //
+            // Row 7: 擺動寬度 / 重疊 / 速度
+            //
+            this.lblCLIWobbleWidth.AutoSize = true;
+            this.lblCLIWobbleWidth.Location = new System.Drawing.Point(10, 282);
+            this.lblCLIWobbleWidth.Text = "擺動寬度 (mm):";
+            this.txtCLIWobbleWidth.Location = new System.Drawing.Point(110, 279);
+            this.txtCLIWobbleWidth.Size = new System.Drawing.Size(60, 25);
+            this.txtCLIWobbleWidth.Text = "0.5";
+            this.lblCLIWobbleOverlap.AutoSize = true;
+            this.lblCLIWobbleOverlap.Location = new System.Drawing.Point(190, 282);
+            this.lblCLIWobbleOverlap.Text = "重疊 (%):";
+            this.txtCLIWobbleOverlap.Location = new System.Drawing.Point(255, 279);
+            this.txtCLIWobbleOverlap.Size = new System.Drawing.Size(50, 25);
+            this.txtCLIWobbleOverlap.Text = "50";
+            this.lblCLIWobbleSpeed.AutoSize = true;
+            this.lblCLIWobbleSpeed.Location = new System.Drawing.Point(325, 282);
+            this.lblCLIWobbleSpeed.Text = "擺動速度:";
+            this.txtCLIWobbleSpeed.Location = new System.Drawing.Point(395, 279);
+            this.txtCLIWobbleSpeed.Size = new System.Drawing.Size(70, 25);
+            this.txtCLIWobbleSpeed.Text = "5026.55";
+            //
+            // Row 8: 預覽模式 / 預覽速度 / 預覽時間
+            //
+            this.lblCLIPreview.AutoSize = true;
+            this.lblCLIPreview.Location = new System.Drawing.Point(10, 314);
+            this.lblCLIPreview.Text = "預覽 (outline/full):";
+            this.txtCLIPreview.Location = new System.Drawing.Point(125, 311);
+            this.txtCLIPreview.Size = new System.Drawing.Size(70, 25);
+            this.lblCLIPreviewSpeed.AutoSize = true;
+            this.lblCLIPreviewSpeed.Location = new System.Drawing.Point(210, 314);
+            this.lblCLIPreviewSpeed.Text = "預覽速度:";
+            this.txtCLIPreviewSpeed.Location = new System.Drawing.Point(280, 311);
+            this.txtCLIPreviewSpeed.Size = new System.Drawing.Size(60, 25);
+            this.lblCLIPreviewTime.AutoSize = true;
+            this.lblCLIPreviewTime.Location = new System.Drawing.Point(355, 314);
+            this.lblCLIPreviewTime.Text = "預覽時間 (秒):";
+            this.txtCLIPreviewTime.Location = new System.Drawing.Point(445, 311);
+            this.txtCLIPreviewTime.Size = new System.Drawing.Size(50, 25);
+            //
+            // Row 9: --mark CheckBox
+            //
+            this.chkCLIMark.AutoSize = true;
+            this.chkCLIMark.Location = new System.Drawing.Point(10, 350);
+            this.chkCLIMark.Text = "--mark (在命令字串中加入自動打標旗標)";
+            this.chkCLIMark.Checked = true;
+            this.chkCLIMark.UseVisualStyleBackColor = true;
+            //
+            // 命令輸出 Label + TextBox
+            //
+            this.lblCLIOutput.AutoSize = true;
+            this.lblCLIOutput.Font = new System.Drawing.Font("Microsoft JhengHei UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblCLIOutput.Location = new System.Drawing.Point(15, 430);
+            this.lblCLIOutput.Text = "組合後命令:";
+            this.txtCLIOutput.Location = new System.Drawing.Point(15, 455);
+            this.txtCLIOutput.Size = new System.Drawing.Size(700, 170);
+            this.txtCLIOutput.Multiline = true;
+            this.txtCLIOutput.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.txtCLIOutput.ReadOnly = true;
+            this.txtCLIOutput.Font = new System.Drawing.Font("Consolas", 10F);
+            this.txtCLIOutput.WordWrap = true;
+            //
+            // 按鈕：重新組合 / 依此命令打標
+            //
+            this.btnCLIRefresh.Location = new System.Drawing.Point(15, 640);
+            this.btnCLIRefresh.Size = new System.Drawing.Size(150, 40);
+            this.btnCLIRefresh.Text = "重新組合命令";
+            this.btnCLIRefresh.UseVisualStyleBackColor = true;
+            this.btnCLIRefresh.Click += new System.EventHandler(this.btnCLIRefresh_Click);
+            this.btnCLIExecuteMark.Location = new System.Drawing.Point(180, 640);
+            this.btnCLIExecuteMark.Size = new System.Drawing.Size(200, 40);
+            this.btnCLIExecuteMark.Text = "依此命令打標";
+            this.btnCLIExecuteMark.UseVisualStyleBackColor = true;
+            this.btnCLIExecuteMark.Click += new System.EventHandler(this.btnCLIExecuteMark_Click);
+            //
+            // CLI Builder 即時更新事件（所有 TextBox / CheckBox）
+            //
+            this.txtCLIBoard.TextChanged += new System.EventHandler(this.OnCLIBuilderInputChanged);
+            this.txtCLIConfig.TextChanged += new System.EventHandler(this.OnCLIBuilderInputChanged);
+            this.txtCLIWsW.TextChanged += new System.EventHandler(this.OnCLIBuilderInputChanged);
+            this.txtCLIWsH.TextChanged += new System.EventHandler(this.OnCLIBuilderInputChanged);
+            this.txtCLIDxf.TextChanged += new System.EventHandler(this.OnCLIBuilderInputChanged);
+            this.txtCLILines.TextChanged += new System.EventHandler(this.OnCLIBuilderInputChanged);
+            this.txtCLIPower.TextChanged += new System.EventHandler(this.OnCLIBuilderInputChanged);
+            this.txtCLISpeed.TextChanged += new System.EventHandler(this.OnCLIBuilderInputChanged);
+            this.txtCLIFreq.TextChanged += new System.EventHandler(this.OnCLIBuilderInputChanged);
+            this.txtCLIPulseWidth.TextChanged += new System.EventHandler(this.OnCLIBuilderInputChanged);
+            this.txtCLIRepeat.TextChanged += new System.EventHandler(this.OnCLIBuilderInputChanged);
+            this.txtCLIWobbleWidth.TextChanged += new System.EventHandler(this.OnCLIBuilderInputChanged);
+            this.txtCLIWobbleOverlap.TextChanged += new System.EventHandler(this.OnCLIBuilderInputChanged);
+            this.txtCLIWobbleSpeed.TextChanged += new System.EventHandler(this.OnCLIBuilderInputChanged);
+            this.txtCLIPreview.TextChanged += new System.EventHandler(this.OnCLIBuilderInputChanged);
+            this.txtCLIPreviewSpeed.TextChanged += new System.EventHandler(this.OnCLIBuilderInputChanged);
+            this.txtCLIPreviewTime.TextChanged += new System.EventHandler(this.OnCLIBuilderInputChanged);
+            this.chkCLIMark.CheckedChanged += new System.EventHandler(this.OnCLIBuilderInputChanged);
+            //
             // === tabPageCmd: 命令提示 ===
             //
             this.tabPageCmd.Controls.Add(this.lblCmdHeader);
@@ -1972,6 +2257,10 @@
             this.groupBoxQRBasic.PerformLayout();
             this.groupBoxQRWhiteBg.ResumeLayout(false);
             this.groupBoxQRWhiteBg.PerformLayout();
+            this.tabPageCLIBuilder.ResumeLayout(false);
+            this.tabPageCLIBuilder.PerformLayout();
+            this.grpCLIBuilder.ResumeLayout(false);
+            this.grpCLIBuilder.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -2115,6 +2404,48 @@
         private System.Windows.Forms.RadioButton rdoWBMarkQR;
         private System.Windows.Forms.RadioButton rdoWBMarkRect;
         private System.Windows.Forms.RadioButton rdoWBMarkAll;
+        // === CLI Builder 頁籤控件 ===
+        private System.Windows.Forms.TabPage tabPageCLIBuilder;
+        private System.Windows.Forms.GroupBox grpCLIBuilder;
+        private System.Windows.Forms.Label lblCLIBoard;
+        private System.Windows.Forms.TextBox txtCLIBoard;
+        private System.Windows.Forms.Label lblCLIConfig;
+        private System.Windows.Forms.TextBox txtCLIConfig;
+        private System.Windows.Forms.Label lblCLIWsW;
+        private System.Windows.Forms.TextBox txtCLIWsW;
+        private System.Windows.Forms.Label lblCLIWsH;
+        private System.Windows.Forms.TextBox txtCLIWsH;
+        private System.Windows.Forms.Label lblCLIDxf;
+        private System.Windows.Forms.TextBox txtCLIDxf;
+        private System.Windows.Forms.Label lblCLILines;
+        private System.Windows.Forms.TextBox txtCLILines;
+        private System.Windows.Forms.Label lblCLIPower;
+        private System.Windows.Forms.TextBox txtCLIPower;
+        private System.Windows.Forms.Label lblCLISpeed;
+        private System.Windows.Forms.TextBox txtCLISpeed;
+        private System.Windows.Forms.Label lblCLIFreq;
+        private System.Windows.Forms.TextBox txtCLIFreq;
+        private System.Windows.Forms.Label lblCLIPulseWidth;
+        private System.Windows.Forms.TextBox txtCLIPulseWidth;
+        private System.Windows.Forms.Label lblCLIRepeat;
+        private System.Windows.Forms.TextBox txtCLIRepeat;
+        private System.Windows.Forms.Label lblCLIWobbleWidth;
+        private System.Windows.Forms.TextBox txtCLIWobbleWidth;
+        private System.Windows.Forms.Label lblCLIWobbleOverlap;
+        private System.Windows.Forms.TextBox txtCLIWobbleOverlap;
+        private System.Windows.Forms.Label lblCLIWobbleSpeed;
+        private System.Windows.Forms.TextBox txtCLIWobbleSpeed;
+        private System.Windows.Forms.Label lblCLIPreview;
+        private System.Windows.Forms.TextBox txtCLIPreview;
+        private System.Windows.Forms.Label lblCLIPreviewSpeed;
+        private System.Windows.Forms.TextBox txtCLIPreviewSpeed;
+        private System.Windows.Forms.Label lblCLIPreviewTime;
+        private System.Windows.Forms.TextBox txtCLIPreviewTime;
+        private System.Windows.Forms.CheckBox chkCLIMark;
+        private System.Windows.Forms.Label lblCLIOutput;
+        private System.Windows.Forms.TextBox txtCLIOutput;
+        private System.Windows.Forms.Button btnCLIRefresh;
+        private System.Windows.Forms.Button btnCLIExecuteMark;
         // === 命令提示 tab 控件 ===
         private System.Windows.Forms.TabPage tabPageCmd;
         private System.Windows.Forms.Label lblCmdHeader;

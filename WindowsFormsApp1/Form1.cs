@@ -883,6 +883,7 @@ namespace WindowsFormsApp1
                 btnPreviewQR.Enabled = true;
                 btnClearQR.Enabled = true;
                 btnQRWhiteBgMark.Enabled = true;
+                btnCLIExecuteMark.Enabled = true;
 
                 MessageBox.Show($"晶片板 {boardIndex + 1} 完成！", "完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
@@ -4364,6 +4365,226 @@ namespace WindowsFormsApp1
             catch (Exception ex)
             {
                 MessageBox.Show($"白底 QR 打標失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // === CLI Builder 頁籤 ===
+
+        /// <summary>從 CLI Builder TextBox 讀值組合成命令列參數陣列。</summary>
+        private List<string> BuildCLIBuilderArgsList()
+        {
+            var args = new List<string>();
+            if (!string.IsNullOrWhiteSpace(txtCLIBoard.Text)) args.AddRange(new[] { "--board", txtCLIBoard.Text.Trim() });
+            if (!string.IsNullOrWhiteSpace(txtCLIConfig.Text)) args.AddRange(new[] { "--config", txtCLIConfig.Text.Trim() });
+            if (!string.IsNullOrWhiteSpace(txtCLIWsW.Text)) args.AddRange(new[] { "--workspace-w", txtCLIWsW.Text.Trim() });
+            if (!string.IsNullOrWhiteSpace(txtCLIWsH.Text)) args.AddRange(new[] { "--workspace-h", txtCLIWsH.Text.Trim() });
+            if (!string.IsNullOrWhiteSpace(txtCLIDxf.Text)) args.AddRange(new[] { "--dxf", txtCLIDxf.Text.Trim() });
+            if (!string.IsNullOrWhiteSpace(txtCLILines.Text))
+            {
+                string linesStr = txtCLILines.Text.Trim().Replace("\r\n", "").Replace("\n", "").Replace(" ", "");
+                args.AddRange(new[] { "--lines", linesStr });
+            }
+            if (!string.IsNullOrWhiteSpace(txtCLIPower.Text)) args.AddRange(new[] { "--power", txtCLIPower.Text.Trim() });
+            if (!string.IsNullOrWhiteSpace(txtCLISpeed.Text)) args.AddRange(new[] { "--speed", txtCLISpeed.Text.Trim() });
+            if (!string.IsNullOrWhiteSpace(txtCLIFreq.Text)) args.AddRange(new[] { "--freq", txtCLIFreq.Text.Trim() });
+            if (!string.IsNullOrWhiteSpace(txtCLIPulseWidth.Text)) args.AddRange(new[] { "--pulse-width", txtCLIPulseWidth.Text.Trim() });
+            if (!string.IsNullOrWhiteSpace(txtCLIRepeat.Text)) args.AddRange(new[] { "--repeat", txtCLIRepeat.Text.Trim() });
+            if (!string.IsNullOrWhiteSpace(txtCLIWobbleWidth.Text)) args.AddRange(new[] { "--wobble-width", txtCLIWobbleWidth.Text.Trim() });
+            if (!string.IsNullOrWhiteSpace(txtCLIWobbleOverlap.Text)) args.AddRange(new[] { "--wobble-overlap", txtCLIWobbleOverlap.Text.Trim() });
+            if (!string.IsNullOrWhiteSpace(txtCLIWobbleSpeed.Text)) args.AddRange(new[] { "--wobble-speed", txtCLIWobbleSpeed.Text.Trim() });
+            if (!string.IsNullOrWhiteSpace(txtCLIPreview.Text)) args.AddRange(new[] { "--preview", txtCLIPreview.Text.Trim() });
+            if (!string.IsNullOrWhiteSpace(txtCLIPreviewSpeed.Text)) args.AddRange(new[] { "--preview-speed", txtCLIPreviewSpeed.Text.Trim() });
+            if (!string.IsNullOrWhiteSpace(txtCLIPreviewTime.Text)) args.AddRange(new[] { "--preview-time", txtCLIPreviewTime.Text.Trim() });
+            if (chkCLIMark.Checked) args.Add("--mark");
+            return args;
+        }
+
+        /// <summary>把參數陣列組合成可直接複製貼上的命令字串，並更新到輸出 TextBox。
+        /// 只在參數含空白或分號時加引號，避免不必要的引號讓命令看起來雜亂。</summary>
+        private void RefreshCLIBuilderCommand()
+        {
+            var args = BuildCLIBuilderArgsList();
+            var sb = new StringBuilder("MarkingMate.exe");
+            foreach (var arg in args)
+            {
+                bool needQuote = arg.Contains(" ") || arg.Contains(";");
+                if (needQuote)
+                    sb.Append(" \"").Append(arg).Append("\"");
+                else
+                    sb.Append(" ").Append(arg);
+            }
+            txtCLIOutput.Text = sb.ToString();
+        }
+
+        private void btnCLIRefresh_Click(object sender, EventArgs e)
+        {
+            RefreshCLIBuilderCommand();
+        }
+
+        /// <summary>所有 CLI TextBox / CheckBox 共用的即時更新 handler。</summary>
+        private void OnCLIBuilderInputChanged(object sender, EventArgs e)
+        {
+            RefreshCLIBuilderCommand();
+        }
+
+        /// <summary>依 CLI Builder 上的參數，呼叫既有打標邏輯執行打標。</summary>
+        private void btnCLIExecuteMark_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit)
+            {
+                MessageBox.Show("請先在連接設定頁籤初始化！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            // 確保命令字串為最新
+            RefreshCLIBuilderCommand();
+
+            // 強制加 --mark（即使 UI 未勾選，按下此按鈕就代表要打標）
+            var argsList = BuildCLIBuilderArgsList();
+            if (!argsList.Contains("--mark")) argsList.Add("--mark");
+
+            // 透過 CommandLineArgs.Parse 驗證並轉成結構
+            CommandLineArgs cliArgs;
+            try
+            {
+                cliArgs = CommandLineArgs.Parse(argsList.ToArray());
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"參數解析失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            string errMsg;
+            if (!cliArgs.Validate(out errMsg))
+            {
+                MessageBox.Show($"參數錯誤：{errMsg}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            int boardIndex = cliArgs.BoardIndex;
+            if (boardIndex < 0 || boardIndex >= m_bBoardInit.Length || !m_bBoardInit[boardIndex])
+            {
+                MessageBox.Show($"晶片板 {boardIndex + 1} 未成功初始化！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (IsBoardBusy(boardIndex))
+            {
+                MessageBox.Show($"晶片板 {boardIndex + 1} 正在執行其他操作，請先停止再試。", "板忙碌中", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // 暫存 m_AutoModeArgs，讓既有 ApplyLaserParamsAuto / LoadDxfAuto / DrawLineAuto 能正確套用 cliArgs
+            var savedArgs = m_AutoModeArgs;
+            m_AutoModeArgs = cliArgs;
+
+            try
+            {
+                // 清空畫面
+                m_MMMark[boardIndex].ResetFile();
+                m_MMMark[boardIndex].SetDesktopCenter(0, 0);
+                double wsW = cliArgs.WorkspaceWidthExplicit ? cliArgs.WorkspaceSize : m_WorkspaceSize;
+                double wsH = cliArgs.WorkspaceHeightExplicit ? cliArgs.WorkspaceHeight : m_WorkspaceHeight;
+                m_MMMark[boardIndex].SetDesktopSize(wsW, wsH);
+                Application.DoEvents();
+                Thread.Sleep(100);
+                m_MMMark[boardIndex].Redraw();
+                Application.DoEvents();
+                Thread.Sleep(200);
+
+                // 載入內容（DXF 或 Lines 二擇一）
+                bool hasContent = false;
+                if (!string.IsNullOrEmpty(cliArgs.DxfPath))
+                {
+                    if (!LoadDxfAuto(boardIndex, cliArgs.DxfPath))
+                    {
+                        MessageBox.Show("DXF 載入失敗！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+                    hasContent = true;
+                }
+                else if (cliArgs.Lines != null && cliArgs.Lines.Count > 0)
+                {
+                    // 取所有線段範圍中心後置中
+                    double minX = double.MaxValue, maxX = double.MinValue;
+                    double minY = double.MaxValue, maxY = double.MinValue;
+                    foreach (var line in cliArgs.Lines)
+                    {
+                        minX = Math.Min(minX, Math.Min(line.X1, line.X2));
+                        maxX = Math.Max(maxX, Math.Max(line.X1, line.X2));
+                        minY = Math.Min(minY, Math.Min(line.Y1, line.Y2));
+                        maxY = Math.Max(maxY, Math.Max(line.Y1, line.Y2));
+                    }
+                    double offX = -(minX + maxX) / 2.0;
+                    double offY = -(minY + maxY) / 2.0;
+                    foreach (var line in cliArgs.Lines)
+                    {
+                        var centered = new LineSegment(line.X1 + offX, line.Y1 + offY, line.X2 + offX, line.Y2 + offY);
+                        if (!DrawLineAuto(boardIndex, centered))
+                        {
+                            MessageBox.Show("繪製線段失敗！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
+                        }
+                    }
+                    m_MMMark[boardIndex].Redraw();
+                    Application.DoEvents();
+                    Thread.Sleep(300);
+                    hasContent = true;
+                }
+
+                if (!hasContent)
+                {
+                    MessageBox.Show("沒有可打標的內容（請輸入 DXF 路徑或線段）。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // 套用雷射參數（如有指定）
+                if (cliArgs.Power.HasValue || cliArgs.Speed.HasValue || cliArgs.Frequency.HasValue ||
+                    cliArgs.PulseWidth.HasValue || cliArgs.MarkRepeat.HasValue || cliArgs.WobbleWidth.HasValue)
+                {
+                    ApplyLaserParamsAuto(boardIndex);
+                }
+
+                // 預覽模式或正常打標
+                if (cliArgs.PreviewMode > 0)
+                {
+                    // 預覽：用既有 ExecutePreviewAuto 流程的精簡版（不關閉視窗）
+                    m_MMMark[boardIndex].SetPreviewMode(2);
+                    m_MMMark[boardIndex].MarkStandBy();
+                    if (m_MMMark[boardIndex].StartMarking(3) != 0)
+                    {
+                        MessageBox.Show("預覽啟動失敗！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+                    m_bPreviewing = true;
+                    timerPreview.Tag = new object[] { boardIndex, cliArgs.PreviewTime > 0 ? cliArgs.PreviewTime : 15 };
+                    timerPreview.Start();
+                }
+                else
+                {
+                    // 正常打標
+                    m_MMMark[boardIndex].MarkStandBy();
+                    if (m_MMMark[boardIndex].StartMarking(4) != 0)
+                    {
+                        MessageBox.Show("打標啟動失敗！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+                    timerMark.Tag = boardIndex;
+                    timerMark.Start();
+                }
+
+                btnCLIExecuteMark.Enabled = false;
+                txtCLIOutput.Text += "\r\n\r\n[執行中] 晶片板 " + (boardIndex + 1);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"執行失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                // 還原 m_AutoModeArgs，避免影響其他既有 CLI/自動模式流程
+                m_AutoModeArgs = savedArgs;
             }
         }
 
