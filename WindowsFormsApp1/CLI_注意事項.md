@@ -287,6 +287,7 @@ cmd> MarkingMate.exe --board 0 --line 0,0,50,50 --mark
 | GUI 模式重複開 | 第二個 → MessageBox「程式已執行」→ ExitCode = -1 |
 | 模式 A 同 `--board 0` 開兩次 | 第二個 → stderr「Board 0 is already in use」→ ExitCode = -2 |
 | 模式 A 不同 `--board` 同時開 | ❌ 第二個會跳 OCX 初始化錯誤對話框（SDK 限制） |
+| **daemon 運行中又跑模式 A** | 自動轉發成 client 派工（stderr 印「自動改以 client 模式派工」），不會自行 init OCX、不會撞 SDK 鎖 |
 | Daemon 開兩次 | 第二個 → stderr「已有 daemon 在 port N 運行」→ ExitCode = -3 |
 | Client 模式（並行多個） | ✅ 隨便開幾個都行，並行 fire 到 daemon |
 | Client 同板連發 | 第二個立即拿到 `exitCode=5, "board N busy"` |
@@ -312,6 +313,8 @@ cmd> MarkingMate.exe --board 0 --line 0,0,50,50 --mark
 | `5` | 板忙碌（同板已有命令在跑） | Daemon |
 | `6` | Client 無法連線 daemon | Client |
 | `7` | Client 例外 | Client |
+
+> **daemon 運行中自動轉發**：偵測到 daemon 在跑時，模式 A（漏帶 `--client`）會**自動改以 client 派工**，回傳的即是 client 的結果與 ExitCode（0/3/6/7…），不再自行 init OCX，避免撞 SDK 鎖。
 | `-1` | 一般錯誤、GUI 重複執行 | – |
 | `-2` | 同 board 已在執行（模式 A） | – |
 | `-3` | Daemon 已在運行 | – |
@@ -451,7 +454,7 @@ console.log(results);
 
 | 訊息（終端機 / 對話框） | 原因 | 解決方式 |
 |---|---|---|
-| `Initial Error! Please initial MMMark_1 OCX first!` | 第二個 process 想直接 init 非 0 板，或跟其他 process 撞 OCX 鎖 | 改用 daemon 模式 |
+| `Initial Error! Please initial MMMark_1 OCX first!` | 有另一個實體佔著 SDK 的 process-global OCX 鎖。兩大來源：①**殘留的 `MM27Dx64.exe` 孤兒 process**（前一場次結束沒收掉，霸佔 EMC6 卡）②**daemon 運行中又跑模式 A**（第二個 process init OCX）| **不用重開機**：以系統管理員開 PowerShell 跑 `Get-Process MM27Dx64 \| Stop-Process -Force` 清掉孤兒即可恢復。已修：MarkingMate 結束時（`OnFormClosed` → `CleanupMM27Dx64OnExit`）會自動收掉自己場次的 MM27Dx64；daemon 運行中的模式 A 也會自動轉發成 client。若仍出現，檢查是否有非本程式的第三方 process 在碰 SDK |
 | `Error: Board N is already being used by another instance.` | 模式 A 同 board 已有 process | 等舊的結束、或 kill 對應的 MarkingMate.exe |
 | `Error: 已有 daemon 在 port N 運行` | Daemon 重複啟動 | 用 `--client --shutdown` 收掉舊的、或換 port |
 | `Error: 無法連線到 daemon (...)` | Client 找不到 daemon | 先 `start "" MarkingMate.exe --daemon` |

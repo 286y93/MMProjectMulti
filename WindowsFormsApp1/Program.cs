@@ -49,6 +49,24 @@ namespace WindowsFormsApp1
                 return RunClientMode(args, cmdArgs.DaemonPort);
             }
 
+            // daemon 運行中時，模式 A（單命令）不可直接碰 SDK：
+            // 兩個 process 各自 init OCX 會撞 SDK 的 process-global 鎖，破壞共用的
+            // EMC6 / MM27Dx64 驅動狀態，症狀是 "Please initial MMMark_1 OCX first!"，
+            // 且因壞在驅動 / 全域鎖層級，重啟 daemon 也接不回來，往往需重開機才能恢復。
+            // 因此偵測到 daemon 在跑時，即使漏帶 --client，也自動轉發成 client 派工
+            // （HTTP POST 到 daemon，不自行 init OCX）。
+            // 注意：自動轉發使用預設 / --port 指定的 port；自訂 port 的 daemon 仍需帶 --port。
+            if (cmdArgs.IsAutoMode && !cmdArgs.DaemonMode && !cmdArgs.ShowHelp)
+            {
+                if (Mutex.TryOpenExisting("MarkingMateMulti_Daemon", out Mutex daemonMutex))
+                {
+                    daemonMutex.Dispose();
+                    AttachConsole(ATTACH_PARENT_PROCESS);
+                    Console.Error.WriteLine("Info: 偵測到 daemon 正在運行，自動改以 client 模式派工（避免撞 SDK OCX 鎖）。");
+                    return RunClientMode(args, cmdArgs.DaemonPort);
+                }
+            }
+
             // 各模式使用不同 Mutex name 避免互鎖
             string mutexName;
             if (cmdArgs.DaemonMode)

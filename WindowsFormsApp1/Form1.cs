@@ -212,7 +212,38 @@ namespace WindowsFormsApp1
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
             try { m_Daemon?.Stop(); } catch { }
+            // 結束時收掉本場次啟動的 MM27Dx64 驅動宿主。
+            // 這些是 EMC6 卡的驅動 process，過去只在「啟動 init 前」清、結束時不清，
+            // 導致場次結束後變成孤兒 process，一直霸佔 EMC6 卡 / SDK 的 process-global OCX 鎖，
+            // 害下一次 init 撞 "Please initial MMMark_1 OCX first!"（過去以為要重開機才能恢復）。
+            CleanupMM27Dx64OnExit();
             base.OnFormClosed(e);
+        }
+
+        /// <summary>
+        /// 結束時清理殘留的 MM27Dx64 驅動宿主，避免累積成孤兒 process 霸佔 SDK OCX 鎖。
+        /// 僅在「沒有其他 MarkingMate 實例」時才殺，避免並行的其他實例正在使用它們。
+        /// </summary>
+        private static void CleanupMM27Dx64OnExit()
+        {
+            try
+            {
+                if (HasOtherMarkingMateInstance()) return; // 有其他實例 → 那些驅動可能還有人在用，不動
+
+                var processes = System.Diagnostics.Process.GetProcessesByName("MM27Dx64");
+                foreach (var proc in processes)
+                {
+                    try { proc.Kill(); }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"結束清理 MM27Dx64 失敗 (PID {proc.Id})：{ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"CleanupMM27Dx64OnExit 例外：{ex.Message}");
+            }
         }
 
         /// <summary>
@@ -2659,7 +2690,9 @@ namespace WindowsFormsApp1
             };
 
             var sb = new StringBuilder();
-            sb.Append("MarkingMate.exe");
+            // 固定輸出 --client：範例字串是給人複製到終端機用的，daemon 架構下必須走 client 派工，
+            // 否則會變成獨立模式 A process 去 init OCX、撞上 daemon 的 SDK 鎖（需重開機）。
+            sb.Append("MarkingMate.exe --client");
             sb.Append($" --board {spec.BoardIndex}");
             sb.Append($" --config /cfg_config_MM{spec.BoardIndex + 1}");
 
@@ -4404,7 +4437,9 @@ namespace WindowsFormsApp1
         private void RefreshCLIBuilderCommand()
         {
             var args = BuildCLIBuilderArgsList();
-            var sb = new StringBuilder("MarkingMate.exe");
+            // 固定輸出 --client：範例字串複製到終端機時必須走 daemon client 派工，
+            // 避免變成獨立模式 A process 撞 SDK OCX 鎖（需重開機）。
+            var sb = new StringBuilder("MarkingMate.exe --client");
             foreach (var arg in args)
             {
                 bool needQuote = arg.Contains(" ") || arg.Contains(";");
