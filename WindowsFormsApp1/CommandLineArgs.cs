@@ -38,6 +38,10 @@ namespace WindowsFormsApp1
         public double QRWidth { get; private set; }
         public double QRHeight { get; private set; }
         public bool QRInvert { get; private set; }   // 反相（黑白互換），用 SetBarcodeInvert
+        public bool QRWhiteBg { get; private set; }   // 白底反相 QR（白底矩形 + 反相 QR 雙圖層），旗標型
+        public int QRBorder { get; private set; }     // 白底 QR 外框單元數（cell）
+        public bool QRWidthExplicit { get; private set; }   // 使用者是否有明確帶 --qr-width
+        public bool QRHeightExplicit { get; private set; }  // 使用者是否有明確帶 --qr-height
         // 預覽模式：0=不預覽, 1=外框預覽, 2=全路徑預覽
         public int PreviewMode { get; private set; }
         public double? PreviewSpeed { get; private set; }
@@ -76,6 +80,10 @@ namespace WindowsFormsApp1
             QRWidth = 10.0;
             QRHeight = 10.0;
             QRInvert = false;
+            QRWhiteBg = false;
+            QRBorder = 5;
+            QRWidthExplicit = false;
+            QRHeightExplicit = false;
             PreviewMode = 0;
             PreviewSpeed = null;
             PreviewTime = 15;
@@ -318,6 +326,7 @@ namespace WindowsFormsApp1
                     if (i + 1 < args.Length && double.TryParse(args[i + 1], out double qrWidth))
                     {
                         result.QRWidth = qrWidth;
+                        result.QRWidthExplicit = true;
                         i++;
                     }
                 }
@@ -326,6 +335,7 @@ namespace WindowsFormsApp1
                     if (i + 1 < args.Length && double.TryParse(args[i + 1], out double qrHeight))
                     {
                         result.QRHeight = qrHeight;
+                        result.QRHeightExplicit = true;
                         i++;
                     }
                 }
@@ -333,6 +343,20 @@ namespace WindowsFormsApp1
                 {
                     // 旗標型，不吃下一個 token
                     result.QRInvert = true;
+                }
+                else if (argLower == "--qr-whitebg" || argLower == "--qr-white-bg")
+                {
+                    // 旗標型：白底反相 QR（白底矩形 + 反相 QR），只需再帶 --qrcode 內容即可
+                    result.QRWhiteBg = true;
+                    result.IsAutoMode = true;
+                }
+                else if (argLower == "--qr-border")
+                {
+                    if (i + 1 < args.Length && int.TryParse(args[i + 1], out int qrBorder) && qrBorder >= 0)
+                    {
+                        result.QRBorder = qrBorder;
+                        i++;
+                    }
                 }
                 else if (argLower == "--mark" || argLower == "-m")
                 {
@@ -402,6 +426,12 @@ namespace WindowsFormsApp1
   --qr-width <mm>                       QR Code 寬度 mm (預設: 10)
   --qr-height <mm>                      QR Code 高度 mm (預設: 10)
   --qr-invert                           QR Code 反相（黑白互換），預設關閉
+  --qr-whitebg                          白底反相 QR（白底矩形 + 反相 QR 雙圖層）；
+                                          只需再帶 --qrcode 內容，其餘用寫死預設
+                                          （30x30mm、外框 5、QR power30/speed1000、
+                                          矩形 power90/speed1000）。可用 --qr-width /
+                                          --qr-height / --qr-border / --power / --speed 覆寫
+  --qr-border <cells>                   白底 QR 外框單元數 (預設: 5)
   --mark, -m                            自動執行打標
   --preview <outline|full>               紅光預覽模式（不打雷射，需搭配 --mark）
                                           outline = 外框預覽, full = 全路徑預覽 (預設: full)
