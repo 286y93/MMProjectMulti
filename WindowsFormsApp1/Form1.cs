@@ -95,6 +95,10 @@ namespace WindowsFormsApp1
         // TODO: 從 SDK 文件 (MultiMM OCX Manual) 確認正確的 lType 值
         private const int BARCODE_TYPE_QRCODE = 23;
 
+        // QR 線段延伸量（SetBarcodeLineExtend 的 dLineExtend）。
+        // 0 = 不延伸（等同現行行為）。線段填滿的模組邊緣若有未打滿的縫，調大這個值。
+        private const double QR_LINE_EXTEND = 0.0;
+
         // GUI 模式建構子
         public Form1()
         {
@@ -4073,6 +4077,72 @@ namespace WindowsFormsApp1
             return name ?? string.Empty;
         }
 
+        // ===== MMEdit 晚期繫結（IDispatch）=====
+        //
+        // 專案參考的 interop wrapper（MMEditx641Lib.dll）只包了 707 個方法，
+        // 但實際註冊的 C:\Windows\SysWOW64\MMEdit_x64_1.ocx，其 typelib 有 736 個。
+        // Set2DBarcodeBorder / Get2DBarcodeBorder / SetBarcodeLineExtend /
+        // GetBarcodeLineExtend 這幾個較新的 API 不在 wrapper 內，
+        // 直接寫 m_MMEdit[i].Set2DBarcodeBorder(...) 會編譯失敗（wrapper 沒有這個方法）。
+        //
+        // 因此改走 AxHost.GetOcx() 取得底層 COM 物件，用 IDispatch 呼叫。
+        // 以下簽章是用 LoadTypeLibEx 從 OCX typelib 直接讀出的，不是猜的：
+        //   long   Set2DBarcodeBorder  (string strName, long   lBorder)      memid 0x2D8
+        //   long   Get2DBarcodeBorder  (string strName)                      memid 0x2DA
+        //   long   SetBarcodeLineExtend(string strName, double dLineExtend)  memid 0x2DC
+        //   double GetBarcodeLineExtend(string strName)                      memid 0x2DD
+        //
+        // 注意 lBorder 是 VT_I4，必須傳 C# int（傳 long 會變 VT_I8 造成型別不符）。
+        // 日後若用 aximp 重新產生 interop，可把這些 helper 換回強型別直接呼叫。
+
+        /// <summary>透過 IDispatch 呼叫 interop wrapper 沒包到的 MMEdit 方法。</summary>
+        private object InvokeMMEdit(int boardIndex, string method, params object[] args)
+        {
+            object ocx = m_MMEdit[boardIndex]?.GetOcx();
+            if (ocx == null)
+                throw new InvalidOperationException(
+                    $"晶片板 {boardIndex + 1} 的 MMEdit OCX 尚未建立，無法呼叫 {method}");
+
+            return ocx.GetType().InvokeMember(
+                method,
+                System.Reflection.BindingFlags.InvokeMethod,
+                null, ocx, args);
+        }
+
+        /// <summary>設定 QR 外框單元數（單位＝cell/模組，整數）。</summary>
+        private long SetQRBorder(int boardIndex, string objName, int borderCells)
+            => Convert.ToInt64(InvokeMMEdit(boardIndex, "Set2DBarcodeBorder", objName, borderCells));
+
+        /// <summary>讀回 QR 外框單元數。</summary>
+        private long GetQRBorder(int boardIndex, string objName)
+            => Convert.ToInt64(InvokeMMEdit(boardIndex, "Get2DBarcodeBorder", objName));
+
+        /// <summary>設定條碼線段延伸量（配合 SetBarcodeMarkStyle 線段填滿使用）。</summary>
+        private long SetQRLineExtend(int boardIndex, string objName, double lineExtend)
+            => Convert.ToInt64(InvokeMMEdit(boardIndex, "SetBarcodeLineExtend", objName, lineExtend));
+
+        /// <summary>讀回條碼線段延伸量。</summary>
+        private double GetQRLineExtend(int boardIndex, string objName)
+            => Convert.ToDouble(InvokeMMEdit(boardIndex, "GetBarcodeLineExtend", objName));
+
+        /// <summary>
+        /// 套用 QR 外框單元 + 線段延伸，並把 Border / QuietZone / 渲染尺寸一起 log 出來。
+        /// Border（新 API，整數 cell）與 QuietZone（舊 API，double）是否為同一個底層屬性，
+        /// SDK 文件沒寫明 — 第一次上機時看這行 log 的 readback 即可確認。
+        /// </summary>
+        private void ApplyQRBorder(int boardIndex, string objName, int borderCells)
+        {
+            long rcBorder = SetQRBorder(boardIndex, objName, borderCells);
+            long rcExtend = SetQRLineExtend(boardIndex, objName, QR_LINE_EXTEND);
+
+            Console.Error.WriteLine(
+                $"[Board {boardIndex + 1}] Set2DBarcodeBorder({borderCells}) rc={rcBorder} " +
+                $"SetBarcodeLineExtend({QR_LINE_EXTEND}) rc={rcExtend} → " +
+                $"readback Border={GetQRBorder(boardIndex, objName)} " +
+                $"QuietZone={m_MMEdit[boardIndex].GetBarcodeQuietZone(objName)} " +
+                $"LineExtend={GetQRLineExtend(boardIndex, objName)}");
+        }
+
         /// <summary>
         /// QRCODE_白底：依使用者 TextBox 設定建立 QR Code（不建立矩形、不打標）。
         /// 主要供使用者預覽 / 確認 QR 渲染後實際大小。
@@ -4104,7 +4174,8 @@ namespace WindowsFormsApp1
             if (!double.TryParse(txtWBQRPower.Text.Trim(), out double qrPower)) qrPower = 30;
             if (!double.TryParse(txtWBQRWidth.Text.Trim(), out double qrWidth) || qrWidth <= 0) qrWidth = 30;
             if (!double.TryParse(txtWBQRHeight.Text.Trim(), out double qrHeight) || qrHeight <= 0) qrHeight = 30;
-            if (!double.TryParse(txtWBQuietZone.Text.Trim(), out double quietZone) || quietZone < 0) quietZone = 5;
+            // 外框單元：Set2DBarcodeBorder 的 lBorder 是整數 cell 數，不是 mm
+            if (!int.TryParse(txtWBQuietZone.Text.Trim(), out int qrBorder) || qrBorder < 0) qrBorder = 5;
 
             try
             {
@@ -4134,7 +4205,7 @@ namespace WindowsFormsApp1
                 m_MMEdit[boardIndex].SetBarcodeInvert(qrName, 1);              // 反相打開（白底反相 QR）
                 m_MMEdit[boardIndex].Set2DBarcodeFixedType(qrName, 0);
                 m_MMEdit[boardIndex].Set2DBarcodeFixedCellSize(qrName, 1, 1);
-                m_MMEdit[boardIndex].SetBarcodeQuietZone(qrName, quietZone);
+                ApplyQRBorder(boardIndex, qrName, qrBorder);                   // 外框單元 + 線段延伸（IDispatch）
                 m_MMEdit[boardIndex].SetBarcodeMarkStyle(qrName, 2);
                 m_MMEdit[boardIndex].SetBarcodeLineType(qrName, 0);
                 m_MMEdit[boardIndex].SetBarcodeSpotSize(qrName, 0.02);
@@ -4178,7 +4249,7 @@ namespace WindowsFormsApp1
                     $"渲染尺寸: {qrActualW:F2} × {qrActualH:F2} mm\r\n" +
                     $"QR Version: {qrVersion} (modules={modules})\r\n" +
                     $"單元寬高: {cellW:F4} × {cellH:F4} mm\r\n" +
-                    $"外框: {quietZone} 單元";
+                    $"外框: {qrBorder} 單元";
             }
             catch (Exception ex)
             {
@@ -4227,7 +4298,8 @@ namespace WindowsFormsApp1
             if (!double.TryParse(txtWBQRPower.Text.Trim(), out double qrPower)) qrPower = 30;
             if (!double.TryParse(txtWBQRWidth.Text.Trim(), out double qrWidth) || qrWidth <= 0) qrWidth = 30;
             if (!double.TryParse(txtWBQRHeight.Text.Trim(), out double qrHeight) || qrHeight <= 0) qrHeight = 30;
-            if (!double.TryParse(txtWBQuietZone.Text.Trim(), out double quietZone) || quietZone < 0) quietZone = 5;
+            // 外框單元：Set2DBarcodeBorder 的 lBorder 是整數 cell 數，不是 mm
+            if (!int.TryParse(txtWBQuietZone.Text.Trim(), out int qrBorder) || qrBorder < 0) qrBorder = 5;
             if (!double.TryParse(txtWBRectExtra.Text.Trim(), out double rectExtra)) rectExtra = 0;
             // 矩形長寬將在 QR 建立後從 GetWidth/GetHeight 動態取得 + rectExtra (TextBox 設定的 X)
 
@@ -4279,7 +4351,7 @@ namespace WindowsFormsApp1
                     m_MMEdit[boardIndex].SetBarcodeInvert(qrName, 1);          // 反相打開（白底反相 QR）
                     m_MMEdit[boardIndex].Set2DBarcodeFixedType(qrName, 0);
                     m_MMEdit[boardIndex].Set2DBarcodeFixedCellSize(qrName, 1, 1);
-                    m_MMEdit[boardIndex].SetBarcodeQuietZone(qrName, quietZone);
+                    ApplyQRBorder(boardIndex, qrName, qrBorder);               // 外框單元 + 線段延伸（IDispatch）
                     m_MMEdit[boardIndex].SetBarcodeMarkStyle(qrName, 2);
                     m_MMEdit[boardIndex].SetBarcodeLineType(qrName, 0);
                     m_MMEdit[boardIndex].SetBarcodeSpotSize(qrName, 0.02);
@@ -4307,7 +4379,7 @@ namespace WindowsFormsApp1
                     // Option B：UI 長寬 = 模組區大小，cellSize 只由 modules 決定，外框會額外加大 QR 總尺寸
                     double cellW = qrWidth / modules;
                     double cellH = qrHeight / modules;
-                    Console.Error.WriteLine($"[Board {boardIndex + 1}] QR Version={qrVersion} modules={modules} quietZone={quietZone} → cellW={cellW:F4} cellH={cellH:F4}");
+                    Console.Error.WriteLine($"[Board {boardIndex + 1}] QR Version={qrVersion} modules={modules} border={qrBorder} → cellW={cellW:F4} cellH={cellH:F4}");
                     m_MMEdit[boardIndex].Set2DBarcodeFixedCellSize(qrName, cellW, cellH);
                     m_MMMark[boardIndex].Redraw();
                     Application.DoEvents();
