@@ -400,6 +400,19 @@ namespace WindowsFormsApp1
                     Application.DoEvents();
 
                     int rc = m_MMMark[board].StartMarking(markMode);
+                    if (rc == 6)
+                    {
+                        // rc=6：該板仍在 marking/previewing。連續打（client 連發、板還沒打完）時很常見。
+                        // ⚠ 絕不能 StopMarking 去中止「正在跑的前一條工作」——那會把線段打到一半砍掉、
+                        //   且在 UI 執行緒上 Stop/Sleep 會拖累其他板的完成監控，造成整體卡住。
+                        //   正確做法：回報「板忙碌」讓 client 稍後重送，完全不動正在跑的工作。
+                        tcs.SetResult(new DaemonSpecResult
+                        {
+                            ExitCode = 5,
+                            Logs = sbLog.ToString() + $"[Board {board + 1}] busy (StartMarking returned 6，前一條尚未打完，請稍後重送)"
+                        });
+                        return;
+                    }
                     if (rc != 0)
                     {
                         tcs.SetResult(new DaemonSpecResult
@@ -416,8 +429,11 @@ namespace WindowsFormsApp1
                     // 4. per-spec 監控 Timer：mode 3 計時 preview-time + 自動重啟；mode 4 等 IsMarking==0
                     var sw = System.Diagnostics.Stopwatch.StartNew();
                     int previewTimeMs = Math.Max(spec.PreviewTime, 1) * 1000;
-                    const int markTimeoutMs = 300000;  // 300 秒（白底 QR 密填可能較久，對齊 client HTTP 5 分鐘上限）
+                    // 白底 QR 密填較久 → 5 分鐘；一般線段/QR → 60 秒（與 699d4ac 相同，卡住能較快恢復，
+                    // 不會讓某板連續佔用 5 分鐘拖累連續打標）。
+                    int markTimeoutMs = spec.QRWhiteBg ? 300000 : 60000;
                     long lastRestartMs = 0;
+                    int idleTicks = 0;   // mode 4：連續讀到 IsMarking==0 的次數，達門檻才算真的打完
                     System.Windows.Forms.Timer monitor = new System.Windows.Forms.Timer { Interval = 100 };
                     int capturedBoard = board;
                     int capturedMode = markMode;
@@ -431,7 +447,11 @@ namespace WindowsFormsApp1
                                 if (elapsed >= previewTimeMs)
                                 {
                                     monitor.Stop();
+                                    monitor.Dispose();
                                     try { m_MMMark[capturedBoard].StopMarking(); } catch { }
+                                    // 預覽收尾也做 MarkShutdown，徹底清掉「still previewing」狀態，
+                                    // 避免下一命令 StartMarking 回 6。
+                                    try { m_MMMark[capturedBoard].MarkShutdown(); } catch { }
                                     m_bCmdPreviewing[capturedBoard] = false;
                                     sbLog.AppendLine($"[Board {capturedBoard + 1}] preview done @{elapsed}ms");
                                     tcs.SetResult(new DaemonSpecResult { ExitCode = 0, Logs = sbLog.ToString() });
@@ -452,19 +472,33 @@ namespace WindowsFormsApp1
                             {
                                 long im = 0;
                                 try { im = m_MMMark[capturedBoard].IsMarking(); } catch { }
-                                if (im == 0)
+                                // 需「開打 300ms 後、且連續 2 次讀到 0」才算真的完成。
+                                // 否則 IsMarking 一次瞬間誤報 0 就提早回完成 → client 立刻發下一條，
+                                // 在本板還在打時 ResetFile 破壞正在跑的工作 → 下一條 StartMarking 回 6。
+                                if (elapsed >= 300 && im == 0)
                                 {
-                                    monitor.Stop();
-                                    try { m_MMMark[capturedBoard].MarkShutdown(); } catch { }
-                                    m_bCmdPreviewing[capturedBoard] = false;
-                                    sbLog.AppendLine($"[Board {capturedBoard + 1}] mark done @{elapsed}ms");
-                                    tcs.SetResult(new DaemonSpecResult { ExitCode = 0, Logs = sbLog.ToString() });
-                                    return;
+                                    idleTicks++;
+                                    if (idleTicks >= 2)
+                                    {
+                                        monitor.Stop();
+                                        monitor.Dispose();
+                                        try { m_MMMark[capturedBoard].MarkShutdown(); } catch { }
+                                        m_bCmdPreviewing[capturedBoard] = false;
+                                        sbLog.AppendLine($"[Board {capturedBoard + 1}] mark done @{elapsed}ms");
+                                        tcs.SetResult(new DaemonSpecResult { ExitCode = 0, Logs = sbLog.ToString() });
+                                        return;
+                                    }
+                                }
+                                else
+                                {
+                                    idleTicks = 0;   // 還在打（im!=0）或還沒過緩衝 → 重新計數
                                 }
                                 if (elapsed > markTimeoutMs)
                                 {
                                     monitor.Stop();
+                                    monitor.Dispose();
                                     try { m_MMMark[capturedBoard].StopMarking(); } catch { }
+                                    try { m_MMMark[capturedBoard].MarkShutdown(); } catch { }
                                     m_bCmdPreviewing[capturedBoard] = false;
                                     sbLog.AppendLine($"[Board {capturedBoard + 1}] mark timeout @{elapsed}ms");
                                     tcs.SetResult(new DaemonSpecResult { ExitCode = 3, Logs = sbLog.ToString() });
@@ -474,6 +508,7 @@ namespace WindowsFormsApp1
                         catch (Exception ex)
                         {
                             monitor.Stop();
+                            try { monitor.Dispose(); } catch { }
                             m_bCmdPreviewing[capturedBoard] = false;
                             tcs.SetResult(new DaemonSpecResult { ExitCode = 1, Logs = sbLog.ToString() + $"monitor exception: {ex.Message}" });
                         }
@@ -1967,6 +2002,28 @@ namespace WindowsFormsApp1
             }
         }
 
+        /// <summary>
+        /// StartMarking，遇 rc==6（該板仍在 marking/previewing 的殘留狀態，多半是前一次
+        /// 預覽 StopMarking 未完全生效）時，先 StopMarking + MarkShutdown 清乾淨再重試一次。
+        /// 回傳最終 rc（0=成功）。診斷寫到 stderr（CLI/daemon log 可見）。
+        /// </summary>
+        private int StartMarkingWithRetry(int boardIndex, int mode)
+        {
+            int rc = m_MMMark[boardIndex].StartMarking(mode);
+            if (rc == 6)
+            {
+                Console.Error.WriteLine($"[Board {boardIndex + 1}] StartMarking({mode}) returned 6 (still marking) → StopMarking 後重試");
+                try { m_MMMark[boardIndex].StopMarking(); } catch { }
+                try { m_MMMark[boardIndex].MarkShutdown(); } catch { }
+                Application.DoEvents();
+                Thread.Sleep(300);
+                m_MMMark[boardIndex].MarkStandBy();
+                Application.DoEvents();
+                rc = m_MMMark[boardIndex].StartMarking(mode);
+            }
+            return rc;
+        }
+
         // ============================================================
         // 白底反相 QR（白底矩形 + 反相 QR 雙圖層）— CLI / daemon 共用
         // 邏輯與 GUI btnQRWhiteBgMark_Click 的「全部」情況一致；
@@ -2274,7 +2331,7 @@ namespace WindowsFormsApp1
                     m_MMMark[boardIndex].MarkStandBy();
                     Application.DoEvents();
 
-                    int startResult = m_MMMark[boardIndex].StartMarking(4);
+                    int startResult = StartMarkingWithRetry(boardIndex, 4);
                     if (startResult != 0)
                     {
                         System.Diagnostics.Debug.WriteLine($"打標啟動失敗，錯誤碼：{startResult}");
@@ -3207,7 +3264,7 @@ namespace WindowsFormsApp1
                     m_MMMark[board].MarkStandBy();
                     Application.DoEvents();
 
-                    int startResult = m_MMMark[board].StartMarking(4);
+                    int startResult = StartMarkingWithRetry(board, 4);
                     if (startResult != 0)
                     {
                         MessageBox.Show($"晶片板 {board + 1} 打標啟動失敗，錯誤碼：{startResult}",
