@@ -122,6 +122,9 @@ MarkingMate.exe --board 1 --line 0,0,50,50 --mark
 MarkingMate.exe --board 0 --qrcode "TEST" --qr-width 10 --qr-height 10 ^
                 --mark --preview full --preview-time 5
 
+:: 白底反相 QR（白底矩形 + 反相 QR 雙圖層）：只需帶內容，其餘白底參數後端寫死
+MarkingMate.exe --board 0 --qrcode "ABC123" --qr-whitebg --mark
+
 :: 載入 DXF + 雷射參數 + 自訂工作區
 MarkingMate.exe --board 0 --dxf "File\test.dxf" --workspace-w 200 --workspace-h 120 ^
                 --power 50 --speed 800 --freq 20 --pw 5 --mark
@@ -354,6 +357,16 @@ cmd> MarkingMate.exe --board 0 --line 0,0,50,50 --mark
    - **位置固定為鏡頭中心 (0,0)**：CLI 不接受 `--qr-x` / `--qr-y`，要 QR 就只能定在原點。要移位請改用 GUI 的 QR 載入頁面。
    - **不會套用 wobble（線條寬度）**：EMC6 對 QR 物件做 `SetWobble` 會回 `Unknown Commands=127` 對話框；CLI/daemon 的 wobble loop 偵測到 QR 內容會跳過。要加粗 QR 請改 `--qr-width` / `--qr-height`。
    - **`--qr-invert` 反相**（黑白互換）：旗標型參數，不吃下一個 token。內部呼叫 `m_MMEdit.SetBarcodeInvert(name, 1)`（SDK 對 QR 安全，與 SetWobble 不同）。範例：`--qrcode "INV" --qr-width 15 --qr-height 15 --qr-invert --mark`。
+   - **容錯等級固定 LOW**：CLI/daemon 的 QR 一律 `Set2DBarcodeQRECLevel = 0`（Low），無參數可調。
+
+9a. **`--qr-whitebg` 白底反相 QR（雙圖層）**
+   - 旗標型。加上後，該 QR 會建成「白底矩形 + 反相 QR」兩個圖層（矩形先打、QR 後打），等同 GUI「QRCODE_白底」的效果。
+   - **只需帶 `--qrcode` 內容即可**，其餘白底參數在後端寫死：QR 30×30mm、外框 5 單元、QR power 30 / speed 1000、矩形 power 90 / speed 1000、矩形尺寸 = QR 實際渲染 + 0。
+   - **可覆寫**：`--qr-width` / `--qr-height`（QR 資料區長寬）、`--qr-border <cells>`（外框單元，預設 5）、`--power` / `--speed`（覆寫的是 **QR 圖層**；矩形參數目前仍寫死）。
+   - 白底模式會**跳過** `ApplyLaserParamsAuto`，避免覆寫各圖層已個別設好的雷射參數。
+   - 適用 daemon、模式 A，以及 GUI「命令提示」頁籤（該頁籤產生的 QR 命令即為 `--qrcode "X" --qr-whitebg --mark`，按鈕 in-process 執行也走同一套後端）。
+   - 範例：`--client --board 0 --qrcode "ABC123" --qr-whitebg --mark`
+     覆寫範例：`--client --board 0 --qrcode "ABC123" --qr-whitebg --qr-width 40 --qr-border 6 --power 40 --speed 1200 --mark`
 
 10. **Daemon 目前不支援 `--dxf`（MVP 階段）**
     要打 DXF 請用模式 A，或之後擴充 `RunDaemonSpec` 加入 `LoadDxfAuto` 呼叫
