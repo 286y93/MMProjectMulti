@@ -1,0 +1,34 @@
+﻿# MarkingMate 鋼鐵Quest3 QR 參數記錄
+Serial       : 20260713-002
+Action       : PREVIEW
+Timestamp    : 2026-07-13 12:02:24
+Board        : 1
+QR Content   : Hello World
+
+[QR 幾何]
+QR Width     : 20 mm
+QR Height    : 20 mm
+Border       : 4 cells
+Rect Extra   : 0 mm
+
+[QR 屬性]
+EC Level     : 1 (0=L 1=M 2=Q 3=H)
+Mark Style   : 1 (1=dot 2=fill)
+Spot Size    : 0.05 mm
+QR Repeat    : 2
+
+[白底矩形 雷射參數]
+Rect Power   : 45 %
+Rect Speed   : 2500 mm/s
+Rect Freq    : 50 kHz
+Rect Repeat  : 2
+
+[QR 雷射參數]
+QR Power     : 70 %
+QR Speed     : 500 mm/s
+QR Freq      : 25 kHz
+QR PulseWidth: 200
+
+[工作區]
+Workspace W  : 150 mm
+Workspace H  : 150 mm

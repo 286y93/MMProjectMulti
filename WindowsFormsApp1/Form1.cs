@@ -4750,6 +4750,108 @@ namespace WindowsFormsApp1
             }
         }
 
+        // === 鋼鐵 Quest3 QR 序號 & 參數記錄 =====================================
+        // 序號格式 YYYYMMDD-NNN。同日 NNN 累加（001,002,003...），換日自動重置為 001。
+        // 狀態存在 QRCodePara\counter.txt，內容一行 "YYYYMMDD NNN"。
+
+        private const string QRCodeCounterFileName = "counter.txt";
+
+        /// <summary>取得 QRCodePara 資料夾絕對路徑（跟 exe 同層 or 明確指定 D: 專案路徑）。</summary>
+        private static string GetQRCodeParaDir()
+        {
+            // 依需求寫死到專案路徑
+            return @"D:\MarkingMateProject\Multi\MMProjectMulti\WindowsFormsApp1\QRCodePara";
+        }
+
+        /// <summary>
+        /// 取得下一組鋼鐵 Quest3 QR 序號（YYYYMMDD-NNN），並將 counter.txt 更新。
+        /// 同一日 NNN 累加至 999 上限（超過會滾回並仍寫入，但實務上不會用到）；換日重置為 001。
+        /// </summary>
+        private static string NextSteelSerial()
+        {
+            string dir = GetQRCodeParaDir();
+            Directory.CreateDirectory(dir);
+            string counterPath = Path.Combine(dir, QRCodeCounterFileName);
+
+            string today = DateTime.Now.ToString("yyyyMMdd");
+            int nextSeq = 1;
+            if (File.Exists(counterPath))
+            {
+                try
+                {
+                    string line = File.ReadAllText(counterPath, Encoding.UTF8).Trim();
+                    var parts = line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2 && parts[0] == today && int.TryParse(parts[1], out int lastSeq))
+                        nextSeq = lastSeq + 1;
+                }
+                catch { /* 檔案壞掉就從 001 重來 */ }
+            }
+            File.WriteAllText(counterPath, $"{today} {nextSeq}", Encoding.UTF8);
+            return $"{today}-{nextSeq:D3}";
+        }
+
+        /// <summary>
+        /// 將本次鋼鐵 Quest3 QR 使用的所有參數寫成 txt，檔名為序號.txt。
+        /// action = "PREVIEW" 或 "MARK"，便於事後回溯。
+        /// </summary>
+        private void WriteSteelQRParaLog(string serial, string action, string content,
+            int boardIndex,
+            double qrWidth, double qrHeight, int border, double rectExtra,
+            int ecLevel, int markStyle, double spotSize, int qrRepeat,
+            double rectPower, double rectSpeed, double rectFreq, int rectRepeat,
+            double qrPower, double qrSpeed, double qrFreq, double qrPulseWidth)
+        {
+            try
+            {
+                string dir = GetQRCodeParaDir();
+                Directory.CreateDirectory(dir);
+                string path = Path.Combine(dir, $"{serial}.txt");
+
+                var sb = new StringBuilder();
+                sb.AppendLine($"# MarkingMate 鋼鐵Quest3 QR 參數記錄");
+                sb.AppendLine($"Serial       : {serial}");
+                sb.AppendLine($"Action       : {action}");
+                sb.AppendLine($"Timestamp    : {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                sb.AppendLine($"Board        : {boardIndex + 1}");
+                sb.AppendLine($"QR Content   : {content}");
+                sb.AppendLine();
+                sb.AppendLine("[QR 幾何]");
+                sb.AppendLine($"QR Width     : {qrWidth} mm");
+                sb.AppendLine($"QR Height    : {qrHeight} mm");
+                sb.AppendLine($"Border       : {border} cells");
+                sb.AppendLine($"Rect Extra   : {rectExtra} mm");
+                sb.AppendLine();
+                sb.AppendLine("[QR 屬性]");
+                sb.AppendLine($"EC Level     : {ecLevel} (0=L 1=M 2=Q 3=H)");
+                sb.AppendLine($"Mark Style   : {markStyle} (1=dot 2=fill)");
+                sb.AppendLine($"Spot Size    : {spotSize} mm");
+                sb.AppendLine($"QR Repeat    : {qrRepeat}");
+                sb.AppendLine();
+                sb.AppendLine("[白底矩形 雷射參數]");
+                sb.AppendLine($"Rect Power   : {rectPower} %");
+                sb.AppendLine($"Rect Speed   : {rectSpeed} mm/s");
+                sb.AppendLine($"Rect Freq    : {rectFreq} kHz");
+                sb.AppendLine($"Rect Repeat  : {rectRepeat}");
+                sb.AppendLine();
+                sb.AppendLine("[QR 雷射參數]");
+                sb.AppendLine($"QR Power     : {qrPower} %");
+                sb.AppendLine($"QR Speed     : {qrSpeed} mm/s");
+                sb.AppendLine($"QR Freq      : {qrFreq} kHz");
+                sb.AppendLine($"QR PulseWidth: {qrPulseWidth}");
+                sb.AppendLine();
+                sb.AppendLine("[工作區]");
+                sb.AppendLine($"Workspace W  : {m_WorkspaceSize} mm");
+                sb.AppendLine($"Workspace H  : {m_WorkspaceHeight} mm");
+
+                File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
+                Console.Error.WriteLine($"[Board {boardIndex + 1}] Steel QR para log → {path}");
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[Board {boardIndex + 1}] WriteSteelQRParaLog failed: {ex.Message}");
+            }
+        }
+
         /// <summary>
         /// 依 groupBoxQRSteel 內 TextBox 的參數，在指定板建立「白底矩形 + 反相 QR」兩個物件。
         /// 不呼叫 StartMarking — 交給呼叫端決定要打標（mode 4）或紅光預覽（mode 3）。
@@ -4758,8 +4860,9 @@ namespace WindowsFormsApp1
         /// QR 策略：高功率低速長脈衝 + dot mode + repeat → 深黑碳化點
         /// 回傳 true=兩個物件都建立成功；失敗會自行 MessageBox 提示。
         /// </summary>
-        private bool BuildSteelQRLayers(int boardIndex)
+        private bool BuildSteelQRLayers(int boardIndex, string action, out string serial)
         {
+            serial = null;
             // 從 TextBox 讀取參數（解析失敗回落至鋼鐵建議預設）
             if (!double.TryParse(txtSteelQrWidth.Text.Trim(), out double qrWidth) || qrWidth <= 0) qrWidth = 20;
             if (!double.TryParse(txtSteelQrHeight.Text.Trim(), out double qrHeight) || qrHeight <= 0) qrHeight = 20;
@@ -4782,8 +4885,13 @@ namespace WindowsFormsApp1
             string content = txtQRContent.Text?.Trim();
             if (string.IsNullOrEmpty(content)) content = "STEEL";
 
+            // 取得本次序號（YYYYMMDD-NNN，同日累加）
+            serial = NextSteelSerial();
+            if (txtSteelSerial != null) txtSteelSerial.Text = serial;
+
             string qrName = "QRSteel_QR";
             string rectName = "QRSteel_Rect";
+            string serialName = "QRSteel_Serial";
 
             // 0) 清板 + 重設工作區
             m_MMMark[boardIndex].ResetFile();
@@ -4883,14 +4991,46 @@ namespace WindowsFormsApp1
             m_MMEdit[boardIndex].SetBarcodeSpotDelay(rectName, 100);
             m_MMMark[boardIndex].SetPulseWidth(rectName, 200);
 
-            // 6) 矩形排到 QR 前面 → 先打白底再打 QR
+            // 6) 序號文字物件：放在 QR 左上角外側上方（不會擋到資料區）
+            //    字高採 QR 高的 1/8，最小 1.5 mm；y 座標在矩形上方 1 mm。
+            double serialFontSize = Math.Max(rectH / 8.0, 1.5);
+            double serialCx = -rectHalfW;                     // 起點 x = 白底矩形左邊
+            double serialCy = rectHalfH + serialFontSize / 2.0 + 1.0;  // 白底矩形上方 1 mm
+            long rT = m_MMMark[boardIndex].AddText(serial, serialCx, serialCy, "", serialName);
+            Console.Error.WriteLine($"[Board {boardIndex + 1}] Steel AddText serial=\"{serial}\" rc={rT} @({serialCx:F2},{serialCy:F2}) h={serialFontSize:F2}");
+            if (rT == 0)
+            {
+                try
+                {
+                    m_MMEdit[boardIndex].SetFontSize(serialName, serialFontSize);
+                    m_MMMark[boardIndex].SetSpeed(serialName, qrSpeed);
+                    m_MMMark[boardIndex].SetPower(serialName, qrPower);
+                    m_MMMark[boardIndex].SetFrequency(serialName, qrFreq);
+                    m_MMMark[boardIndex].SetMarkRepeat(serialName, 1);
+                    m_MMMark[boardIndex].SetPulseWidth(serialName, qrPulseWidth);
+                }
+                catch (Exception exSerial)
+                {
+                    Console.Error.WriteLine($"[Board {boardIndex + 1}] Steel serial text 屬性設定失敗（略過）: {exSerial.Message}");
+                }
+            }
+
+            // 7) 圖層順序：白底最先打 → QR → 序號文字
             long rOrd = m_MMEdit[boardIndex].ChangeObjectOrder(rectName, qrName, 0);
             Console.Error.WriteLine($"[Board {boardIndex + 1}] Steel ChangeObjectOrder rect→before(qr) rc={rOrd}");
 
-            // 7) 最終 Redraw（呼叫端決定要 StartMarking(4) 打標或 StartMarking(3) 紅光預覽）
+            // 8) 最終 Redraw（呼叫端決定要 StartMarking(4) 打標或 StartMarking(3) 紅光預覽）
             m_MMMark[boardIndex].Redraw();
             Application.DoEvents();
             Thread.Sleep(300);
+
+            // 9) 寫參數 log（PREVIEW / MARK 兩種呼叫都會落檔，方便對照）
+            WriteSteelQRParaLog(serial, action, content, boardIndex,
+                qrWidth, qrHeight, border, rectExtra,
+                ecLevel, markStyle, spotSize, qrRepeat,
+                rectPower, rectSpeed, rectFreq, rectRepeat,
+                qrPower, qrSpeed, qrFreq, qrPulseWidth);
+
             return true;
         }
 
@@ -4921,7 +5061,7 @@ namespace WindowsFormsApp1
 
             try
             {
-                if (!BuildSteelQRLayers(boardIndex)) return;
+                if (!BuildSteelQRLayers(boardIndex, "MARK", out string serial)) return;
 
                 m_MMMark[boardIndex].MarkStandBy();
                 if (m_MMMark[boardIndex].StartMarking(4) != 0)
@@ -4947,7 +5087,7 @@ namespace WindowsFormsApp1
                 btnStop.Enabled = true;
 
                 string ct = string.IsNullOrEmpty(txtQRContent.Text?.Trim()) ? "STEEL" : txtQRContent.Text.Trim();
-                txtQRStatus.Text = $"晶片板 {boardIndex + 1} 鋼鐵Quest3 QR 打標中（{ct}）";
+                txtQRStatus.Text = $"晶片板 {boardIndex + 1} 鋼鐵Quest3 QR 打標中（{serial} / {ct}）";
             }
             catch (Exception ex)
             {
@@ -4984,7 +5124,7 @@ namespace WindowsFormsApp1
 
             try
             {
-                if (!BuildSteelQRLayers(boardIndex)) return;
+                if (!BuildSteelQRLayers(boardIndex, "PREVIEW", out string serial)) return;
 
                 // 紅光全路徑預覽
                 m_MMMark[boardIndex].SetPreviewMode(2);
@@ -5020,7 +5160,7 @@ namespace WindowsFormsApp1
                 btnStop.Enabled = true;
 
                 string ct = string.IsNullOrEmpty(txtQRContent.Text?.Trim()) ? "STEEL" : txtQRContent.Text.Trim();
-                txtQRStatus.Text = $"晶片板 {boardIndex + 1} 鋼鐵Quest3 QR 紅光預覽中（{ct}，15秒後停止）";
+                txtQRStatus.Text = $"晶片板 {boardIndex + 1} 鋼鐵Quest3 QR 紅光預覽中（{serial} / {ct}，15秒後停止）";
             }
             catch (Exception ex)
             {
