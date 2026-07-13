@@ -4756,11 +4756,11 @@ namespace WindowsFormsApp1
 
         private const string QRCodeCounterFileName = "counter.txt";
 
-        /// <summary>取得 QRCodePara 資料夾絕對路徑（跟 exe 同層 or 明確指定 D: 專案路徑）。</summary>
+        /// <summary>取得 QRCodePara 資料夾絕對路徑（跟 exe 同層，跨機器都能用）。</summary>
         private static string GetQRCodeParaDir()
         {
-            // 依需求寫死到專案路徑
-            return @"D:\MarkingMateProject\Multi\MMProjectMulti\WindowsFormsApp1\QRCodePara";
+            string exeDir = Path.GetDirectoryName(Application.ExecutablePath);
+            return Path.Combine(exeDir, "QRCodePara");
         }
 
         /// <summary>
