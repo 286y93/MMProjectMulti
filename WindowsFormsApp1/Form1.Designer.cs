@@ -204,6 +204,8 @@
             this.btnQRSteelMark = new System.Windows.Forms.Button();
             this.btnQRSteelPreview = new System.Windows.Forms.Button();
             this.btnQRSteelStopPreview = new System.Windows.Forms.Button();
+            this.lblSteelSerial = new System.Windows.Forms.Label();
+            this.txtSteelSerial = new System.Windows.Forms.TextBox();
             // === CLI Builder 頁籤 ===
             this.tabPageCLIBuilder = new System.Windows.Forms.TabPage();
             this.grpCLIBuilder = new System.Windows.Forms.GroupBox();
@@ -1801,6 +1803,8 @@
             this.groupBoxQRSteel.Controls.Add(this.txtSteelQrFreq);
             this.groupBoxQRSteel.Controls.Add(this.lblSteelQrPulseWidth);
             this.groupBoxQRSteel.Controls.Add(this.txtSteelQrPulseWidth);
+            this.groupBoxQRSteel.Controls.Add(this.lblSteelSerial);
+            this.groupBoxQRSteel.Controls.Add(this.txtSteelSerial);
             this.groupBoxQRSteel.Controls.Add(this.btnQRSteelPreview);
             this.groupBoxQRSteel.Controls.Add(this.btnQRSteelMark);
             this.groupBoxQRSteel.Controls.Add(this.btnQRSteelStopPreview);
@@ -1809,7 +1813,7 @@
             this.groupBoxQRSteel.Location = new System.Drawing.Point(450, 400);
             this.groupBoxQRSteel.Name = "groupBoxQRSteel";
             this.groupBoxQRSteel.Padding = new System.Windows.Forms.Padding(4);
-            this.groupBoxQRSteel.Size = new System.Drawing.Size(270, 305);
+            this.groupBoxQRSteel.Size = new System.Drawing.Size(270, 335);
             this.groupBoxQRSteel.TabIndex = 30;
             this.groupBoxQRSteel.TabStop = false;
             this.groupBoxQRSteel.Text = "QRCODE_鋼鐵Quest3";
@@ -1967,9 +1971,33 @@
             this.txtSteelQrPulseWidth.Size = new System.Drawing.Size(50, 25);
             this.txtSteelQrPulseWidth.Text = "200";
             //
+            // row 9: 序號（唯讀顯示，每次「紅光預覽」或「雕刻」按下時自動更新）
+            //
+            this.lblSteelSerial.AutoSize = true;
+            this.lblSteelSerial.Location = new System.Drawing.Point(8, 253);
+            this.lblSteelSerial.Name = "lblSteelSerial";
+            this.lblSteelSerial.Text = "序號:";
+            this.txtSteelSerial.Location = new System.Drawing.Point(75, 250);
+            this.txtSteelSerial.Name = "txtSteelSerial";
+            this.txtSteelSerial.ReadOnly = true;
+            this.txtSteelSerial.Size = new System.Drawing.Size(180, 25);
+            this.txtSteelSerial.Text = "(建立後自動填入)";
+            //
+            // row 9: 序號（唯讀顯示，每次「紅光預覽」或「雕刻」按下時自動更新）
+            //
+            this.lblSteelSerial.AutoSize = true;
+            this.lblSteelSerial.Location = new System.Drawing.Point(8, 253);
+            this.lblSteelSerial.Name = "lblSteelSerial";
+            this.lblSteelSerial.Text = "序號:";
+            this.txtSteelSerial.Location = new System.Drawing.Point(75, 250);
+            this.txtSteelSerial.Name = "txtSteelSerial";
+            this.txtSteelSerial.ReadOnly = true;
+            this.txtSteelSerial.Size = new System.Drawing.Size(180, 25);
+            this.txtSteelSerial.Text = "(建立後自動填入)";
+            //
             // btnQRSteelPreview（左：紅光預覽）；三顆按鈕塞同一列，寬度各 82
             //
-            this.btnQRSteelPreview.Location = new System.Drawing.Point(8, 255);
+            this.btnQRSteelPreview.Location = new System.Drawing.Point(8, 285);
             this.btnQRSteelPreview.Name = "btnQRSteelPreview";
             this.btnQRSteelPreview.Size = new System.Drawing.Size(82, 40);
             this.btnQRSteelPreview.TabIndex = 99;
@@ -1979,7 +2007,7 @@
             //
             // btnQRSteelMark（右側：實際雕刻）
             //
-            this.btnQRSteelMark.Location = new System.Drawing.Point(94, 255);
+            this.btnQRSteelMark.Location = new System.Drawing.Point(94, 285);
             this.btnQRSteelMark.Name = "btnQRSteelMark";
             this.btnQRSteelMark.Size = new System.Drawing.Size(82, 40);
             this.btnQRSteelMark.TabIndex = 100;
@@ -2722,6 +2750,8 @@
         private System.Windows.Forms.Button btnQRSteelMark;
         private System.Windows.Forms.Button btnQRSteelPreview;
         private System.Windows.Forms.Button btnQRSteelStopPreview;
+        private System.Windows.Forms.Label lblSteelSerial;
+        private System.Windows.Forms.TextBox txtSteelSerial;
         // === CLI Builder 頁籤控件 ===
         private System.Windows.Forms.TabPage tabPageCLIBuilder;
         private System.Windows.Forms.GroupBox grpCLIBuilder;

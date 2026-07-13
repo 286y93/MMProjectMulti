@@ -554,6 +554,7 @@
     <Folder Include="Drivers\EMC6_MM2\Drivers\EMC6\" />
     <Folder Include="Drivers\EMC6_MM3\Drivers\EMC6\" />
     <Folder Include="Drivers\EMC6_MM4\Drivers\EMC6\" />
+    <Folder Include="QRCodePara\" />
   </ItemGroup>
   <!-- PostBuildEvent removed - DLLs should be referenced or copied manually -->
   <!-- Use CopyDlls.bat to copy required DLLs to output directories -->
