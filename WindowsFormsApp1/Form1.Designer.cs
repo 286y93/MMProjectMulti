@@ -203,6 +203,7 @@
             this.txtSteelQrPulseWidth = new System.Windows.Forms.TextBox();
             this.btnQRSteelMark = new System.Windows.Forms.Button();
             this.btnQRSteelPreview = new System.Windows.Forms.Button();
+            this.btnQRSteelStopPreview = new System.Windows.Forms.Button();
             // === CLI Builder 頁籤 ===
             this.tabPageCLIBuilder = new System.Windows.Forms.TabPage();
             this.grpCLIBuilder = new System.Windows.Forms.GroupBox();
@@ -245,6 +246,7 @@
             this.txtCLIOutput = new System.Windows.Forms.TextBox();
             this.btnCLIRefresh = new System.Windows.Forms.Button();
             this.btnCLIExecuteMark = new System.Windows.Forms.Button();
+            this.btnCLIStopPreview = new System.Windows.Forms.Button();
             // === 命令提示 tab ===
             this.tabPageCmd = new System.Windows.Forms.TabPage();
             this.lblCmdHeader = new System.Windows.Forms.Label();
@@ -1801,6 +1803,7 @@
             this.groupBoxQRSteel.Controls.Add(this.txtSteelQrPulseWidth);
             this.groupBoxQRSteel.Controls.Add(this.btnQRSteelPreview);
             this.groupBoxQRSteel.Controls.Add(this.btnQRSteelMark);
+            this.groupBoxQRSteel.Controls.Add(this.btnQRSteelStopPreview);
             // 位置：放在 QRCODE_白底 (450, 42, size 270×350) 的正下方，剛好塞進右下 270×305 空間。
             // 左側 8~438 給 groupBoxQRBasic + 各按鈕 + txtQRStatus 用；tabPage 728×715 底部還有餘裕。
             this.groupBoxQRSteel.Location = new System.Drawing.Point(450, 400);
@@ -1964,25 +1967,35 @@
             this.txtSteelQrPulseWidth.Size = new System.Drawing.Size(50, 25);
             this.txtSteelQrPulseWidth.Text = "200";
             //
-            // btnQRSteelPreview（左側：紅光預覽）
+            // btnQRSteelPreview（左：紅光預覽）；三顆按鈕塞同一列，寬度各 82
             //
-            this.btnQRSteelPreview.Location = new System.Drawing.Point(10, 255);
+            this.btnQRSteelPreview.Location = new System.Drawing.Point(8, 255);
             this.btnQRSteelPreview.Name = "btnQRSteelPreview";
-            this.btnQRSteelPreview.Size = new System.Drawing.Size(120, 40);
+            this.btnQRSteelPreview.Size = new System.Drawing.Size(82, 40);
             this.btnQRSteelPreview.TabIndex = 99;
-            this.btnQRSteelPreview.Text = "紅光預覽 QR";
+            this.btnQRSteelPreview.Text = "紅光預覽";
             this.btnQRSteelPreview.UseVisualStyleBackColor = true;
             this.btnQRSteelPreview.Click += new System.EventHandler(this.btnQRSteelPreview_Click);
             //
             // btnQRSteelMark（右側：實際雕刻）
             //
-            this.btnQRSteelMark.Location = new System.Drawing.Point(140, 255);
+            this.btnQRSteelMark.Location = new System.Drawing.Point(94, 255);
             this.btnQRSteelMark.Name = "btnQRSteelMark";
-            this.btnQRSteelMark.Size = new System.Drawing.Size(120, 40);
+            this.btnQRSteelMark.Size = new System.Drawing.Size(82, 40);
             this.btnQRSteelMark.TabIndex = 100;
             this.btnQRSteelMark.Text = "雕刻 QR";
             this.btnQRSteelMark.UseVisualStyleBackColor = true;
             this.btnQRSteelMark.Click += new System.EventHandler(this.btnQRSteelMark_Click);
+            //
+            // btnQRSteelStopPreview（右：停止預覽 / 打標）
+            //
+            this.btnQRSteelStopPreview.Location = new System.Drawing.Point(180, 255);
+            this.btnQRSteelStopPreview.Name = "btnQRSteelStopPreview";
+            this.btnQRSteelStopPreview.Size = new System.Drawing.Size(82, 40);
+            this.btnQRSteelStopPreview.TabIndex = 101;
+            this.btnQRSteelStopPreview.Text = "預覽停止";
+            this.btnQRSteelStopPreview.UseVisualStyleBackColor = true;
+            this.btnQRSteelStopPreview.Click += new System.EventHandler(this.btnQRSteelStopPreview_Click);
             //
             // === tabPageCLIBuilder: CLI 編輯器 ===
             //
@@ -1991,6 +2004,7 @@
             this.tabPageCLIBuilder.Controls.Add(this.txtCLIOutput);
             this.tabPageCLIBuilder.Controls.Add(this.btnCLIRefresh);
             this.tabPageCLIBuilder.Controls.Add(this.btnCLIExecuteMark);
+            this.tabPageCLIBuilder.Controls.Add(this.btnCLIStopPreview);
             this.tabPageCLIBuilder.Location = new System.Drawing.Point(4, 25);
             this.tabPageCLIBuilder.Name = "tabPageCLIBuilder";
             this.tabPageCLIBuilder.Padding = new System.Windows.Forms.Padding(3);
@@ -2202,6 +2216,14 @@
             this.btnCLIExecuteMark.Text = "依此命令打標";
             this.btnCLIExecuteMark.UseVisualStyleBackColor = true;
             this.btnCLIExecuteMark.Click += new System.EventHandler(this.btnCLIExecuteMark_Click);
+            //
+            // btnCLIStopPreview
+            //
+            this.btnCLIStopPreview.Location = new System.Drawing.Point(395, 640);
+            this.btnCLIStopPreview.Size = new System.Drawing.Size(150, 40);
+            this.btnCLIStopPreview.Text = "停止預覽/打標";
+            this.btnCLIStopPreview.UseVisualStyleBackColor = true;
+            this.btnCLIStopPreview.Click += new System.EventHandler(this.btnCLIStopPreview_Click);
             //
             // CLI Builder 即時更新事件（所有 TextBox / CheckBox）
             //
@@ -2699,6 +2721,7 @@
         private System.Windows.Forms.TextBox txtSteelQrPulseWidth;
         private System.Windows.Forms.Button btnQRSteelMark;
         private System.Windows.Forms.Button btnQRSteelPreview;
+        private System.Windows.Forms.Button btnQRSteelStopPreview;
         // === CLI Builder 頁籤控件 ===
         private System.Windows.Forms.TabPage tabPageCLIBuilder;
         private System.Windows.Forms.GroupBox grpCLIBuilder;
@@ -2741,6 +2764,7 @@
         private System.Windows.Forms.TextBox txtCLIOutput;
         private System.Windows.Forms.Button btnCLIRefresh;
         private System.Windows.Forms.Button btnCLIExecuteMark;
+        private System.Windows.Forms.Button btnCLIStopPreview;
         // === 命令提示 tab 控件 ===
         private System.Windows.Forms.TabPage tabPageCmd;
         private System.Windows.Forms.Label lblCmdHeader;

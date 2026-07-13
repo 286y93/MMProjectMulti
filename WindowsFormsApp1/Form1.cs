@@ -5028,6 +5028,42 @@ namespace WindowsFormsApp1
             }
         }
 
+        /// <summary>鋼鐵Quest3 QR：停止紅光預覽 / 打標。</summary>
+        private void btnQRSteelStopPreview_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit) return;
+
+            try
+            {
+                timerMark.Stop();
+                timerPreview.Stop();
+
+                // 對所有已初始化的板呼叫 StopMarking，覆蓋所有可能的板號
+                for (int i = 0; i < m_bBoardInit.Length; i++)
+                {
+                    if (m_bBoardInit[i])
+                    {
+                        try { m_MMMark[i].StopMarking(); } catch { /* 忽略單板停止失敗 */ }
+                    }
+                }
+
+                m_bPreviewing = false;
+                m_iPreviewBoard = -1;
+
+                ResetPreviewButtonsAfterStop();
+
+                // 恢復鋼鐵Quest3 兩顆執行按鈕
+                btnQRSteelPreview.Enabled = true;
+                btnQRSteelMark.Enabled = true;
+
+                txtQRStatus.Text = "鋼鐵Quest3 已停止。";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"鋼鐵 QR 停止失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
         // === CLI Builder 頁籤 ===
 
         /// <summary>從 CLI Builder TextBox 讀值組合成命令列參數陣列。</summary>
@@ -5087,6 +5123,41 @@ namespace WindowsFormsApp1
         private void OnCLIBuilderInputChanged(object sender, EventArgs e)
         {
             RefreshCLIBuilderCommand();
+        }
+
+        /// <summary>CLI 編輯器：停止預覽 / 打標。同時處理預覽與正常打標兩種狀態。</summary>
+        private void btnCLIStopPreview_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit) return;
+
+            try
+            {
+                // 停止兩個 timer（正常打標用 timerMark、預覽用 timerPreview）
+                timerMark.Stop();
+                timerPreview.Stop();
+
+                // 對所有已初始化的板呼叫 StopMarking，確保任何進行中的打標/預覽都停下
+                for (int i = 0; i < m_bBoardInit.Length; i++)
+                {
+                    if (m_bBoardInit[i])
+                    {
+                        try { m_MMMark[i].StopMarking(); } catch { /* 忽略單板停止失敗 */ }
+                    }
+                }
+
+                m_bPreviewing = false;
+                m_iPreviewBoard = -1;
+
+                // 讓其他頁籤的預覽按鈕狀態也一併復原
+                ResetPreviewButtonsAfterStop();
+
+                btnCLIExecuteMark.Enabled = true;
+                txtCLIOutput.Text += "\r\n[已停止]";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"停止失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         /// <summary>依 CLI Builder 上的參數，呼叫既有打標邏輯執行打標。</summary>
