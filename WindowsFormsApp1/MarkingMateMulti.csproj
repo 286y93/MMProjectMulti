@@ -16,6 +16,7 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -26,6 +27,7 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -52,27 +54,23 @@
   <ItemGroup>
     <Reference Include="AxMMEdit_x64_1, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\MarkingMate\MmAssembly\AxMMEdit_x64_1.dll</HintPath>
+      <HintPath>C:\Program Files (x86)\MarkingMate\MmAssembly\AxMMEdit_x64_1.dll</HintPath>
     </Reference>
     <Reference Include="AxMMMark_x64_1, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\MarkingMate\MmAssembly\AxMMMark_x64_1.dll</HintPath>
+      <HintPath>C:\Program Files (x86)\MarkingMate\MmAssembly\AxMMMark_x64_1.dll</HintPath>
     </Reference>
     <Reference Include="MMEditx641Lib, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <!-- 不可嵌入：Ax 包裝 (AxMMEdit_x64_1.dll) 執行期仍依賴此 interop DLL，
-           嵌入會導致輸出目錄沒有 MMEditx641Lib.dll → 載入失敗。改為複製到輸出。 -->
       <EmbedInteropTypes>False</EmbedInteropTypes>
       <Private>True</Private>
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\MarkingMate\MmAssembly\MMEditx641Lib.dll</HintPath>
+      <HintPath>C:\Program Files (x86)\MarkingMate\MmAssembly\MMEditx641Lib.dll</HintPath>
     </Reference>
     <Reference Include="MMMarkx641Lib, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <!-- 不可嵌入：Ax 包裝 (AxMMMark_x64_1.dll) 執行期仍依賴此 interop DLL，
-           嵌入會導致輸出目錄沒有 MMMarkx641Lib.dll → 載入失敗。改為複製到輸出。 -->
       <EmbedInteropTypes>False</EmbedInteropTypes>
       <Private>True</Private>
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\MarkingMate\MmAssembly\MMMarkx641Lib.dll</HintPath>
+      <HintPath>C:\Program Files (x86)\MarkingMate\MmAssembly\MMMarkx641Lib.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />

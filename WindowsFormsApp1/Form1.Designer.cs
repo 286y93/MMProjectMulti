@@ -167,6 +167,42 @@
             this.rdoWBMarkQR = new System.Windows.Forms.RadioButton();
             this.rdoWBMarkRect = new System.Windows.Forms.RadioButton();
             this.rdoWBMarkAll = new System.Windows.Forms.RadioButton();
+            // === 鋼鐵 + Quest 3 QR 專用參數 GroupBox ===
+            this.groupBoxQRSteel = new System.Windows.Forms.GroupBox();
+            this.lblSteelQrWidth = new System.Windows.Forms.Label();
+            this.txtSteelQrWidth = new System.Windows.Forms.TextBox();
+            this.lblSteelQrHeight = new System.Windows.Forms.Label();
+            this.txtSteelQrHeight = new System.Windows.Forms.TextBox();
+            this.lblSteelBorder = new System.Windows.Forms.Label();
+            this.txtSteelBorder = new System.Windows.Forms.TextBox();
+            this.lblSteelRectExtra = new System.Windows.Forms.Label();
+            this.txtSteelRectExtra = new System.Windows.Forms.TextBox();
+            this.lblSteelECLevel = new System.Windows.Forms.Label();
+            this.txtSteelECLevel = new System.Windows.Forms.TextBox();
+            this.lblSteelMarkStyle = new System.Windows.Forms.Label();
+            this.txtSteelMarkStyle = new System.Windows.Forms.TextBox();
+            this.lblSteelSpotSize = new System.Windows.Forms.Label();
+            this.txtSteelSpotSize = new System.Windows.Forms.TextBox();
+            this.lblSteelQrRepeat = new System.Windows.Forms.Label();
+            this.txtSteelQrRepeat = new System.Windows.Forms.TextBox();
+            this.lblSteelRectPower = new System.Windows.Forms.Label();
+            this.txtSteelRectPower = new System.Windows.Forms.TextBox();
+            this.lblSteelRectSpeed = new System.Windows.Forms.Label();
+            this.txtSteelRectSpeed = new System.Windows.Forms.TextBox();
+            this.lblSteelRectFreq = new System.Windows.Forms.Label();
+            this.txtSteelRectFreq = new System.Windows.Forms.TextBox();
+            this.lblSteelRectRepeat = new System.Windows.Forms.Label();
+            this.txtSteelRectRepeat = new System.Windows.Forms.TextBox();
+            this.lblSteelQrPower = new System.Windows.Forms.Label();
+            this.txtSteelQrPower = new System.Windows.Forms.TextBox();
+            this.lblSteelQrSpeed = new System.Windows.Forms.Label();
+            this.txtSteelQrSpeed = new System.Windows.Forms.TextBox();
+            this.lblSteelQrFreq = new System.Windows.Forms.Label();
+            this.txtSteelQrFreq = new System.Windows.Forms.TextBox();
+            this.lblSteelQrPulseWidth = new System.Windows.Forms.Label();
+            this.txtSteelQrPulseWidth = new System.Windows.Forms.TextBox();
+            this.btnQRSteelMark = new System.Windows.Forms.Button();
+            this.btnQRSteelPreview = new System.Windows.Forms.Button();
             // === CLI Builder 頁籤 ===
             this.tabPageCLIBuilder = new System.Windows.Forms.TabPage();
             this.grpCLIBuilder = new System.Windows.Forms.GroupBox();
@@ -250,6 +286,7 @@
             this.tabPageQRCode.SuspendLayout();
             this.groupBoxQRBasic.SuspendLayout();
             this.groupBoxQRWhiteBg.SuspendLayout();
+            this.groupBoxQRSteel.SuspendLayout();
             this.tabPageCLIBuilder.SuspendLayout();
             this.grpCLIBuilder.SuspendLayout();
             this.tabPageCmd.SuspendLayout();
@@ -1276,6 +1313,7 @@
             this.tabPageQRCode.Controls.Add(this.btnClearQR);
             this.tabPageQRCode.Controls.Add(this.txtQRStatus);
             this.tabPageQRCode.Controls.Add(this.groupBoxQRWhiteBg);
+            this.tabPageQRCode.Controls.Add(this.groupBoxQRSteel);
             this.tabPageQRCode.Location = new System.Drawing.Point(4, 25);
             this.tabPageQRCode.Name = "tabPageQRCode";
             this.tabPageQRCode.Padding = new System.Windows.Forms.Padding(3);
@@ -1726,6 +1764,225 @@
             this.btnQRWhiteBgMark.Text = "白底 QR 雙圖層打標";
             this.btnQRWhiteBgMark.UseVisualStyleBackColor = true;
             this.btnQRWhiteBgMark.Click += new System.EventHandler(this.btnQRWhiteBgMark_Click);
+            //
+            // === groupBoxQRSteel：鋼鐵 + Quest 3 QR 建議參數 ===
+            //
+            this.groupBoxQRSteel.Controls.Add(this.lblSteelQrWidth);
+            this.groupBoxQRSteel.Controls.Add(this.txtSteelQrWidth);
+            this.groupBoxQRSteel.Controls.Add(this.lblSteelQrHeight);
+            this.groupBoxQRSteel.Controls.Add(this.txtSteelQrHeight);
+            this.groupBoxQRSteel.Controls.Add(this.lblSteelBorder);
+            this.groupBoxQRSteel.Controls.Add(this.txtSteelBorder);
+            this.groupBoxQRSteel.Controls.Add(this.lblSteelRectExtra);
+            this.groupBoxQRSteel.Controls.Add(this.txtSteelRectExtra);
+            this.groupBoxQRSteel.Controls.Add(this.lblSteelECLevel);
+            this.groupBoxQRSteel.Controls.Add(this.txtSteelECLevel);
+            this.groupBoxQRSteel.Controls.Add(this.lblSteelMarkStyle);
+            this.groupBoxQRSteel.Controls.Add(this.txtSteelMarkStyle);
+            this.groupBoxQRSteel.Controls.Add(this.lblSteelSpotSize);
+            this.groupBoxQRSteel.Controls.Add(this.txtSteelSpotSize);
+            this.groupBoxQRSteel.Controls.Add(this.lblSteelQrRepeat);
+            this.groupBoxQRSteel.Controls.Add(this.txtSteelQrRepeat);
+            this.groupBoxQRSteel.Controls.Add(this.lblSteelRectPower);
+            this.groupBoxQRSteel.Controls.Add(this.txtSteelRectPower);
+            this.groupBoxQRSteel.Controls.Add(this.lblSteelRectSpeed);
+            this.groupBoxQRSteel.Controls.Add(this.txtSteelRectSpeed);
+            this.groupBoxQRSteel.Controls.Add(this.lblSteelRectFreq);
+            this.groupBoxQRSteel.Controls.Add(this.txtSteelRectFreq);
+            this.groupBoxQRSteel.Controls.Add(this.lblSteelRectRepeat);
+            this.groupBoxQRSteel.Controls.Add(this.txtSteelRectRepeat);
+            this.groupBoxQRSteel.Controls.Add(this.lblSteelQrPower);
+            this.groupBoxQRSteel.Controls.Add(this.txtSteelQrPower);
+            this.groupBoxQRSteel.Controls.Add(this.lblSteelQrSpeed);
+            this.groupBoxQRSteel.Controls.Add(this.txtSteelQrSpeed);
+            this.groupBoxQRSteel.Controls.Add(this.lblSteelQrFreq);
+            this.groupBoxQRSteel.Controls.Add(this.txtSteelQrFreq);
+            this.groupBoxQRSteel.Controls.Add(this.lblSteelQrPulseWidth);
+            this.groupBoxQRSteel.Controls.Add(this.txtSteelQrPulseWidth);
+            this.groupBoxQRSteel.Controls.Add(this.btnQRSteelPreview);
+            this.groupBoxQRSteel.Controls.Add(this.btnQRSteelMark);
+            // 位置：放在 QRCODE_白底 (450, 42, size 270×350) 的正下方，剛好塞進右下 270×305 空間。
+            // 左側 8~438 給 groupBoxQRBasic + 各按鈕 + txtQRStatus 用；tabPage 728×715 底部還有餘裕。
+            this.groupBoxQRSteel.Location = new System.Drawing.Point(450, 400);
+            this.groupBoxQRSteel.Name = "groupBoxQRSteel";
+            this.groupBoxQRSteel.Padding = new System.Windows.Forms.Padding(4);
+            this.groupBoxQRSteel.Size = new System.Drawing.Size(270, 305);
+            this.groupBoxQRSteel.TabIndex = 30;
+            this.groupBoxQRSteel.TabStop = false;
+            this.groupBoxQRSteel.Text = "QRCODE_鋼鐵Quest3";
+            // 兩欄緊湊排列：col1 label x=8 w~65 / textbox x=75 w=50；col2 label x=135 w~65 / textbox x=205 w=50。
+            //
+            // row 1: QR 寬 / QR 高
+            //
+            this.lblSteelQrWidth.AutoSize = true;
+            this.lblSteelQrWidth.Location = new System.Drawing.Point(8, 25);
+            this.lblSteelQrWidth.Name = "lblSteelQrWidth";
+            this.lblSteelQrWidth.Text = "QR寬:";
+            this.txtSteelQrWidth.Location = new System.Drawing.Point(75, 22);
+            this.txtSteelQrWidth.Name = "txtSteelQrWidth";
+            this.txtSteelQrWidth.Size = new System.Drawing.Size(50, 25);
+            this.txtSteelQrWidth.Text = "20";
+            this.lblSteelQrHeight.AutoSize = true;
+            this.lblSteelQrHeight.Location = new System.Drawing.Point(135, 25);
+            this.lblSteelQrHeight.Name = "lblSteelQrHeight";
+            this.lblSteelQrHeight.Text = "QR高:";
+            this.txtSteelQrHeight.Location = new System.Drawing.Point(205, 22);
+            this.txtSteelQrHeight.Name = "txtSteelQrHeight";
+            this.txtSteelQrHeight.Size = new System.Drawing.Size(50, 25);
+            this.txtSteelQrHeight.Text = "20";
+            //
+            // row 2: Border / RectExtra
+            //
+            this.lblSteelBorder.AutoSize = true;
+            this.lblSteelBorder.Location = new System.Drawing.Point(8, 53);
+            this.lblSteelBorder.Name = "lblSteelBorder";
+            this.lblSteelBorder.Text = "Border:";
+            this.txtSteelBorder.Location = new System.Drawing.Point(75, 50);
+            this.txtSteelBorder.Name = "txtSteelBorder";
+            this.txtSteelBorder.Size = new System.Drawing.Size(50, 25);
+            this.txtSteelBorder.Text = "4";
+            this.lblSteelRectExtra.AutoSize = true;
+            this.lblSteelRectExtra.Location = new System.Drawing.Point(135, 53);
+            this.lblSteelRectExtra.Name = "lblSteelRectExtra";
+            this.lblSteelRectExtra.Text = "矩形+X:";
+            this.txtSteelRectExtra.Location = new System.Drawing.Point(205, 50);
+            this.txtSteelRectExtra.Name = "txtSteelRectExtra";
+            this.txtSteelRectExtra.Size = new System.Drawing.Size(50, 25);
+            this.txtSteelRectExtra.Text = "0";
+            //
+            // row 3: ECLevel / MarkStyle
+            //
+            this.lblSteelECLevel.AutoSize = true;
+            this.lblSteelECLevel.Location = new System.Drawing.Point(8, 81);
+            this.lblSteelECLevel.Name = "lblSteelECLevel";
+            this.lblSteelECLevel.Text = "EC等級:";
+            this.txtSteelECLevel.Location = new System.Drawing.Point(75, 78);
+            this.txtSteelECLevel.Name = "txtSteelECLevel";
+            this.txtSteelECLevel.Size = new System.Drawing.Size(50, 25);
+            this.txtSteelECLevel.Text = "1";
+            this.lblSteelMarkStyle.AutoSize = true;
+            this.lblSteelMarkStyle.Location = new System.Drawing.Point(135, 81);
+            this.lblSteelMarkStyle.Name = "lblSteelMarkStyle";
+            this.lblSteelMarkStyle.Text = "MarkStyle:";
+            this.txtSteelMarkStyle.Location = new System.Drawing.Point(205, 78);
+            this.txtSteelMarkStyle.Name = "txtSteelMarkStyle";
+            this.txtSteelMarkStyle.Size = new System.Drawing.Size(50, 25);
+            this.txtSteelMarkStyle.Text = "1";
+            //
+            // row 4: SpotSize / QR Repeat
+            //
+            this.lblSteelSpotSize.AutoSize = true;
+            this.lblSteelSpotSize.Location = new System.Drawing.Point(8, 109);
+            this.lblSteelSpotSize.Name = "lblSteelSpotSize";
+            this.lblSteelSpotSize.Text = "Spot:";
+            this.txtSteelSpotSize.Location = new System.Drawing.Point(75, 106);
+            this.txtSteelSpotSize.Name = "txtSteelSpotSize";
+            this.txtSteelSpotSize.Size = new System.Drawing.Size(50, 25);
+            this.txtSteelSpotSize.Text = "0.05";
+            this.lblSteelQrRepeat.AutoSize = true;
+            this.lblSteelQrRepeat.Location = new System.Drawing.Point(135, 109);
+            this.lblSteelQrRepeat.Name = "lblSteelQrRepeat";
+            this.lblSteelQrRepeat.Text = "QR重複:";
+            this.txtSteelQrRepeat.Location = new System.Drawing.Point(205, 106);
+            this.txtSteelQrRepeat.Name = "txtSteelQrRepeat";
+            this.txtSteelQrRepeat.Size = new System.Drawing.Size(50, 25);
+            this.txtSteelQrRepeat.Text = "2";
+            //
+            // row 5: 白底功率 / 白底速度
+            //
+            this.lblSteelRectPower.AutoSize = true;
+            this.lblSteelRectPower.Location = new System.Drawing.Point(8, 137);
+            this.lblSteelRectPower.Name = "lblSteelRectPower";
+            this.lblSteelRectPower.Text = "底功率:";
+            this.txtSteelRectPower.Location = new System.Drawing.Point(75, 134);
+            this.txtSteelRectPower.Name = "txtSteelRectPower";
+            this.txtSteelRectPower.Size = new System.Drawing.Size(50, 25);
+            this.txtSteelRectPower.Text = "45";
+            this.lblSteelRectSpeed.AutoSize = true;
+            this.lblSteelRectSpeed.Location = new System.Drawing.Point(135, 137);
+            this.lblSteelRectSpeed.Name = "lblSteelRectSpeed";
+            this.lblSteelRectSpeed.Text = "底速度:";
+            this.txtSteelRectSpeed.Location = new System.Drawing.Point(205, 134);
+            this.txtSteelRectSpeed.Name = "txtSteelRectSpeed";
+            this.txtSteelRectSpeed.Size = new System.Drawing.Size(50, 25);
+            this.txtSteelRectSpeed.Text = "2500";
+            //
+            // row 6: 白底頻率 / 白底重複
+            //
+            this.lblSteelRectFreq.AutoSize = true;
+            this.lblSteelRectFreq.Location = new System.Drawing.Point(8, 165);
+            this.lblSteelRectFreq.Name = "lblSteelRectFreq";
+            this.lblSteelRectFreq.Text = "底頻率:";
+            this.txtSteelRectFreq.Location = new System.Drawing.Point(75, 162);
+            this.txtSteelRectFreq.Name = "txtSteelRectFreq";
+            this.txtSteelRectFreq.Size = new System.Drawing.Size(50, 25);
+            this.txtSteelRectFreq.Text = "50";
+            this.lblSteelRectRepeat.AutoSize = true;
+            this.lblSteelRectRepeat.Location = new System.Drawing.Point(135, 165);
+            this.lblSteelRectRepeat.Name = "lblSteelRectRepeat";
+            this.lblSteelRectRepeat.Text = "底重複:";
+            this.txtSteelRectRepeat.Location = new System.Drawing.Point(205, 162);
+            this.txtSteelRectRepeat.Name = "txtSteelRectRepeat";
+            this.txtSteelRectRepeat.Size = new System.Drawing.Size(50, 25);
+            this.txtSteelRectRepeat.Text = "2";
+            //
+            // row 7: QR 功率 / QR 速度
+            //
+            this.lblSteelQrPower.AutoSize = true;
+            this.lblSteelQrPower.Location = new System.Drawing.Point(8, 193);
+            this.lblSteelQrPower.Name = "lblSteelQrPower";
+            this.lblSteelQrPower.Text = "QR功率:";
+            this.txtSteelQrPower.Location = new System.Drawing.Point(75, 190);
+            this.txtSteelQrPower.Name = "txtSteelQrPower";
+            this.txtSteelQrPower.Size = new System.Drawing.Size(50, 25);
+            this.txtSteelQrPower.Text = "70";
+            this.lblSteelQrSpeed.AutoSize = true;
+            this.lblSteelQrSpeed.Location = new System.Drawing.Point(135, 193);
+            this.lblSteelQrSpeed.Name = "lblSteelQrSpeed";
+            this.lblSteelQrSpeed.Text = "QR速度:";
+            this.txtSteelQrSpeed.Location = new System.Drawing.Point(205, 190);
+            this.txtSteelQrSpeed.Name = "txtSteelQrSpeed";
+            this.txtSteelQrSpeed.Size = new System.Drawing.Size(50, 25);
+            this.txtSteelQrSpeed.Text = "500";
+            //
+            // row 8: QR 頻率 / QR PulseWidth
+            //
+            this.lblSteelQrFreq.AutoSize = true;
+            this.lblSteelQrFreq.Location = new System.Drawing.Point(8, 221);
+            this.lblSteelQrFreq.Name = "lblSteelQrFreq";
+            this.lblSteelQrFreq.Text = "QR頻率:";
+            this.txtSteelQrFreq.Location = new System.Drawing.Point(75, 218);
+            this.txtSteelQrFreq.Name = "txtSteelQrFreq";
+            this.txtSteelQrFreq.Size = new System.Drawing.Size(50, 25);
+            this.txtSteelQrFreq.Text = "25";
+            this.lblSteelQrPulseWidth.AutoSize = true;
+            this.lblSteelQrPulseWidth.Location = new System.Drawing.Point(135, 221);
+            this.lblSteelQrPulseWidth.Name = "lblSteelQrPulseWidth";
+            this.lblSteelQrPulseWidth.Text = "QR PW:";
+            this.txtSteelQrPulseWidth.Location = new System.Drawing.Point(205, 218);
+            this.txtSteelQrPulseWidth.Name = "txtSteelQrPulseWidth";
+            this.txtSteelQrPulseWidth.Size = new System.Drawing.Size(50, 25);
+            this.txtSteelQrPulseWidth.Text = "200";
+            //
+            // btnQRSteelPreview（左側：紅光預覽）
+            //
+            this.btnQRSteelPreview.Location = new System.Drawing.Point(10, 255);
+            this.btnQRSteelPreview.Name = "btnQRSteelPreview";
+            this.btnQRSteelPreview.Size = new System.Drawing.Size(120, 40);
+            this.btnQRSteelPreview.TabIndex = 99;
+            this.btnQRSteelPreview.Text = "紅光預覽 QR";
+            this.btnQRSteelPreview.UseVisualStyleBackColor = true;
+            this.btnQRSteelPreview.Click += new System.EventHandler(this.btnQRSteelPreview_Click);
+            //
+            // btnQRSteelMark（右側：實際雕刻）
+            //
+            this.btnQRSteelMark.Location = new System.Drawing.Point(140, 255);
+            this.btnQRSteelMark.Name = "btnQRSteelMark";
+            this.btnQRSteelMark.Size = new System.Drawing.Size(120, 40);
+            this.btnQRSteelMark.TabIndex = 100;
+            this.btnQRSteelMark.Text = "雕刻 QR";
+            this.btnQRSteelMark.UseVisualStyleBackColor = true;
+            this.btnQRSteelMark.Click += new System.EventHandler(this.btnQRSteelMark_Click);
             //
             // === tabPageCLIBuilder: CLI 編輯器 ===
             //
@@ -2257,6 +2514,8 @@
             this.groupBoxQRBasic.PerformLayout();
             this.groupBoxQRWhiteBg.ResumeLayout(false);
             this.groupBoxQRWhiteBg.PerformLayout();
+            this.groupBoxQRSteel.ResumeLayout(false);
+            this.groupBoxQRSteel.PerformLayout();
             this.tabPageCLIBuilder.ResumeLayout(false);
             this.tabPageCLIBuilder.PerformLayout();
             this.grpCLIBuilder.ResumeLayout(false);
@@ -2404,6 +2663,42 @@
         private System.Windows.Forms.RadioButton rdoWBMarkQR;
         private System.Windows.Forms.RadioButton rdoWBMarkRect;
         private System.Windows.Forms.RadioButton rdoWBMarkAll;
+        // === 鋼鐵 + Quest 3 QR ===
+        private System.Windows.Forms.GroupBox groupBoxQRSteel;
+        private System.Windows.Forms.Label lblSteelQrWidth;
+        private System.Windows.Forms.TextBox txtSteelQrWidth;
+        private System.Windows.Forms.Label lblSteelQrHeight;
+        private System.Windows.Forms.TextBox txtSteelQrHeight;
+        private System.Windows.Forms.Label lblSteelBorder;
+        private System.Windows.Forms.TextBox txtSteelBorder;
+        private System.Windows.Forms.Label lblSteelRectExtra;
+        private System.Windows.Forms.TextBox txtSteelRectExtra;
+        private System.Windows.Forms.Label lblSteelECLevel;
+        private System.Windows.Forms.TextBox txtSteelECLevel;
+        private System.Windows.Forms.Label lblSteelMarkStyle;
+        private System.Windows.Forms.TextBox txtSteelMarkStyle;
+        private System.Windows.Forms.Label lblSteelSpotSize;
+        private System.Windows.Forms.TextBox txtSteelSpotSize;
+        private System.Windows.Forms.Label lblSteelQrRepeat;
+        private System.Windows.Forms.TextBox txtSteelQrRepeat;
+        private System.Windows.Forms.Label lblSteelRectPower;
+        private System.Windows.Forms.TextBox txtSteelRectPower;
+        private System.Windows.Forms.Label lblSteelRectSpeed;
+        private System.Windows.Forms.TextBox txtSteelRectSpeed;
+        private System.Windows.Forms.Label lblSteelRectFreq;
+        private System.Windows.Forms.TextBox txtSteelRectFreq;
+        private System.Windows.Forms.Label lblSteelRectRepeat;
+        private System.Windows.Forms.TextBox txtSteelRectRepeat;
+        private System.Windows.Forms.Label lblSteelQrPower;
+        private System.Windows.Forms.TextBox txtSteelQrPower;
+        private System.Windows.Forms.Label lblSteelQrSpeed;
+        private System.Windows.Forms.TextBox txtSteelQrSpeed;
+        private System.Windows.Forms.Label lblSteelQrFreq;
+        private System.Windows.Forms.TextBox txtSteelQrFreq;
+        private System.Windows.Forms.Label lblSteelQrPulseWidth;
+        private System.Windows.Forms.TextBox txtSteelQrPulseWidth;
+        private System.Windows.Forms.Button btnQRSteelMark;
+        private System.Windows.Forms.Button btnQRSteelPreview;
         // === CLI Builder 頁籤控件 ===
         private System.Windows.Forms.TabPage tabPageCLIBuilder;
         private System.Windows.Forms.GroupBox grpCLIBuilder;
