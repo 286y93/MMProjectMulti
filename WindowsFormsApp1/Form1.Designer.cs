@@ -1983,18 +1983,6 @@
             this.txtSteelSerial.Size = new System.Drawing.Size(180, 25);
             this.txtSteelSerial.Text = "(建立後自動填入)";
             //
-            // row 9: 序號（唯讀顯示，每次「紅光預覽」或「雕刻」按下時自動更新）
-            //
-            this.lblSteelSerial.AutoSize = true;
-            this.lblSteelSerial.Location = new System.Drawing.Point(8, 253);
-            this.lblSteelSerial.Name = "lblSteelSerial";
-            this.lblSteelSerial.Text = "序號:";
-            this.txtSteelSerial.Location = new System.Drawing.Point(75, 250);
-            this.txtSteelSerial.Name = "txtSteelSerial";
-            this.txtSteelSerial.ReadOnly = true;
-            this.txtSteelSerial.Size = new System.Drawing.Size(180, 25);
-            this.txtSteelSerial.Text = "(建立後自動填入)";
-            //
             // btnQRSteelPreview（左：紅光預覽）；三顆按鈕塞同一列，寬度各 82
             //
             this.btnQRSteelPreview.Location = new System.Drawing.Point(8, 285);
@@ -2017,7 +2005,7 @@
             //
             // btnQRSteelStopPreview（右：停止預覽 / 打標）
             //
-            this.btnQRSteelStopPreview.Location = new System.Drawing.Point(180, 255);
+            this.btnQRSteelStopPreview.Location = new System.Drawing.Point(180, 285);
             this.btnQRSteelStopPreview.Name = "btnQRSteelStopPreview";
             this.btnQRSteelStopPreview.Size = new System.Drawing.Size(82, 40);
             this.btnQRSteelStopPreview.TabIndex = 101;
