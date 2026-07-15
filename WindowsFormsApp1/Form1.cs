@@ -968,6 +968,7 @@ namespace WindowsFormsApp1
                 btnPreviewQR.Enabled = true;
                 btnClearQR.Enabled = true;
                 btnQRWhiteBgMark.Enabled = true;
+                btnQRWhiteBgPreview.Enabled = true;
                 btnCLIExecuteMark.Enabled = true;
 
                 MessageBox.Show($"晶片板 {boardIndex + 1} 完成！", "完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -1955,7 +1956,7 @@ namespace WindowsFormsApp1
         }
 
         // QR 容錯等級（EC Level）：SDK Set2DBarcodeQRECLevel 定義 0=Low 1=Medium 2=Quartil 3=High。
-        private const int QR_EC_LEVEL_LOW = 0;
+        private const int QR_EC_LEVEL_LOW = 2;
 
         /// <summary>
         /// 對指定板剛 AddBarcode 加入的 QR 物件設定容錯等級為 LOW（EC Level=0）。
@@ -3618,12 +3619,50 @@ namespace WindowsFormsApp1
         }
 
         /// <summary>
+        /// 呼叫指定 action 並限制執行時間；若超時則放棄（背景執行緒不阻塞）。
+        /// 用 STA 執行緒 + pumping join，讓可能 COM 回呼 UI 執行緒的方法不會 deadlock。
+        /// </summary>
+        private static bool CallWithTimeout(Action action, int timeoutMs)
+        {
+            var t = new Thread(() =>
+            {
+                try { action(); } catch { /* 忽略 */ }
+            });
+            t.IsBackground = true;
+            try { t.SetApartmentState(ApartmentState.STA); } catch { }
+            t.Start();
+
+            // 用 pumping join：每 50ms 嘗試 join 並打 DoEvents，避免 COM 卡在 UI 訊息佇列
+            var start = Environment.TickCount;
+            while (!t.Join(50))
+            {
+                try { Application.DoEvents(); } catch { }
+                if (Environment.TickCount - start > timeoutMs) return false;
+            }
+            return true;
+        }
+
+        /// <summary>
         /// 清理舊的控件（防止殘留導致初始化失敗）
+        /// Finish() 可能卡在等硬體，使用 timeout 包裝避免整支程式卡住。
         /// </summary>
         private void CleanupOldControls()
         {
             try
             {
+                // Step 1: 先停打標 timer / 停打標本身 / 關閉打標引擎（皆 timeout 保護）
+                try { timerMark.Stop(); } catch { }
+                try { timerPreview.Stop(); } catch { }
+                for (int i = 0; i < 4; i++)
+                {
+                    if (m_MMMark[i] != null && m_bBoardInit[i])
+                    {
+                        int idx = i;
+                        CallWithTimeout(() => { try { m_MMMark[idx].StopMarking(); } catch { } }, 1000);
+                        CallWithTimeout(() => { try { m_MMMark[idx].MarkShutdown(); } catch { } }, 1000);
+                    }
+                }
+
                 for (int i = 0; i < 4; i++)
                 {
                     // 清理 MMMark
@@ -3633,15 +3672,23 @@ namespace WindowsFormsApp1
                         {
                             if (m_bBoardInit[i])
                             {
-                                m_MMMark[i].Finish();
+                                int idx = i; // 避免 closure 抓錯
+                                bool finished = CallWithTimeout(() =>
+                                {
+                                    try { m_MMMark[idx].Finish(); } catch { }
+                                }, 2000);
+                                if (!finished)
+                                    System.Diagnostics.Debug.WriteLine($"MMMark[{idx}].Finish() 超時 2s，強制略過");
                             }
 
                             if (m_Panels[i].Controls.Contains(m_MMMark[i]))
                             {
-                                m_Panels[i].Controls.Remove(m_MMMark[i]);
+                                try { m_Panels[i].Controls.Remove(m_MMMark[i]); } catch { }
                             }
 
-                            m_MMMark[i].Dispose();
+                            int idxD1 = i;
+                            var refD1 = m_MMMark[i];
+                            CallWithTimeout(() => { try { refD1.Dispose(); } catch { } }, 1000);
                             m_MMMark[i] = null;
                         }
                         catch (Exception ex)
@@ -3657,15 +3704,23 @@ namespace WindowsFormsApp1
                         {
                             if (m_bBoardInit[i])
                             {
-                                m_MMEdit[i].Finish();
+                                int idx = i;
+                                bool finished = CallWithTimeout(() =>
+                                {
+                                    try { m_MMEdit[idx].Finish(); } catch { }
+                                }, 2000);
+                                if (!finished)
+                                    System.Diagnostics.Debug.WriteLine($"MMEdit[{idx}].Finish() 超時 2s，強制略過");
                             }
 
                             if (this.Controls.Contains(m_MMEdit[i]))
                             {
-                                this.Controls.Remove(m_MMEdit[i]);
+                                try { this.Controls.Remove(m_MMEdit[i]); } catch { }
                             }
 
-                            m_MMEdit[i].Dispose();
+                            int idxD2 = i;
+                            var refD2 = m_MMEdit[i];
+                            CallWithTimeout(() => { try { refD2.Dispose(); } catch { } }, 1000);
                             m_MMEdit[i] = null;
                         }
                         catch (Exception ex)
@@ -3676,6 +3731,17 @@ namespace WindowsFormsApp1
 
                     m_bBoardInit[i] = false;
                 }
+
+                // Step 3: 最後掃殘留的 MM27Dx64 背景進程，避免下次啟動失敗
+                try
+                {
+                    var procs = System.Diagnostics.Process.GetProcessesByName("MM27Dx64");
+                    foreach (var proc in procs)
+                    {
+                        try { proc.Kill(); } catch { }
+                    }
+                }
+                catch { }
 
                 m_bInit = false;
                 Application.DoEvents();
@@ -4519,8 +4585,55 @@ namespace WindowsFormsApp1
                 double qrActualW = m_MMEdit[boardIndex].GetWidth(qrName);
                 double qrActualH = m_MMEdit[boardIndex].GetHeight(qrName);
 
+                // 產生序號並顯示 + 建立序號文字物件（位置依 QUEST3 border × cellW 邏輯）
+                string serial = NextSerial(WhiteBgCounterFileName);
+                if (txtWBSerial != null) txtWBSerial.Text = serial;
+
+                double qrModuleTopY = qrHeight / 2.0;
+                double borderZoneWidth = qrBorder * cellW;
+                double borderTopY = qrModuleTopY + borderZoneWidth;
+                double serialFontSize = Math.Max(qrHeight / 8.0, 1.5);
+                double serialCx = -qrWidth / 2.0;
+                double serialCy;
+                if (qrBorder > 0 && borderZoneWidth > 0)
+                {
+                    const double marginAboveBorder = 0.5;
+                    serialCy = borderTopY + serialFontSize / 2.0 + marginAboveBorder;
+                }
+                else
+                {
+                    serialCy = qrModuleTopY + serialFontSize / 2.0 + 1.0;
+                }
+
+                string serialName = "QRWhiteBg_Serial";
+                long rT = m_MMMark[boardIndex].AddText(serial, serialCx, serialCy, "", serialName);
+                Console.Error.WriteLine(
+                    $"[Board {boardIndex + 1}] WhiteBg Create AddText serial=\"{serial}\" rc={rT} @({serialCx:F2},{serialCy:F2}) h={serialFontSize:F2}");
+                if (rT == 0)
+                {
+                    try
+                    {
+                        m_MMEdit[boardIndex].SetFontSize(serialName, serialFontSize);
+                        m_MMMark[boardIndex].SetSpeed(serialName, qrSpeed);
+                        m_MMMark[boardIndex].SetPower(serialName, qrPower);
+                        m_MMMark[boardIndex].SetFrequency(serialName, 200);
+                        m_MMMark[boardIndex].SetMarkRepeat(serialName, 2);
+                        m_MMMark[boardIndex].SetPulseWidth(serialName, 13);
+                    }
+                    catch (Exception exS)
+                    {
+                        Console.Error.WriteLine($"[Board {boardIndex + 1}] WhiteBg Create serial text 屬性設定失敗（略過）: {exS.Message}");
+                    }
+                }
+
+                // Redraw 讓序號文字顯示在畫面
+                m_MMMark[boardIndex].Redraw();
+                Application.DoEvents();
+                Thread.Sleep(200);
+
                 txtQRStatus.Text =
                     $"晶片板 {boardIndex + 1} 已建立 QR Code\r\n" +
+                    $"序號: {serial}\r\n" +
                     $"目標尺寸: {qrWidth} × {qrHeight} mm\r\n" +
                     $"渲染尺寸: {qrActualW:F2} × {qrActualH:F2} mm\r\n" +
                     $"QR Version: {qrVersion} (modules={modules})\r\n" +
@@ -4545,7 +4658,42 @@ namespace WindowsFormsApp1
         ///   - SetFillStyle = 0（用戶明示，含義依 SDK 解釋）
         ///   - SetBarcodeSpotDelay 內部單位假設為 μs：1ms=1000, 0.1ms=100
         /// </summary>
-        private void btnQRWhiteBgMark_Click(object sender, EventArgs e)
+        private void btnQRWhiteBgMark_Click(object sender, EventArgs e) => ExecuteQRWhiteBg(isPreview: false);
+        private void btnQRWhiteBgPreview_Click(object sender, EventArgs e) => ExecuteQRWhiteBg(isPreview: true);
+
+        /// <summary>白底 QR：停止紅光預覽 / 打標。</summary>
+        private void btnQRWhiteBgStopPreview_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit) return;
+            try
+            {
+                timerMark.Stop();
+                timerPreview.Stop();
+                for (int i = 0; i < m_bBoardInit.Length; i++)
+                {
+                    if (m_bBoardInit[i])
+                    {
+                        try { m_MMMark[i].StopMarking(); } catch { }
+                    }
+                }
+                m_bPreviewing = false;
+                m_iPreviewBoard = -1;
+                ResetPreviewButtonsAfterStop();
+                btnQRWhiteBgMark.Enabled = true;
+                btnQRWhiteBgPreview.Enabled = true;
+                txtQRStatus.Text = "白底 QR 已停止。";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"停止失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// 白底 QR 雙圖層核心流程：建立矩形 / QR / 序號文字 → 依 isPreview 決定 StartMarking(3) 紅光預覽或 StartMarking(4) 正常打標。
+        /// 兩個按鈕（打標、紅光預覽）共用此方法。
+        /// </summary>
+        private void ExecuteQRWhiteBg(bool isPreview)
         {
             if (!m_bInit)
             {
@@ -4601,13 +4749,17 @@ namespace WindowsFormsApp1
                 Application.DoEvents();
                 Thread.Sleep(200);
 
-                // === 依 RadioButton 選擇性建立 QR / 矩形 ===
+                // === 依 RadioButton 選擇性建立 QR / 矩形 / 序號文字 ===
                 string qrName = "QRWhiteBg_QR";
                 string rectName = "QRWhiteBg_Rect";
+                string serialName = "QRWhiteBg_Serial";
 
                 // 矩形基準尺寸：預設 UI 設定值；若 QR 有建立則改用 QR 實際渲染尺寸（消除 SDK cellSize 捨入誤差）
                 double rectBaseW = qrWidth;
                 double rectBaseH = qrHeight;
+
+                // cellW / cellH 提升到外層 scope，讓後面序號文字位置也能用（依 border × cellW 計算）
+                double cellW = 0, cellH = 0;
 
                 if (markQR)
                 {
@@ -4654,8 +4806,8 @@ namespace WindowsFormsApp1
                     if (qrVersion < 1) qrVersion = 1;
                     int modules = 17 + 4 * (int)qrVersion;
                     // Option B：UI 長寬 = 模組區大小，cellSize 只由 modules 決定，外框會額外加大 QR 總尺寸
-                    double cellW = qrWidth / modules;
-                    double cellH = qrHeight / modules;
+                    cellW = qrWidth / modules;
+                    cellH = qrHeight / modules;
                     Console.Error.WriteLine($"[Board {boardIndex + 1}] QR Version={qrVersion} modules={modules} border={qrBorder} → cellW={cellW:F4} cellH={cellH:F4}");
                     m_MMEdit[boardIndex].Set2DBarcodeFixedCellSize(qrName, cellW, cellH);
                     m_MMMark[boardIndex].Redraw();
@@ -4712,24 +4864,106 @@ namespace WindowsFormsApp1
                     Console.Error.WriteLine($"[Board {boardIndex + 1}] ChangeObjectOrder rect→before(qr) rc={rOrd}");
                 }
 
-                // 8) 最終 Redraw + 打標
+                // 7) 取序號（提前，讓文字物件可用序號當內容）
+                string serial = NextSerial(WhiteBgCounterFileName);
+                if (txtWBSerial != null) txtWBSerial.Text = serial;
+
+                // 7.5) 新增序號文字物件（位置依 QUEST3 邏輯：border × cellW 顯式計算）
+                //      文字最下緣 > border 最高 y（若 border=0 fallback 到 QR 模組頂邊 + 1mm）
+                double effCellW = cellW > 0 ? cellW : qrWidth / 21.0;   // 若 QR 沒建立，用 Version 1 假設
+                double qrModuleTopY = qrHeight / 2.0;
+                double borderZoneWidth = qrBorder * effCellW;
+                double borderTopY = qrModuleTopY + borderZoneWidth;
+                double serialFontSize = Math.Max(qrHeight / 8.0, 1.5);
+                double serialCx = -qrWidth / 2.0;
+                double serialCy;
+                if (qrBorder > 0 && borderZoneWidth > 0)
+                {
+                    const double marginAboveBorder = 0.5;
+                    serialCy = borderTopY + serialFontSize / 2.0 + marginAboveBorder;
+                }
+                else
+                {
+                    serialCy = qrModuleTopY + serialFontSize / 2.0 + 1.0;
+                }
+
+                long rT = m_MMMark[boardIndex].AddText(serial, serialCx, serialCy, "", serialName);
+                Console.Error.WriteLine(
+                    $"[Board {boardIndex + 1}] WhiteBg AddText serial=\"{serial}\" rc={rT} @({serialCx:F2},{serialCy:F2}) h={serialFontSize:F2} border={qrBorder} cellW={effCellW:F4}");
+                bool serialAdded = (rT == 0);
+                if (serialAdded)
+                {
+                    try
+                    {
+                        m_MMEdit[boardIndex].SetFontSize(serialName, serialFontSize);
+                        m_MMMark[boardIndex].SetSpeed(serialName, qrSpeed);
+                        m_MMMark[boardIndex].SetPower(serialName, qrPower);
+                        m_MMMark[boardIndex].SetFrequency(serialName, 200);
+                        m_MMMark[boardIndex].SetMarkRepeat(serialName, 2);
+                        m_MMMark[boardIndex].SetPulseWidth(serialName, 13);
+                    }
+                    catch (Exception exS)
+                    {
+                        Console.Error.WriteLine($"[Board {boardIndex + 1}] WhiteBg serial text 屬性設定失敗（略過）: {exS.Message}");
+                    }
+                }
+
+                // 8) 最終 Redraw
                 m_MMMark[boardIndex].Redraw();
                 Application.DoEvents();
                 Thread.Sleep(300);
 
-                m_MMMark[boardIndex].MarkStandBy();
-                if (m_MMMark[boardIndex].StartMarking(4) != 0)
+                double estTotalSec = 0, estTotalLen = 0, estRectSec = 0, estQrSec = 0, estSerialSec = 0;
+                try
                 {
-                    MessageBox.Show($"晶片板 {boardIndex + 1} 打標啟動失敗！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
+                    estTotalSec = m_MMMark[boardIndex].GetEstimatedTotalTime();
+                    estTotalLen = m_MMMark[boardIndex].GetEstimatedTotalLength();
+                    if (markRect) estRectSec = m_MMMark[boardIndex].GetSKWObjTime(rectName);
+                    if (markQR) estQrSec = m_MMMark[boardIndex].GetSKWObjTime(qrName);
+                    if (serialAdded) estSerialSec = m_MMMark[boardIndex].GetSKWObjTime(serialName);
+                    Console.Error.WriteLine(
+                        $"[Board {boardIndex + 1}] WhiteBg time est: total={estTotalSec:F2}s len={estTotalLen:F2}mm " +
+                        $"rect={estRectSec:F2}s qr={estQrSec:F2}s serial={estSerialSec:F2}s");
                 }
+                catch (Exception exT) { Console.Error.WriteLine($"WhiteBg est time 失敗: {exT.Message}"); }
 
-                // 啟動 Timer 監控
-                timerMark.Tag = boardIndex;
-                timerMark.Start();
+                WriteWhiteBgParaLog(serial, boardIndex,
+                    markQR, markRect,
+                    qrWidth, qrHeight, qrBorder, rectExtra,
+                    qrSpeed, qrPower,
+                    rectSpeed, rectPower,
+                    estTotalSec, estTotalLen, estRectSec, estQrSec, estSerialSec);
+
+                // 9) 打標 or 紅光預覽
+                if (isPreview)
+                {
+                    m_MMMark[boardIndex].SetPreviewMode(2);
+                    m_MMMark[boardIndex].MarkStandBy();
+                    if (m_MMMark[boardIndex].StartMarking(3) != 0)
+                    {
+                        MessageBox.Show($"晶片板 {boardIndex + 1} 預覽啟動失敗！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+                    m_bPreviewing = true;
+                    m_iPreviewBoard = boardIndex;
+                    timerPreview.Tag = new object[] { boardIndex, 15 };
+                    timerPreview.Start();
+                }
+                else
+                {
+                    m_MMMark[boardIndex].MarkStandBy();
+                    if (m_MMMark[boardIndex].StartMarking(4) != 0)
+                    {
+                        MessageBox.Show($"晶片板 {boardIndex + 1} 打標啟動失敗！", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+                    timerMark.Tag = boardIndex;
+                    timerMark.Start();
+                }
 
                 // 停用相關按鈕
                 btnQRWhiteBgMark.Enabled = false;
+                btnQRWhiteBgPreview.Enabled = false;
                 btnMarkQR.Enabled = false;
                 btnLoadQR.Enabled = false;
                 btnPreviewQR.Enabled = false;
@@ -4742,7 +4976,8 @@ namespace WindowsFormsApp1
                 string targetDesc = (markQR && markRect) ? $"先 {rectName} 後 {qrName}"
                                    : markQR ? qrName
                                    : rectName;
-                txtQRStatus.Text = $"晶片板 {boardIndex + 1} 打標中（{targetDesc}）";
+                string actionDesc = isPreview ? "紅光預覽" : "打標";
+                txtQRStatus.Text = $"晶片板 {boardIndex + 1} {actionDesc}中（{targetDesc}），序號 {serial}，預估 {estTotalSec:F1}s";
             }
             catch (Exception ex)
             {
@@ -4755,23 +4990,17 @@ namespace WindowsFormsApp1
         // 狀態存在 QRCodePara\counter.txt，內容一行 "YYYYMMDD NNN"。
 
         private const string QRCodeCounterFileName = "counter.txt";
-
-        /// <summary>取得 QRCodePara 資料夾絕對路徑（跟 exe 同層，跨機器都能用）。</summary>
-        private static string GetQRCodeParaDir()
-        {
-            string exeDir = Path.GetDirectoryName(Application.ExecutablePath);
-            return Path.Combine(exeDir, "QRCodePara");
-        }
+        private const string WhiteBgCounterFileName = "counter_whitebg.txt";
+        private const string WhiteBgFilePrefix = "QRCODE_白底";
 
         /// <summary>
-        /// 取得下一組鋼鐵 Quest3 QR 序號（YYYYMMDD-NNN），並將 counter.txt 更新。
-        /// 同一日 NNN 累加至 999 上限（超過會滾回並仍寫入，但實務上不會用到）；換日重置為 001。
+        /// 取得下一組序號（YYYYMMDD-NNN）。counterFile 決定使用哪個計數器檔（Steel/白底 分別維護）。
         /// </summary>
-        private static string NextSteelSerial()
+        private static string NextSerial(string counterFile)
         {
             string dir = GetQRCodeParaDir();
             Directory.CreateDirectory(dir);
-            string counterPath = Path.Combine(dir, QRCodeCounterFileName);
+            string counterPath = Path.Combine(dir, counterFile);
 
             string today = DateTime.Now.ToString("yyyyMMdd");
             int nextSeq = 1;
@@ -4790,6 +5019,18 @@ namespace WindowsFormsApp1
             return $"{today}-{nextSeq:D3}";
         }
 
+        /// <summary>取得 QRCodePara 資料夾絕對路徑（跟 exe 同層，跨機器都能用）。</summary>
+        private static string GetQRCodeParaDir()
+        {
+            string exeDir = Path.GetDirectoryName(Application.ExecutablePath);
+            return Path.Combine(exeDir, "QRCodePara");
+        }
+
+        /// <summary>
+        /// 取得下一組鋼鐵 Quest3 QR 序號（YYYYMMDD-NNN）。
+        /// </summary>
+        private static string NextSteelSerial() => NextSerial(QRCodeCounterFileName);
+
         /// <summary>
         /// 將本次鋼鐵 Quest3 QR 使用的所有參數寫成 txt，檔名為序號.txt。
         /// action = "PREVIEW" 或 "MARK"，便於事後回溯。
@@ -4799,7 +5040,9 @@ namespace WindowsFormsApp1
             double qrWidth, double qrHeight, int border, double rectExtra,
             int ecLevel, int markStyle, double spotSize, int qrRepeat,
             double rectPower, double rectSpeed, double rectFreq, int rectRepeat,
-            double qrPower, double qrSpeed, double qrFreq, double qrPulseWidth)
+            double qrPower, double qrSpeed, double qrFreq, double qrPulseWidth,
+            double estTotalSec = 0, double estTotalLen = 0,
+            double estRectSec = 0, double estQrSec = 0, double estSerialSec = 0)
         {
             try
             {
@@ -4842,6 +5085,13 @@ namespace WindowsFormsApp1
                 sb.AppendLine("[工作區]");
                 sb.AppendLine($"Workspace W  : {m_WorkspaceSize} mm");
                 sb.AppendLine($"Workspace H  : {m_WorkspaceHeight} mm");
+                sb.AppendLine();
+                sb.AppendLine("[SDK 預估打標時間 & 路徑長度]");
+                sb.AppendLine($"Total Time   : {estTotalSec:F3} sec");
+                sb.AppendLine($"Total Length : {estTotalLen:F3} mm");
+                sb.AppendLine($"  ├ Rect Time  : {estRectSec:F3} sec");
+                sb.AppendLine($"  ├ QR Time    : {estQrSec:F3} sec");
+                sb.AppendLine($"  └ Serial Time: {estSerialSec:F3} sec");
 
                 File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
                 Console.Error.WriteLine($"[Board {boardIndex + 1}] Steel QR para log → {path}");
@@ -4849,6 +5099,64 @@ namespace WindowsFormsApp1
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"[Board {boardIndex + 1}] WriteSteelQRParaLog failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 將 QRCODE_白底 雙圖層打標的參數 + 預估時間寫入 QRCODE_白底&lt;serial&gt;.txt。
+        /// </summary>
+        private void WriteWhiteBgParaLog(string serial, int boardIndex,
+            bool markQR, bool markRect,
+            double qrWidth, double qrHeight, double quietZone, double rectExtra,
+            double qrSpeed, double qrPower,
+            double rectSpeed, double rectPower,
+            double estTotalSec, double estTotalLen,
+            double estRectSec, double estQrSec, double estSerialSec = 0)
+        {
+            try
+            {
+                string dir = GetQRCodeParaDir();
+                Directory.CreateDirectory(dir);
+                string path = Path.Combine(dir, $"{WhiteBgFilePrefix}{serial}.txt");
+
+                var sb = new StringBuilder();
+                sb.AppendLine("# MarkingMate QRCODE_白底 參數記錄");
+                sb.AppendLine($"Serial       : {serial}");
+                sb.AppendLine($"Timestamp    : {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                sb.AppendLine($"Board        : {boardIndex + 1}");
+                sb.AppendLine($"Mark Target  : QR={markQR} Rect={markRect}");
+                sb.AppendLine();
+                sb.AppendLine("[QR 幾何]");
+                sb.AppendLine($"QR Width     : {qrWidth} mm");
+                sb.AppendLine($"QR Height    : {qrHeight} mm");
+                sb.AppendLine($"Border/QuietZone : {quietZone} units");
+                sb.AppendLine($"Rect Extra X : {rectExtra} mm");
+                sb.AppendLine();
+                sb.AppendLine("[QR 雷射參數]");
+                sb.AppendLine($"QR Speed     : {qrSpeed} mm/s");
+                sb.AppendLine($"QR Power     : {qrPower} %");
+                sb.AppendLine();
+                sb.AppendLine("[矩形雷射參數]");
+                sb.AppendLine($"Rect Speed   : {rectSpeed} mm/s");
+                sb.AppendLine($"Rect Power   : {rectPower} %");
+                sb.AppendLine();
+                sb.AppendLine("[工作區]");
+                sb.AppendLine($"Workspace W  : {m_WorkspaceSize} mm");
+                sb.AppendLine($"Workspace H  : {m_WorkspaceHeight} mm");
+                sb.AppendLine();
+                sb.AppendLine("[SDK 預估打標時間 & 路徑長度]");
+                sb.AppendLine($"Total Time   : {estTotalSec:F3} sec");
+                sb.AppendLine($"Total Length : {estTotalLen:F3} mm");
+                sb.AppendLine($"  ├ Rect Time  : {estRectSec:F3} sec");
+                sb.AppendLine($"  ├ QR Time    : {estQrSec:F3} sec");
+                sb.AppendLine($"  └ Serial Time: {estSerialSec:F3} sec");
+
+                File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
+                Console.Error.WriteLine($"[Board {boardIndex + 1}] WriteWhiteBgParaLog → {path}");
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[Board {boardIndex + 1}] WriteWhiteBgParaLog failed: {ex.Message}");
             }
         }
 
@@ -4873,13 +5181,13 @@ namespace WindowsFormsApp1
             if (!double.TryParse(txtSteelSpotSize.Text.Trim(), out double spotSize) || spotSize <= 0) spotSize = 0.05;
             if (!int.TryParse(txtSteelQrRepeat.Text.Trim(), out int qrRepeat) || qrRepeat < 1) qrRepeat = 2;
             if (!double.TryParse(txtSteelRectPower.Text.Trim(), out double rectPower)) rectPower = 45;
-            if (!double.TryParse(txtSteelRectSpeed.Text.Trim(), out double rectSpeed) || rectSpeed <= 0) rectSpeed = 2500;
-            if (!double.TryParse(txtSteelRectFreq.Text.Trim(), out double rectFreq) || rectFreq <= 0) rectFreq = 50;
+            if (!double.TryParse(txtSteelRectSpeed.Text.Trim(), out double rectSpeed) || rectSpeed <= 0) rectSpeed = 3000;
+            if (!double.TryParse(txtSteelRectFreq.Text.Trim(), out double rectFreq) || rectFreq <= 0) rectFreq = 80;
             if (!int.TryParse(txtSteelRectRepeat.Text.Trim(), out int rectRepeat) || rectRepeat < 1) rectRepeat = 2;
-            if (!double.TryParse(txtSteelQrPower.Text.Trim(), out double qrPower)) qrPower = 70;
+            if (!double.TryParse(txtSteelQrPower.Text.Trim(), out double qrPower)) qrPower = 85;
             if (!double.TryParse(txtSteelQrSpeed.Text.Trim(), out double qrSpeed) || qrSpeed <= 0) qrSpeed = 500;
             if (!double.TryParse(txtSteelQrFreq.Text.Trim(), out double qrFreq) || qrFreq <= 0) qrFreq = 25;
-            if (!double.TryParse(txtSteelQrPulseWidth.Text.Trim(), out double qrPulseWidth) || qrPulseWidth <= 0) qrPulseWidth = 200;
+            if (!double.TryParse(txtSteelQrPulseWidth.Text.Trim(), out double qrPulseWidth) || qrPulseWidth <= 0) qrPulseWidth = 400;
 
             // QR 內容：與其他 QR 按鈕共用 txtQRContent
             string content = txtQRContent.Text?.Trim();
@@ -4903,64 +5211,54 @@ namespace WindowsFormsApp1
             Application.DoEvents();
             Thread.Sleep(200);
 
-            // 1) 建立 QR 物件
-            long rQR = m_MMMark[boardIndex].AddBarcode(
-                BARCODE_TYPE_QRCODE, content, 0, 0, qrWidth, qrHeight, "", qrName);
-            Console.Error.WriteLine($"[Board {boardIndex + 1}] Steel AddBarcode rc={rQR} content=\"{content}\"");
-            if (rQR != 0)
+            // === 為了決定 QR 實際渲染尺寸，先建立一個「暫存 QR」查詢 Version → 算完 cellSize 後刪除 → 依正確順序重建 ===
+
+            // Step A) 建立暫存 QR，查 Version + 算 cellSize
+            string tempQrName = "QRSteel_TempQR";
+            long rTemp = m_MMMark[boardIndex].AddBarcode(
+                BARCODE_TYPE_QRCODE, content, 0, 0, qrWidth, qrHeight, "", tempQrName);
+            if (rTemp != 0)
             {
-                MessageBox.Show($"建立 QR Code 失敗！回傳碼: {rQR}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"建立暫存 QR 失敗！回傳碼: {rTemp}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
-            Application.DoEvents();
-            Thread.Sleep(200);
-
-            // 2) QR 屬性（鋼鐵版：dot mode / 使用者指定 EC / spotSize / repeat）
-            m_MMEdit[boardIndex].SetBarcodeInvert(qrName, 1);                        // 反相（白底反相 QR）
-            m_MMEdit[boardIndex].Set2DBarcodeQRECLevel(qrName, ecLevel);             // 使用者指定 EC
-            m_MMEdit[boardIndex].Set2DBarcodeFixedType(qrName, 0);
-            m_MMEdit[boardIndex].Set2DBarcodeFixedCellSize(qrName, 1, 1);            // 占位，稍後反推
-            ApplyQRBorder(boardIndex, qrName, border);                                // Border + LineExtend
-            m_MMEdit[boardIndex].SetBarcodeMarkStyle(qrName, markStyle);             // 1=dot, 2=fill
-            m_MMEdit[boardIndex].SetBarcodeLineType(qrName, 0);
-            m_MMEdit[boardIndex].SetBarcodeSpotSize(qrName, spotSize);               // 鋼鐵建議 0.05
-            m_MMEdit[boardIndex].SetBarcodeLineTimes(qrName, 1);
-            m_MMEdit[boardIndex].SetFillStartAngle(qrName, 0);
-            m_MMEdit[boardIndex].SetFillStepAngle(qrName, 90);
-            m_MMEdit[boardIndex].SetBarcodeLineTwoway(qrName, 1);
-            m_MMEdit[boardIndex].SetFrameSwitch(qrName, 1);
-            m_MMEdit[boardIndex].SetFillSwitch(qrName, 1);
-            m_MMEdit[boardIndex].SetFillFirstExt(qrName, 0, 1);
-            m_MMMark[boardIndex].SetSpeed(qrName, qrSpeed);                           // 慢速換深度
-            m_MMMark[boardIndex].SetPower(qrName, qrPower);                           // 高功率
-            m_MMMark[boardIndex].SetFrequency(qrName, qrFreq);                        // 低頻高能量單點
-            m_MMMark[boardIndex].SetMarkRepeat(qrName, qrRepeat);                     // 重複疊深
-            m_MMEdit[boardIndex].SetBarcodeSpotDelay(qrName, 1000);
-            m_MMMark[boardIndex].SetPulseWidth(qrName, qrPulseWidth);                 // 長脈衝
-
-            // 3) Redraw + 反推 cellSize
+            m_MMEdit[boardIndex].Set2DBarcodeQRECLevel(tempQrName, ecLevel);
+            m_MMEdit[boardIndex].Set2DBarcodeFixedType(tempQrName, 0);
+            m_MMEdit[boardIndex].Set2DBarcodeFixedCellSize(tempQrName, 1, 1);
+            ApplyQRBorder(boardIndex, tempQrName, border);
             m_MMMark[boardIndex].Redraw();
             Application.DoEvents();
             Thread.Sleep(300);
-            long qrVersion = m_MMEdit[boardIndex].Get2DBarcodeQRVersion(qrName);
+
+            long qrVersion = m_MMEdit[boardIndex].Get2DBarcodeQRVersion(tempQrName);
             if (qrVersion < 1) qrVersion = 1;
             int modules = 17 + 4 * (int)qrVersion;
             double cellW = qrWidth / modules;
             double cellH = qrHeight / modules;
-            Console.Error.WriteLine(
-                $"[Board {boardIndex + 1}] Steel QR ver={qrVersion} modules={modules} EC={ecLevel} " +
-                $"MarkStyle={markStyle} Border={border} → cell={cellW:F4}x{cellH:F4}");
-            m_MMEdit[boardIndex].Set2DBarcodeFixedCellSize(qrName, cellW, cellH);
+
+            // 讀取暫存 QR 實際渲染尺寸（含 border）→ 給矩形用
+            m_MMEdit[boardIndex].Set2DBarcodeFixedCellSize(tempQrName, cellW, cellH);
             m_MMMark[boardIndex].Redraw();
             Application.DoEvents();
-            Thread.Sleep(300);
-
-            double actualW = m_MMEdit[boardIndex].GetWidth(qrName);
-            double actualH = m_MMEdit[boardIndex].GetHeight(qrName);
+            Thread.Sleep(200);
+            double actualW = m_MMEdit[boardIndex].GetWidth(tempQrName);
+            double actualH = m_MMEdit[boardIndex].GetHeight(tempQrName);
             double rectBaseW = actualW > 0 ? actualW : qrWidth;
             double rectBaseH = actualH > 0 ? actualH : qrHeight;
+            Console.Error.WriteLine(
+                $"[Board {boardIndex + 1}] Steel probe QR ver={qrVersion} modules={modules} EC={ecLevel} " +
+                $"Border={border} cell={cellW:F4}x{cellH:F4} rendered={actualW:F2}x{actualH:F2}");
 
-            // 4) 白底矩形（= QR 實際渲染 + rectExtra）
+            // 刪除暫存 QR
+            try { m_MMEdit[boardIndex].DeleteObject("", tempQrName); } catch { /* 忽略 */ }
+            m_MMMark[boardIndex].Redraw();
+            Application.DoEvents();
+            Thread.Sleep(200);
+
+            // Step B) 依「打標順序」重建 3 個物件：矩形 → QR → 文字
+            //   AddXxx 順序 = SDK 打標順序，不依賴 ChangeObjectOrder。
+
+            // 1) AddRect（Layer 1，最先打）
             double rectW = rectBaseW + rectExtra;
             double rectH = rectBaseH + rectExtra;
             double rectHalfW = rectW / 2.0, rectHalfH = rectH / 2.0;
@@ -4974,28 +5272,84 @@ namespace WindowsFormsApp1
             Application.DoEvents();
             Thread.Sleep(200);
 
-            // 5) 矩形屬性（鋼鐵霧化白底：低功率高速多次疊）
             m_MMEdit[boardIndex].SetFillStyle(rectName, 1);
             m_MMEdit[boardIndex].SetFrameLineType(rectName, 1);
-            m_MMEdit[boardIndex].SetFillRoundPitch(rectName, 0.04);
-            m_MMEdit[boardIndex].SetFillPitch(rectName, 0.04);
+            m_MMEdit[boardIndex].SetFillRoundPitch(rectName, 0.05);   // 0.05 = 白度與時間折衷
+            m_MMEdit[boardIndex].SetFillPitch(rectName, 0.05);        // 同上
             m_MMEdit[boardIndex].SetFillTimes(rectName, 1);
             m_MMEdit[boardIndex].SetFillAverageDistribution(rectName, 1);
             m_MMEdit[boardIndex].SetFrameSwitch(rectName, 1);
             m_MMEdit[boardIndex].SetFillSwitch(rectName, 1);
             m_MMEdit[boardIndex].SetFillFirstExt(rectName, 0, 1);
-            m_MMMark[boardIndex].SetSpeed(rectName, rectSpeed);                       // 高速
-            m_MMMark[boardIndex].SetPower(rectName, rectPower);                       // 低功率
-            m_MMMark[boardIndex].SetFrequency(rectName, rectFreq);                    // 高頻
-            m_MMMark[boardIndex].SetMarkRepeat(rectName, rectRepeat);                 // 疊層
+            m_MMMark[boardIndex].SetSpeed(rectName, rectSpeed);
+            m_MMMark[boardIndex].SetPower(rectName, rectPower);
+            m_MMMark[boardIndex].SetFrequency(rectName, rectFreq);
+            m_MMMark[boardIndex].SetMarkRepeat(rectName, rectRepeat);
             m_MMEdit[boardIndex].SetBarcodeSpotDelay(rectName, 100);
             m_MMMark[boardIndex].SetPulseWidth(rectName, 200);
 
+            // 2) AddBarcode QR（Layer 2，中間打）
+            long rQR = m_MMMark[boardIndex].AddBarcode(
+                BARCODE_TYPE_QRCODE, content, 0, 0, qrWidth, qrHeight, "", qrName);
+            Console.Error.WriteLine($"[Board {boardIndex + 1}] Steel AddBarcode rc={rQR} content=\"{content}\"");
+            if (rQR != 0)
+            {
+                MessageBox.Show($"建立 QR Code 失敗！回傳碼: {rQR}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+            Application.DoEvents();
+            Thread.Sleep(200);
+
+            m_MMEdit[boardIndex].SetBarcodeInvert(qrName, 1);
+            m_MMEdit[boardIndex].Set2DBarcodeQRECLevel(qrName, ecLevel);
+            m_MMEdit[boardIndex].Set2DBarcodeFixedType(qrName, 0);
+            m_MMEdit[boardIndex].Set2DBarcodeFixedCellSize(qrName, cellW, cellH);
+            ApplyQRBorder(boardIndex, qrName, border);
+            m_MMEdit[boardIndex].SetBarcodeMarkStyle(qrName, markStyle);
+            m_MMEdit[boardIndex].SetBarcodeLineType(qrName, 0);
+            m_MMEdit[boardIndex].SetBarcodeSpotSize(qrName, spotSize);
+            m_MMEdit[boardIndex].SetBarcodeLineTimes(qrName, 1);
+            m_MMEdit[boardIndex].SetFillStartAngle(qrName, 0);
+            m_MMEdit[boardIndex].SetFillStepAngle(qrName, 90);
+            m_MMEdit[boardIndex].SetBarcodeLineTwoway(qrName, 1);
+            m_MMEdit[boardIndex].SetFrameSwitch(qrName, 1);
+            m_MMEdit[boardIndex].SetFillSwitch(qrName, 1);
+            m_MMEdit[boardIndex].SetFillFirstExt(qrName, 0, 1);
+            m_MMMark[boardIndex].SetSpeed(qrName, qrSpeed);
+            m_MMMark[boardIndex].SetPower(qrName, qrPower);
+            m_MMMark[boardIndex].SetFrequency(qrName, qrFreq);
+            m_MMMark[boardIndex].SetMarkRepeat(qrName, qrRepeat);
+            m_MMEdit[boardIndex].SetBarcodeSpotDelay(qrName, 1000);
+            m_MMMark[boardIndex].SetPulseWidth(qrName, qrPulseWidth);
+            m_MMMark[boardIndex].Redraw();
+            Application.DoEvents();
+            Thread.Sleep(200);
+
             // 6) 序號文字物件：放在 QR 左上角外側上方（不會擋到資料區）
             //    字高採 QR 高的 1/8，最小 1.5 mm；y 座標在矩形上方 1 mm。
-            double serialFontSize = Math.Max(rectH / 8.0, 1.5);
-            double serialCx = -rectHalfW;                     // 起點 x = 白底矩形左邊
-            double serialCy = rectHalfH + serialFontSize / 2.0 + 1.0;  // 白底矩形上方 1 mm
+            // 序號文字位置：改用 border × cellW 顯式計算 border 白邊寬度（不依賴 GetWidth 是否含 border）
+            //   border 最高 y = QR 模組頂邊 + border 白邊寬度 = qrHeight/2 + border*cellW
+            //   文字最下緣 > 該 y，因此把文字中心 Y 設在 (border最高y + margin + fontSize/2)
+            double qrModuleTopY = qrHeight / 2.0;
+            double borderZoneWidth = border * cellW;                   // 顯式：border 白邊寬度 (mm)
+            double borderTopY = qrModuleTopY + borderZoneWidth;        // border 最高 y
+            double serialFontSize = Math.Max(qrHeight / 8.0, 1.5);
+            double serialCx = -qrWidth / 2.0;                          // 左對齊到 QR 模組左邊
+            double serialCy;
+            if (border > 0 && borderZoneWidth > 0)
+            {
+                // 文字最下緣 = serialCy - fontSize/2 > borderTopY
+                const double marginAboveBorder = 0.5;    // 0.5 mm 安全間距
+                serialCy = borderTopY + serialFontSize / 2.0 + marginAboveBorder;
+            }
+            else
+            {
+                // border = 0 fallback：QR 模組頂邊 + 半字高 + 1mm 間距
+                serialCy = qrModuleTopY + serialFontSize / 2.0 + 1.0;
+            }
+            Console.Error.WriteLine(
+                $"[Board {boardIndex + 1}] Steel Text pos: border={border} cellW={cellW:F4} " +
+                $"borderZone={borderZoneWidth:F3}mm borderTopY={borderTopY:F3} → serialCy={serialCy:F3}");
             long rT = m_MMMark[boardIndex].AddText(serial, serialCx, serialCy, "", serialName);
             Console.Error.WriteLine($"[Board {boardIndex + 1}] Steel AddText serial=\"{serial}\" rc={rT} @({serialCx:F2},{serialCy:F2}) h={serialFontSize:F2}");
             if (rT == 0)
@@ -5006,7 +5360,7 @@ namespace WindowsFormsApp1
                     m_MMMark[boardIndex].SetSpeed(serialName, qrSpeed);
                     m_MMMark[boardIndex].SetPower(serialName, qrPower);
                     m_MMMark[boardIndex].SetFrequency(serialName, qrFreq);
-                    m_MMMark[boardIndex].SetMarkRepeat(serialName, 1);
+                    m_MMMark[boardIndex].SetMarkRepeat(serialName, 2);
                     m_MMMark[boardIndex].SetPulseWidth(serialName, qrPulseWidth);
                 }
                 catch (Exception exSerial)
@@ -5015,21 +5369,62 @@ namespace WindowsFormsApp1
                 }
             }
 
-            // 7) 圖層順序：白底最先打 → QR → 序號文字
-            long rOrd = m_MMEdit[boardIndex].ChangeObjectOrder(rectName, qrName, 0);
-            Console.Error.WriteLine($"[Board {boardIndex + 1}] Steel ChangeObjectOrder rect→before(qr) rc={rOrd}");
+            // 7) 圖層順序由 AddXxx 呼叫順序保證：矩形（先） → QR（中） → 序號文字（後）
+            //    不再依賴 ChangeObjectOrder。
 
             // 8) 最終 Redraw（呼叫端決定要 StartMarking(4) 打標或 StartMarking(3) 紅光預覽）
             m_MMMark[boardIndex].Redraw();
             Application.DoEvents();
             Thread.Sleep(300);
 
+            // 8.5) 估算打標時間（SDK GetEstimatedTotalTime + 各物件 GetSKWObjTime）
+            double estTotalSec = 0;
+            double estRectSec = 0, estQrSec = 0, estSerialSec = 0, estTotalLen = 0;
+            try
+            {
+                estTotalSec = m_MMMark[boardIndex].GetEstimatedTotalTime();
+                estTotalLen = m_MMMark[boardIndex].GetEstimatedTotalLength();
+                estRectSec = m_MMMark[boardIndex].GetSKWObjTime(rectName);
+                estQrSec = m_MMMark[boardIndex].GetSKWObjTime(qrName);
+                if (rT == 0)
+                    estSerialSec = m_MMMark[boardIndex].GetSKWObjTime(serialName);
+                Console.Error.WriteLine(
+                    $"[Board {boardIndex + 1}] Steel time est: total={estTotalSec:F2}s len={estTotalLen:F2}mm | " +
+                    $"rect={estRectSec:F2}s qr={estQrSec:F2}s serial={estSerialSec:F2}s");
+            }
+            catch (Exception exTime)
+            {
+                Console.Error.WriteLine($"[Board {boardIndex + 1}] Steel time est 失敗: {exTime.Message}");
+            }
+
+            // 序號欄還原為只顯示序號
+            if (txtSteelSerial != null)
+            {
+                txtSteelSerial.Text = serial;
+            }
+
+            // 預估時間 GroupBox 內的 TextBox 更新
+            if (txtSteelTimeInfo != null)
+            {
+                var timeSb = new StringBuilder();
+                timeSb.AppendLine($"Serial       : {serial}");
+                timeSb.AppendLine($"Action       : {action}");
+                timeSb.AppendLine($"Total Time   : {estTotalSec:F2} 秒");
+                timeSb.AppendLine($"Total Length : {estTotalLen:F2} mm");
+                timeSb.AppendLine($"──────────────────────────");
+                timeSb.AppendLine($"矩形 (Rect)  : {estRectSec:F2} 秒");
+                timeSb.AppendLine($"QR Code      : {estQrSec:F2} 秒");
+                timeSb.AppendLine($"序號文字     : {estSerialSec:F2} 秒");
+                txtSteelTimeInfo.Text = timeSb.ToString();
+            }
+
             // 9) 寫參數 log（PREVIEW / MARK 兩種呼叫都會落檔，方便對照）
             WriteSteelQRParaLog(serial, action, content, boardIndex,
                 qrWidth, qrHeight, border, rectExtra,
                 ecLevel, markStyle, spotSize, qrRepeat,
                 rectPower, rectSpeed, rectFreq, rectRepeat,
-                qrPower, qrSpeed, qrFreq, qrPulseWidth);
+                qrPower, qrSpeed, qrFreq, qrPulseWidth,
+                estTotalSec, estTotalLen, estRectSec, estQrSec, estSerialSec);
 
             return true;
         }
@@ -5202,6 +5597,241 @@ namespace WindowsFormsApp1
             {
                 MessageBox.Show($"鋼鐵 QR 停止失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        // ===================================================================
+        // === 矩形獨立 / QR 獨立 GroupBox handler ===========================
+        // ===================================================================
+
+        /// <summary>依 groupBoxRectAlone TextBox 建立單一矩形物件（不呼叫 StartMarking）。</summary>
+        private bool BuildRectAloneObject(int boardIndex, out string rectName)
+        {
+            rectName = "RectAlone_Rect";
+            if (!double.TryParse(txtRAWidth.Text.Trim(), out double w) || w <= 0) w = 40;
+            if (!double.TryParse(txtRAHeight.Text.Trim(), out double h) || h <= 0) h = 40;
+            if (!double.TryParse(txtRAX.Text.Trim(), out double cx)) cx = 0;
+            if (!double.TryParse(txtRAY.Text.Trim(), out double cy)) cy = 0;
+            if (!double.TryParse(txtRASpeed.Text.Trim(), out double speed) || speed <= 0) speed = 1000;
+            if (!double.TryParse(txtRAPower.Text.Trim(), out double power)) power = 50;
+            if (!double.TryParse(txtRAFreq.Text.Trim(), out double freq) || freq <= 0) freq = 20;
+            if (!int.TryParse(txtRARepeat.Text.Trim(), out int repeat) || repeat < 1) repeat = 1;
+            if (!double.TryParse(txtRAPulseWidth.Text.Trim(), out double pw) || pw <= 0) pw = 100;
+            if (!int.TryParse(txtRAFillStyle.Text.Trim(), out int fillStyle)) fillStyle = 0;
+            if (!int.TryParse(txtRAFrameLineType.Text.Trim(), out int frameLineType)) frameLineType = 0;
+
+            m_MMMark[boardIndex].ResetFile();
+            m_MMMark[boardIndex].SetDesktopCenter(0, 0);
+            m_MMMark[boardIndex].SetDesktopSize(m_WorkspaceSize, m_WorkspaceHeight);
+            Application.DoEvents(); Thread.Sleep(100);
+            m_MMMark[boardIndex].Redraw();
+            Application.DoEvents(); Thread.Sleep(200);
+
+            double hw = w / 2.0, hh = h / 2.0;
+            long rc = m_MMEdit[boardIndex].AddRect(cx - hw, cy - hh, cx + hw, cy + hh, 0, "", rectName);
+            Console.Error.WriteLine($"[Board {boardIndex + 1}] RectAlone AddRect rc={rc} size={w}x{h} @({cx},{cy})");
+            if (rc != 0)
+            {
+                MessageBox.Show($"建立矩形失敗！回傳碼: {rc}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+            Application.DoEvents(); Thread.Sleep(200);
+
+            m_MMEdit[boardIndex].SetFillStyle(rectName, fillStyle);
+            m_MMEdit[boardIndex].SetFrameLineType(rectName, frameLineType);
+            m_MMEdit[boardIndex].SetFillRoundPitch(rectName, 0.05);
+            m_MMEdit[boardIndex].SetFillPitch(rectName, 0.05);
+            m_MMEdit[boardIndex].SetFillTimes(rectName, 1);
+            m_MMEdit[boardIndex].SetFrameSwitch(rectName, 1);
+            m_MMEdit[boardIndex].SetFillSwitch(rectName, fillStyle > 0 ? 1 : 0);   // FillStyle=0 → 只描外框
+            m_MMEdit[boardIndex].SetFillFirstExt(rectName, 0, 1);
+            m_MMMark[boardIndex].SetSpeed(rectName, speed);
+            m_MMMark[boardIndex].SetPower(rectName, power);
+            m_MMMark[boardIndex].SetFrequency(rectName, freq);
+            m_MMMark[boardIndex].SetMarkRepeat(rectName, repeat);
+            m_MMMark[boardIndex].SetPulseWidth(rectName, pw);
+            m_MMMark[boardIndex].Redraw();
+            Application.DoEvents(); Thread.Sleep(200);
+            return true;
+        }
+
+        /// <summary>依 groupBoxQRAlone TextBox 建立單一 QR 物件（不呼叫 StartMarking）。</summary>
+        private bool BuildQRAloneObject(int boardIndex, out string qrName)
+        {
+            qrName = "QRAlone_QR";
+            string content = string.IsNullOrEmpty(txtQAContent.Text?.Trim()) ? "AAA" : txtQAContent.Text.Trim();
+            if (!double.TryParse(txtQAWidth.Text.Trim(), out double w) || w <= 0) w = 20;
+            if (!double.TryParse(txtQAHeight.Text.Trim(), out double h) || h <= 0) h = 20;
+            if (!double.TryParse(txtQAX.Text.Trim(), out double cx)) cx = 0;
+            if (!double.TryParse(txtQAY.Text.Trim(), out double cy)) cy = 0;
+            if (!int.TryParse(txtQABorder.Text.Trim(), out int border) || border < 0) border = 4;
+            if (!int.TryParse(txtQAECLevel.Text.Trim(), out int ecLevel) || ecLevel < 0 || ecLevel > 3) ecLevel = 1;
+            if (!int.TryParse(txtQAMarkStyle.Text.Trim(), out int markStyle)) markStyle = 1;
+            bool invert = chkQAInvert.Checked;
+            if (!double.TryParse(txtQASpeed.Text.Trim(), out double speed) || speed <= 0) speed = 500;
+            if (!double.TryParse(txtQAPower.Text.Trim(), out double power)) power = 80;
+            if (!double.TryParse(txtQAFreq.Text.Trim(), out double freq) || freq <= 0) freq = 25;
+            if (!int.TryParse(txtQARepeat.Text.Trim(), out int repeat) || repeat < 1) repeat = 2;
+            if (!double.TryParse(txtQAPulseWidth.Text.Trim(), out double pw) || pw <= 0) pw = 300;
+
+            m_MMMark[boardIndex].ResetFile();
+            m_MMMark[boardIndex].SetDesktopCenter(0, 0);
+            m_MMMark[boardIndex].SetDesktopSize(m_WorkspaceSize, m_WorkspaceHeight);
+            Application.DoEvents(); Thread.Sleep(100);
+            m_MMMark[boardIndex].Redraw();
+            Application.DoEvents(); Thread.Sleep(200);
+
+            long rc = m_MMMark[boardIndex].AddBarcode(BARCODE_TYPE_QRCODE, content, cx, cy, w, h, "", qrName);
+            Console.Error.WriteLine($"[Board {boardIndex + 1}] QRAlone AddBarcode rc={rc} content=\"{content}\" @({cx},{cy}) size={w}x{h}");
+            if (rc != 0)
+            {
+                MessageBox.Show($"建立 QR 失敗！回傳碼: {rc}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+            Application.DoEvents(); Thread.Sleep(200);
+
+            m_MMEdit[boardIndex].SetBarcodeInvert(qrName, invert ? 1 : 0);
+            m_MMEdit[boardIndex].Set2DBarcodeQRECLevel(qrName, ecLevel);
+            m_MMEdit[boardIndex].Set2DBarcodeFixedType(qrName, 0);
+            m_MMEdit[boardIndex].Set2DBarcodeFixedCellSize(qrName, 1, 1);
+            ApplyQRBorder(boardIndex, qrName, border);
+            m_MMEdit[boardIndex].SetBarcodeMarkStyle(qrName, markStyle);
+            m_MMEdit[boardIndex].SetBarcodeLineType(qrName, 0);
+            m_MMEdit[boardIndex].SetBarcodeSpotSize(qrName, 0.05);
+            m_MMEdit[boardIndex].SetBarcodeLineTimes(qrName, 1);
+            m_MMEdit[boardIndex].SetFillStartAngle(qrName, 0);
+            m_MMEdit[boardIndex].SetFillStepAngle(qrName, 90);
+            m_MMEdit[boardIndex].SetBarcodeLineTwoway(qrName, 1);
+            m_MMEdit[boardIndex].SetFrameSwitch(qrName, 1);
+            m_MMEdit[boardIndex].SetFillSwitch(qrName, 1);
+            m_MMEdit[boardIndex].SetFillFirstExt(qrName, 0, 1);
+            m_MMMark[boardIndex].SetSpeed(qrName, speed);
+            m_MMMark[boardIndex].SetPower(qrName, power);
+            m_MMMark[boardIndex].SetFrequency(qrName, freq);
+            m_MMMark[boardIndex].SetMarkRepeat(qrName, repeat);
+            m_MMMark[boardIndex].SetPulseWidth(qrName, pw);
+
+            // Redraw → 反推 cellSize，使渲染大小等於 UI 設定
+            m_MMMark[boardIndex].Redraw();
+            Application.DoEvents(); Thread.Sleep(300);
+            long qrVersion = m_MMEdit[boardIndex].Get2DBarcodeQRVersion(qrName);
+            if (qrVersion < 1) qrVersion = 1;
+            int modules = 17 + 4 * (int)qrVersion;
+            double cellW = w / modules;
+            double cellH = h / modules;
+            m_MMEdit[boardIndex].Set2DBarcodeFixedCellSize(qrName, cellW, cellH);
+            m_MMMark[boardIndex].Redraw();
+            Application.DoEvents(); Thread.Sleep(200);
+            return true;
+        }
+
+        private int GetQRAloneBoardIndex() { return comboBoardQR.SelectedIndex; }
+
+        private void btnRAPreview_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit) { MessageBox.Show("請先初始化！", "錯誤"); return; }
+            int b = GetQRAloneBoardIndex();
+            if (b < 0 || !m_bBoardInit[b]) { MessageBox.Show("板未初始化！", "錯誤"); return; }
+            if (IsBoardBusy(b)) { MessageBox.Show("板忙碌中！", "錯誤"); return; }
+            try
+            {
+                if (!BuildRectAloneObject(b, out _)) return;
+                m_MMMark[b].SetPreviewMode(2);
+                m_MMMark[b].MarkStandBy();
+                if (m_MMMark[b].StartMarking(3) != 0) { MessageBox.Show("預覽啟動失敗！", "錯誤"); return; }
+                m_bPreviewing = true; m_iPreviewBoard = b;
+                timerPreview.Tag = new object[] { b, 15 }; timerPreview.Start();
+                btnRAPreview.Enabled = false; btnRAMark.Enabled = false;
+                txtQRStatus.Text = $"矩形（獨立）紅光預覽中（15 秒）";
+            }
+            catch (Exception ex) { MessageBox.Show($"預覽失敗：{ex.Message}", "錯誤"); }
+        }
+
+        private void btnRAMark_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit) { MessageBox.Show("請先初始化！", "錯誤"); return; }
+            int b = GetQRAloneBoardIndex();
+            if (b < 0 || !m_bBoardInit[b]) { MessageBox.Show("板未初始化！", "錯誤"); return; }
+            if (IsBoardBusy(b)) { MessageBox.Show("板忙碌中！", "錯誤"); return; }
+            try
+            {
+                if (!BuildRectAloneObject(b, out _)) return;
+                m_MMMark[b].MarkStandBy();
+                if (m_MMMark[b].StartMarking(4) != 0) { MessageBox.Show("打標啟動失敗！", "錯誤"); return; }
+                timerMark.Tag = b; timerMark.Start();
+                btnRAPreview.Enabled = false; btnRAMark.Enabled = false;
+                txtQRStatus.Text = "矩形（獨立）打標中";
+            }
+            catch (Exception ex) { MessageBox.Show($"打標失敗：{ex.Message}", "錯誤"); }
+        }
+
+        private void btnRAStopPreview_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit) return;
+            try
+            {
+                timerMark.Stop(); timerPreview.Stop();
+                for (int i = 0; i < m_bBoardInit.Length; i++)
+                    if (m_bBoardInit[i]) try { m_MMMark[i].StopMarking(); } catch { }
+                m_bPreviewing = false; m_iPreviewBoard = -1;
+                ResetPreviewButtonsAfterStop();
+                btnRAPreview.Enabled = true; btnRAMark.Enabled = true;
+                txtQRStatus.Text = "矩形（獨立）已停止";
+            }
+            catch (Exception ex) { MessageBox.Show($"停止失敗：{ex.Message}", "錯誤"); }
+        }
+
+        private void btnQAPreview_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit) { MessageBox.Show("請先初始化！", "錯誤"); return; }
+            int b = GetQRAloneBoardIndex();
+            if (b < 0 || !m_bBoardInit[b]) { MessageBox.Show("板未初始化！", "錯誤"); return; }
+            if (IsBoardBusy(b)) { MessageBox.Show("板忙碌中！", "錯誤"); return; }
+            try
+            {
+                if (!BuildQRAloneObject(b, out _)) return;
+                m_MMMark[b].SetPreviewMode(2);
+                m_MMMark[b].MarkStandBy();
+                if (m_MMMark[b].StartMarking(3) != 0) { MessageBox.Show("預覽啟動失敗！", "錯誤"); return; }
+                m_bPreviewing = true; m_iPreviewBoard = b;
+                timerPreview.Tag = new object[] { b, 15 }; timerPreview.Start();
+                btnQAPreview.Enabled = false; btnQAMark.Enabled = false;
+                txtQRStatus.Text = $"QR（獨立）紅光預覽中（15 秒）";
+            }
+            catch (Exception ex) { MessageBox.Show($"預覽失敗：{ex.Message}", "錯誤"); }
+        }
+
+        private void btnQAMark_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit) { MessageBox.Show("請先初始化！", "錯誤"); return; }
+            int b = GetQRAloneBoardIndex();
+            if (b < 0 || !m_bBoardInit[b]) { MessageBox.Show("板未初始化！", "錯誤"); return; }
+            if (IsBoardBusy(b)) { MessageBox.Show("板忙碌中！", "錯誤"); return; }
+            try
+            {
+                if (!BuildQRAloneObject(b, out _)) return;
+                m_MMMark[b].MarkStandBy();
+                if (m_MMMark[b].StartMarking(4) != 0) { MessageBox.Show("打標啟動失敗！", "錯誤"); return; }
+                timerMark.Tag = b; timerMark.Start();
+                btnQAPreview.Enabled = false; btnQAMark.Enabled = false;
+                txtQRStatus.Text = "QR（獨立）打標中";
+            }
+            catch (Exception ex) { MessageBox.Show($"打標失敗：{ex.Message}", "錯誤"); }
+        }
+
+        private void btnQAStopPreview_Click(object sender, EventArgs e)
+        {
+            if (!m_bInit) return;
+            try
+            {
+                timerMark.Stop(); timerPreview.Stop();
+                for (int i = 0; i < m_bBoardInit.Length; i++)
+                    if (m_bBoardInit[i]) try { m_MMMark[i].StopMarking(); } catch { }
+                m_bPreviewing = false; m_iPreviewBoard = -1;
+                ResetPreviewButtonsAfterStop();
+                btnQAPreview.Enabled = true; btnQAMark.Enabled = true;
+                txtQRStatus.Text = "QR（獨立）已停止";
+            }
+            catch (Exception ex) { MessageBox.Show($"停止失敗：{ex.Message}", "錯誤"); }
         }
 
         // === CLI Builder 頁籤 ===
@@ -5469,6 +6099,16 @@ namespace WindowsFormsApp1
 
         private void Form1_FormClosed(object sender, FormClosedEventArgs e)
         {
+            // Failsafe：若清理程序卡住 > 6 秒仍未結束，強制結束 process，避免掛住 UI
+            var forceExit = new Thread(() =>
+            {
+                Thread.Sleep(6000);
+                try { System.Diagnostics.Debug.WriteLine("FormClosed 清理超時 6s，強制 Environment.Exit"); } catch { }
+                try { Environment.Exit(ExitCode); } catch { }
+            });
+            forceExit.IsBackground = true;
+            forceExit.Start();
+
             CleanupOldControls();
             // this.Hide();
 
