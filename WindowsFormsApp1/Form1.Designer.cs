@@ -307,6 +307,16 @@
             this.lblCLIPreviewTime = new System.Windows.Forms.Label();
             this.txtCLIPreviewTime = new System.Windows.Forms.TextBox();
             this.chkCLIMark = new System.Windows.Forms.CheckBox();
+            this.grpCLIQRCode = new System.Windows.Forms.GroupBox();
+            this.lblCLIQRContent = new System.Windows.Forms.Label();
+            this.txtCLIQRContent = new System.Windows.Forms.TextBox();
+            this.lblCLIQRFixedHeader = new System.Windows.Forms.Label();
+            this.lblCLIQRFixedParams = new System.Windows.Forms.Label();
+            this.lblCLIQROutput = new System.Windows.Forms.Label();
+            this.txtCLIQROutput = new System.Windows.Forms.TextBox();
+            this.btnCLIQRRefresh = new System.Windows.Forms.Button();
+            this.btnCLIQRExecuteMark = new System.Windows.Forms.Button();
+            this.btnCLIQRStopPreview = new System.Windows.Forms.Button();
             this.lblCLIOutput = new System.Windows.Forms.Label();
             this.txtCLIOutput = new System.Windows.Forms.TextBox();
             this.btnCLIRefresh = new System.Windows.Forms.Button();
@@ -458,6 +468,7 @@
             this.groupBoxQRAlone.SuspendLayout();
             this.tabPageCLIBuilder.SuspendLayout();
             this.grpCLIBuilder.SuspendLayout();
+            this.grpCLIQRCode.SuspendLayout();
             this.tabPageCmd.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -2195,7 +2206,7 @@
             this.txtWBRectSpeed.Name = "txtWBRectSpeed";
             this.txtWBRectSpeed.Size = new System.Drawing.Size(50, 25);
             this.txtWBRectSpeed.TabIndex = 2;
-            this.txtWBRectSpeed.Text = "1000";
+            this.txtWBRectSpeed.Text = "800";
             // 
             // lblWBRectPower
             // 
@@ -2212,7 +2223,7 @@
             this.txtWBRectPower.Name = "txtWBRectPower";
             this.txtWBRectPower.Size = new System.Drawing.Size(40, 25);
             this.txtWBRectPower.TabIndex = 4;
-            this.txtWBRectPower.Text = "90";
+            this.txtWBRectPower.Text = "100";
             // 
             // lblWBQRSpeed
             // 
@@ -2246,7 +2257,7 @@
             this.txtWBQRPower.Name = "txtWBQRPower";
             this.txtWBQRPower.Size = new System.Drawing.Size(40, 25);
             this.txtWBQRPower.TabIndex = 8;
-            this.txtWBQRPower.Text = "30";
+            this.txtWBQRPower.Text = "80";
             // 
             // lblWBQRWidth
             // 
@@ -2263,7 +2274,7 @@
             this.txtWBQRWidth.Name = "txtWBQRWidth";
             this.txtWBQRWidth.Size = new System.Drawing.Size(50, 25);
             this.txtWBQRWidth.TabIndex = 14;
-            this.txtWBQRWidth.Text = "30";
+            this.txtWBQRWidth.Text = "15";
             // 
             // lblWBQRHeight
             // 
@@ -2280,7 +2291,7 @@
             this.txtWBQRHeight.Name = "txtWBQRHeight";
             this.txtWBQRHeight.Size = new System.Drawing.Size(40, 25);
             this.txtWBQRHeight.TabIndex = 16;
-            this.txtWBQRHeight.Text = "30";
+            this.txtWBQRHeight.Text = "15";
             // 
             // lblWBQuietZone
             // 
@@ -2297,7 +2308,7 @@
             this.txtWBQuietZone.Name = "txtWBQuietZone";
             this.txtWBQuietZone.Size = new System.Drawing.Size(50, 25);
             this.txtWBQuietZone.TabIndex = 18;
-            this.txtWBQuietZone.Text = "5";
+            this.txtWBQuietZone.Text = "2";
             // 
             // lblWBRectExtra
             // 
@@ -3358,6 +3369,12 @@
             // tabPageCLIBuilder
             // 
             this.tabPageCLIBuilder.Controls.Add(this.grpCLIBuilder);
+            this.tabPageCLIBuilder.Controls.Add(this.grpCLIQRCode);
+            this.tabPageCLIBuilder.Controls.Add(this.lblCLIQROutput);
+            this.tabPageCLIBuilder.Controls.Add(this.txtCLIQROutput);
+            this.tabPageCLIBuilder.Controls.Add(this.btnCLIQRRefresh);
+            this.tabPageCLIBuilder.Controls.Add(this.btnCLIQRExecuteMark);
+            this.tabPageCLIBuilder.Controls.Add(this.btnCLIQRStopPreview);
             this.tabPageCLIBuilder.Controls.Add(this.lblCLIOutput);
             this.tabPageCLIBuilder.Controls.Add(this.txtCLIOutput);
             this.tabPageCLIBuilder.Controls.Add(this.btnCLIRefresh);
@@ -3732,7 +3749,115 @@
             this.chkCLIMark.Text = "--mark (在命令字串中加入自動打標旗標)";
             this.chkCLIMark.UseVisualStyleBackColor = true;
             this.chkCLIMark.CheckedChanged += new System.EventHandler(this.OnCLIBuilderInputChanged);
-            // 
+            //
+            // grpCLIQRCode
+            //
+            this.grpCLIQRCode.Controls.Add(this.lblCLIQRContent);
+            this.grpCLIQRCode.Controls.Add(this.txtCLIQRContent);
+            this.grpCLIQRCode.Controls.Add(this.lblCLIQRFixedHeader);
+            this.grpCLIQRCode.Controls.Add(this.lblCLIQRFixedParams);
+            this.grpCLIQRCode.Location = new System.Drawing.Point(730, 8);
+            this.grpCLIQRCode.Name = "grpCLIQRCode";
+            this.grpCLIQRCode.Size = new System.Drawing.Size(400, 260);
+            this.grpCLIQRCode.TabIndex = 5;
+            this.grpCLIQRCode.TabStop = false;
+            this.grpCLIQRCode.Text = "QRCODE (白底反相，僅可異動 Content)";
+            //
+            // lblCLIQRContent
+            //
+            this.lblCLIQRContent.AutoSize = true;
+            this.lblCLIQRContent.Location = new System.Drawing.Point(10, 32);
+            this.lblCLIQRContent.Name = "lblCLIQRContent";
+            this.lblCLIQRContent.Size = new System.Drawing.Size(80, 15);
+            this.lblCLIQRContent.TabIndex = 0;
+            this.lblCLIQRContent.Text = "QR Content:";
+            //
+            // txtCLIQRContent
+            //
+            this.txtCLIQRContent.Location = new System.Drawing.Point(100, 29);
+            this.txtCLIQRContent.Name = "txtCLIQRContent";
+            this.txtCLIQRContent.Size = new System.Drawing.Size(280, 25);
+            this.txtCLIQRContent.TabIndex = 1;
+            this.txtCLIQRContent.Text = "1234567";
+            this.txtCLIQRContent.TextChanged += new System.EventHandler(this.OnCLIBuilderInputChanged);
+            //
+            // lblCLIQRFixedHeader
+            //
+            this.lblCLIQRFixedHeader.AutoSize = true;
+            this.lblCLIQRFixedHeader.Font = new System.Drawing.Font("Microsoft JhengHei UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblCLIQRFixedHeader.Location = new System.Drawing.Point(10, 65);
+            this.lblCLIQRFixedHeader.Name = "lblCLIQRFixedHeader";
+            this.lblCLIQRFixedHeader.Size = new System.Drawing.Size(150, 19);
+            this.lblCLIQRFixedHeader.TabIndex = 2;
+            this.lblCLIQRFixedHeader.Text = "固定參數（不可修改）:";
+            //
+            // lblCLIQRFixedParams
+            //
+            this.lblCLIQRFixedParams.Font = new System.Drawing.Font("Consolas", 9F);
+            this.lblCLIQRFixedParams.Location = new System.Drawing.Point(15, 90);
+            this.lblCLIQRFixedParams.Name = "lblCLIQRFixedParams";
+            this.lblCLIQRFixedParams.Size = new System.Drawing.Size(380, 160);
+            this.lblCLIQRFixedParams.TabIndex = 3;
+            this.lblCLIQRFixedParams.Text = "模式: 白底反相 QR (--qr-whitebg)\r\n" +
+                                              "QR 長 x 寬: 15 x 15 mm\r\n" +
+                                              "外框單元: 2 cell\r\n" +
+                                              "QR 速度: 1000 mm/s\r\n" +
+                                              "QR 功率: 80 %\r\n" +
+                                              "矩形速度: 800 mm/s (寫死於 SDK 呼叫)\r\n" +
+                                              "矩形功率: 100 % (寫死於 SDK 呼叫)\r\n" +
+                                              "打標: 全部 (矩形+QR 雙圖層)";
+            //
+            // lblCLIQROutput (鏡射下方的組合後命令，方便就近操作)
+            //
+            this.lblCLIQROutput.AutoSize = true;
+            this.lblCLIQROutput.Font = new System.Drawing.Font("Microsoft JhengHei UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblCLIQROutput.Location = new System.Drawing.Point(730, 280);
+            this.lblCLIQROutput.Name = "lblCLIQROutput";
+            this.lblCLIQROutput.Size = new System.Drawing.Size(88, 19);
+            this.lblCLIQROutput.TabIndex = 6;
+            this.lblCLIQROutput.Text = "組合後命令:";
+            //
+            // txtCLIQROutput
+            //
+            this.txtCLIQROutput.Font = new System.Drawing.Font("Consolas", 10F);
+            this.txtCLIQROutput.Location = new System.Drawing.Point(730, 305);
+            this.txtCLIQROutput.Multiline = true;
+            this.txtCLIQROutput.Name = "txtCLIQROutput";
+            this.txtCLIQROutput.ReadOnly = true;
+            this.txtCLIQROutput.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.txtCLIQROutput.Size = new System.Drawing.Size(400, 130);
+            this.txtCLIQROutput.TabIndex = 7;
+            //
+            // btnCLIQRRefresh
+            //
+            this.btnCLIQRRefresh.Location = new System.Drawing.Point(730, 445);
+            this.btnCLIQRRefresh.Name = "btnCLIQRRefresh";
+            this.btnCLIQRRefresh.Size = new System.Drawing.Size(120, 40);
+            this.btnCLIQRRefresh.TabIndex = 8;
+            this.btnCLIQRRefresh.Text = "重新組合命令";
+            this.btnCLIQRRefresh.UseVisualStyleBackColor = true;
+            this.btnCLIQRRefresh.Click += new System.EventHandler(this.btnCLIQRRefresh_Click);
+            //
+            // btnCLIQRExecuteMark
+            //
+            this.btnCLIQRExecuteMark.Location = new System.Drawing.Point(860, 445);
+            this.btnCLIQRExecuteMark.Name = "btnCLIQRExecuteMark";
+            this.btnCLIQRExecuteMark.Size = new System.Drawing.Size(130, 40);
+            this.btnCLIQRExecuteMark.TabIndex = 9;
+            this.btnCLIQRExecuteMark.Text = "依此命令打標";
+            this.btnCLIQRExecuteMark.UseVisualStyleBackColor = true;
+            this.btnCLIQRExecuteMark.Click += new System.EventHandler(this.btnCLIQRExecuteMark_Click);
+            //
+            // btnCLIQRStopPreview
+            //
+            this.btnCLIQRStopPreview.Location = new System.Drawing.Point(1000, 445);
+            this.btnCLIQRStopPreview.Name = "btnCLIQRStopPreview";
+            this.btnCLIQRStopPreview.Size = new System.Drawing.Size(120, 40);
+            this.btnCLIQRStopPreview.TabIndex = 10;
+            this.btnCLIQRStopPreview.Text = "停止預覽/打標";
+            this.btnCLIQRStopPreview.UseVisualStyleBackColor = true;
+            this.btnCLIQRStopPreview.Click += new System.EventHandler(this.btnCLIStopPreview_Click);
+            //
             // lblCLIOutput
             // 
             this.lblCLIOutput.AutoSize = true;
@@ -4098,6 +4223,8 @@
             this.tabPageCLIBuilder.PerformLayout();
             this.grpCLIBuilder.ResumeLayout(false);
             this.grpCLIBuilder.PerformLayout();
+            this.grpCLIQRCode.ResumeLayout(false);
+            this.grpCLIQRCode.PerformLayout();
             this.tabPageCmd.ResumeLayout(false);
             this.tabPageCmd.PerformLayout();
             this.ResumeLayout(false);
@@ -4387,6 +4514,16 @@
         private System.Windows.Forms.Label lblCLIPreviewTime;
         private System.Windows.Forms.TextBox txtCLIPreviewTime;
         private System.Windows.Forms.CheckBox chkCLIMark;
+        private System.Windows.Forms.GroupBox grpCLIQRCode;
+        private System.Windows.Forms.Label lblCLIQRContent;
+        private System.Windows.Forms.TextBox txtCLIQRContent;
+        private System.Windows.Forms.Label lblCLIQRFixedHeader;
+        private System.Windows.Forms.Label lblCLIQRFixedParams;
+        private System.Windows.Forms.Label lblCLIQROutput;
+        private System.Windows.Forms.TextBox txtCLIQROutput;
+        private System.Windows.Forms.Button btnCLIQRRefresh;
+        private System.Windows.Forms.Button btnCLIQRExecuteMark;
+        private System.Windows.Forms.Button btnCLIQRStopPreview;
         private System.Windows.Forms.Label lblCLIOutput;
         private System.Windows.Forms.TextBox txtCLIOutput;
         private System.Windows.Forms.Button btnCLIRefresh;
