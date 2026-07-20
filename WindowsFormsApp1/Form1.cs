@@ -1795,6 +1795,11 @@ namespace WindowsFormsApp1
                     Console.WriteLine($"[Board {i + 1}] OCX 初始化完成 ({role})");
                 }
 
+                // OCX init 完後，等各板 EMC6 控制卡「真的連上」再往下。
+                // InitialExt 回來 ≠ 乙太網卡已連線；若不等就讓 daemon /health 就緒，
+                // 前端第一條命令常撞 StartMarking rc=1（MMMark 未初始化）/ rc=9（卡未連接）。
+                WaitForCardsConnected(totalBoards);
+
                 m_bInit = true;
                 return true;
             }
@@ -1803,6 +1808,45 @@ namespace WindowsFormsApp1
                 Console.Error.WriteLine($"Error: 初始化板 {boardIndex} 失敗：{ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"初始化板 {boardIndex} 失敗：{ex.Message}");
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// 等各板 EMC6 控制卡連線（IsCardConnect != 0）。所有板一起輪詢，總逾時 overallTimeoutMs，
+        /// 讓總等待時間 ≈ 最慢一張卡（而非各板相加）。
+        /// 非致命：逾時未連線只警告、不阻擋 daemon 啟動（其他板仍可用；前端另有 rc=1/9 重試）。
+        /// 目的：讓 daemon /health 就緒時 EMC6 卡真的 ready，避免第一條命令 StartMarking 回 rc=1/9。
+        /// </summary>
+        private void WaitForCardsConnected(int boardCount, int overallTimeoutMs = 15000)
+        {
+            var connected = new bool[boardCount];
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            while (sw.ElapsedMilliseconds < overallTimeoutMs)
+            {
+                bool allDone = true;
+                for (int i = 0; i < boardCount; i++)
+                {
+                    if (!m_bBoardInit[i] || connected[i]) continue;
+                    long c = 0;
+                    try { c = m_MMMark[i].IsCardConnect(); } catch { c = 0; }
+                    if (c != 0)
+                    {
+                        connected[i] = true;
+                        Console.WriteLine($"[Board {i + 1}] 控制卡已連線 ({sw.ElapsedMilliseconds}ms)");
+                    }
+                    else
+                    {
+                        allDone = false;
+                    }
+                }
+                if (allDone) return;
+                Application.DoEvents();
+                Thread.Sleep(200);
+            }
+            for (int i = 0; i < boardCount; i++)
+            {
+                if (m_bBoardInit[i] && !connected[i])
+                    Console.Error.WriteLine($"[Board {i + 1}] 警告：控制卡逾時未連線（IsCardConnect=0，等了 {overallTimeoutMs}ms），首次打標可能 rc=1/9");
             }
         }
 

@@ -500,6 +500,7 @@ console.log(results);
 | `Error: 初始化板 N 失敗：…` | OCX 初始化失敗 | 檢查 OCX 註冊（`ELOCXRegister.exe`）、Lens 校正檔 |
 | `Error: Failed to load DXF.` | DXF 解析失敗或檔不存在 | 檢查路徑（相對路徑以 exe 所在資料夾為基準） |
 | `Error: StartMarking(N) failed with code 1` | SDK 拒絕啟動（多半是配置 / standby / 內容問題） | 確認 `--config` 對得上 `--board`、有實際內容、`MarkStandBy` 成功 |
+| daemon log：`[Board N] StartMarking(4) returned 1`（或 `9`）＝ daemon exitCode 3 | **首次打標卡未就緒**：rc=1=MMMark 未初始化、rc=9=EMC6 控制卡未連接。多發生在 daemon 剛啟動、EMC6 乙太網卡還沒連上時的頭幾條命令 | 已修：① daemon init 後加 `WaitForCardsConnected`（輪詢 `IsCardConnect` 等卡連上、逾時 15s 才讓 /health 就緒）；② 前端 `sendDaemonCmd` 對 rc=1/9 自動等 1.5s 重送最多 4 次。若仍持續出現，檢查該板 IP（主表 `DevIPAddress.ini`）與網路連線 |
 | `EMC6_x64` 對話框：`Unknown Commands=127  PreCommand=200, 26, 29, 26, 9` | 對 QR 物件套了 `SetWobble`（CLI 的 wobble 預設 0.5 mm 被誤套到 barcode） | 已修：CLI/daemon 的 wobble loop 會自動跳過 QR；若仍出現，檢查是否有自寫程式在 AddBarcode 後對 QR 物件呼叫 `SetWobble/SetWobbleSwitch` |
 
 ---
