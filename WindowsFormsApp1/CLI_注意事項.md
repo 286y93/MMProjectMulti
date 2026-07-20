@@ -2,6 +2,9 @@
 
 > 本文件整理 `MarkingMate.exe` 命令列模式的邏輯概念與使用方式。
 > GUI 模式請見 [故障排除完整指南.md](故障排除完整指南.md)。
+> 完整命令列使用手冊請見 [命令列模式使用說明.txt](../命令列模式使用說明.txt)。
+>
+> **最後同步日期：2026-07-17**（QRCODE_白底 GUI 預設調至 15×15/border 2/QR power 80/QR speed 1000/矩形 power 100/矩形 speed 800）
 
 ---
 
@@ -316,11 +319,11 @@ cmd> MarkingMate.exe --board 0 --line 0,0,50,50 --mark
 | `5` | 板忙碌（同板已有命令在跑） | Daemon |
 | `6` | Client 無法連線 daemon | Client |
 | `7` | Client 例外 | Client |
+| `-1` | 一般錯誤、GUI 重複執行 | Program.cs |
+| `-2` | 同 board 已在執行（模式 A Mutex 未取得） | Program.cs |
+| `-3` | Daemon 已在運行（重複 `--daemon`） | Program.cs |
 
 > **daemon 運行中自動轉發**：偵測到 daemon 在跑時，模式 A（漏帶 `--client`）會**自動改以 client 派工**，回傳的即是 client 的結果與 ExitCode（0/3/6/7…），不再自行 init OCX，避免撞 SDK 鎖。
-| `-1` | 一般錯誤、GUI 重複執行 | – |
-| `-2` | 同 board 已在執行（模式 A） | – |
-| `-3` | Daemon 已在運行 | – |
 
 ---
 
@@ -360,13 +363,20 @@ cmd> MarkingMate.exe --board 0 --line 0,0,50,50 --mark
    - **容錯等級固定 LOW**：CLI/daemon 的 QR 一律 `Set2DBarcodeQRECLevel = 0`（Low），無參數可調。
 
 9a. **`--qr-whitebg` 白底反相 QR（雙圖層）**
-   - 旗標型。加上後，該 QR 會建成「白底矩形 + 反相 QR」兩個圖層（矩形先打、QR 後打），等同 GUI「QRCODE_白底」的效果。
-   - **只需帶 `--qrcode` 內容即可**，其餘白底參數在後端寫死：QR 30×30mm、外框 5 單元、QR power 30 / speed 1000、矩形 power 90 / speed 1000、矩形尺寸 = QR 實際渲染 + 0。
-   - **可覆寫**：`--qr-width` / `--qr-height`（QR 資料區長寬）、`--qr-border <cells>`（外框單元，預設 5）、`--power` / `--speed`（覆寫的是 **QR 圖層**；矩形參數目前仍寫死）。
+   - 旗標型。加上後會建成「白底矩形 + 反相 QR」兩個圖層（矩形先打、QR 後打），等同 GUI「QRCODE_白底」GroupBox。
+   - **只需帶 `--qrcode` 內容即可**，其餘由 `WhiteBgQRParams` 預設補齊（與 GUI GroupBox 目前值同步）：
+     - QR 資料區：**15×15mm**（可用 `--qr-width/--qr-height` 覆寫；GUI GroupBox 同值）
+     - QR 外框：**2 單元**（可用 `--qr-border` 覆寫；GUI GroupBox 同值）
+     - QR 圖層：power 80 / speed 1000 / freq 80 / pulse-width 30 / spot-size 0.04 / line-times 4 / step-angle 45
+     - 矩形圖層：power 100 / speed 800 / freq 80 / pulse-width 250 / FillStyle 3 / FillTimes 4 / 向內填滿 (InsideOut) / StartAngle 90 / StepAngle 45
+   - **可透過 CLI 覆寫**：`--qr-width` / `--qr-height` / `--qr-border` / `--power` / `--speed`（後兩者僅影響 **QR 圖層**，矩形圖層無 CLI 覆寫途徑）。
+   - **CLI 無法覆寫的寫死參數**：矩形 FillStyle/FillTimes/InsideOut/StartAngle/StepAngle/Freq/PulseWidth、QR SpotSize/LineTimes/StepAngle/Freq/PulseWidth。若需調整需改 `Form1.cs`（`BuildWhiteBgQR` 或 `WhiteBgQRParams`）並重編。
    - 白底模式會**跳過** `ApplyLaserParamsAuto`，避免覆寫各圖層已個別設好的雷射參數。
-   - 適用 daemon、模式 A，以及 GUI「命令提示」頁籤（該頁籤產生的 QR 命令即為 `--qrcode "X" --qr-whitebg --mark`，按鈕 in-process 執行也走同一套後端）。
-   - 範例：`--client --board 0 --qrcode "ABC123" --qr-whitebg --mark`
-     覆寫範例：`--client --board 0 --qrcode "ABC123" --qr-whitebg --qr-width 40 --qr-border 6 --power 40 --speed 1200 --mark`
+   - 適用 daemon、模式 A、GUI「命令提示」頁籤（tab 8）與「CLI 編輯器」頁籤（tab 7 的 QRCODE 區塊），四條路徑共用 `BuildWhiteBgQR` 後端。
+   - 範例：
+     - 最簡：`--client --board 0 --qrcode "1234567" --qr-whitebg --mark`
+     - 完整（等同 GUI 目前設定）：`--client --board 0 --qrcode "1234567" --qr-whitebg --qr-width 15 --qr-height 15 --qr-border 2 --power 80 --speed 1000 --mark`
+     - 覆寫（大 QR、多外框）：`--client --board 0 --qrcode "ABC123" --qr-whitebg --qr-width 40 --qr-border 6 --power 60 --speed 1200 --mark`
 
 10. **Daemon 目前不支援 `--dxf`（MVP 階段）**
     要打 DXF 請用模式 A，或之後擴充 `RunDaemonSpec` 加入 `LoadDxfAuto` 呼叫
@@ -374,9 +384,22 @@ cmd> MarkingMate.exe --board 0 --line 0,0,50,50 --mark
 11. **Client 引號**
     含空格的值（如 `--qrcode "Hello World"`）一定要在外層 shell 加引號，client 會自動 re-quote 傳給 daemon
 
-12. **命令提示頁籤產生的範例**
-    - 內容類型只有兩種：多線段（`--lines "x1,y1,x2,y2;..."`，2~4 段） / QR（不含位置參數）
+12. **命令提示頁籤（tab 8）產生的範例**
+    - 5 個 slot 各自隨機 50/50 選 Lines 或 QR 內容（可能全 Lines / 全 QR / 混合）
+    - 線段：多線段 `--lines "x1,y1,x2,y2;..."`（2-4 段隨機），且會自動加 `--wobble-width 0.5`
+    - QR：從 `{DEMO-001, TEST, ABC-123, QR-XYZ, Hello, MarkingMate}` 隨機取一個，只帶 `--qrcode "X" --qr-whitebg --mark`（其餘走 `WhiteBgQRParams` 預設）
+    - 按鈕文字「執行預覽」實際是 `PreviewMode=0`（正式打標），與文字不符
+    - 按鈕按下走 in-process 執行（不繞 daemon HTTP），共用 `BuildWhiteBgQR` / `DrawLineAuto`
     - 不再產生單線段 `--line` 範例
+
+13. **CLI 編輯器頁籤（tab 7）產生的範例**
+    - 左側「命令參數編輯」GroupBox：DXF / Lines / 全部雷射參數 / Wobble / Preview 欄位可填
+    - 右上「QRCODE (白底反相，僅可異動 Content)」GroupBox：只能編輯 QR Content，其餘白底參數固定顯示
+    - 兩區塊各自產生獨立命令，互不干擾：
+      - 左側 → `txtCLIOutput`：`--lines "..." --power N --speed M ... --mark`
+      - QRCODE → `txtCLIQROutput`：`--qrcode "content" --qr-whitebg --qr-width 15 --qr-height 15 --qr-border 2 --power 80 --speed 1000 --mark`
+    - 兩區塊各自的「依此命令打標」按鈕會使用對應的參數集合走 `ExecuteCLIArgs`
+    - 「停止預覽/打標」共用，會同時恢復兩個 execute 按鈕的可用狀態
 
 ---
 
@@ -485,7 +508,8 @@ console.log(results);
 
 - [CommandLineArgs.cs](CommandLineArgs.cs) — 參數解析、`GetHelpText`、`--daemon` / `--client` / `--port` 旗標
 - [Program.cs](Program.cs) — Mutex、`AttachConsole`、Client 模式 HTTP 呼叫、模式分派
-- [Form1.cs](Form1.cs) — `ExecuteAutoMode`（模式 A）、`StartDaemonMode`、`InitializeBoardAuto`、`RunDaemonSpec`
+- [Form1.cs](Form1.cs) — `ExecuteAutoMode`（模式 A）、`StartDaemonMode`、`InitializeBoardAuto`、`RunDaemonSpec`、`BuildWhiteBgQR`（QR 白底共用後端）、`ExecuteCLIArgs`（tab 7 CLI 編輯器共用執行流程）
 - [MarkingMateDaemon.cs](MarkingMateDaemon.cs) — HttpListener 主體、`/health` `/cmd` `/shutdown` 三個 endpoint
 - [CheckMMSetup.ps1](CheckMMSetup.ps1) — 設定體檢腳本
 - [故障排除完整指南.md](故障排除完整指南.md) — GUI 模式與 OCX 註冊故障排除
+- [../命令列模式使用說明.txt](../命令列模式使用說明.txt) — 給非工程師的入門說明（v3.0）

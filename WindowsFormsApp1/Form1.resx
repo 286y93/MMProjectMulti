@@ -118,8 +118,22 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <metadata name="timerMark.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>345, 17</value>
+  </metadata>
+  <metadata name="timerPreview.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
     <value>17, 17</value>
   </metadata>
+  <metadata name="timerParallelTest.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>169, 17</value>
+  </metadata>
+  <data name="lblCmdHint.Text" xml:space="preserve">
+    <value>提示：
+   - 每個 textbox 顯示一組隨機產生的紅光預覽命令（與 CLI 模式相同 schema），可直接編輯。
+   - 板號統一由上方下拉選單決定 → 切換下拉會自動同步 5 條命令的 --board / --config。
+   - 點「執行預覽」會即時解析 textbox 內容、清空指定板、加入命令內容並啟動紅光預覽。
+   - 預覽時間以該命令的 --preview-time 為準。執行前請先在「連接設定」頁完成初始化。
+   - 解析失敗或缺少內容（--line / --lines / --qrcode）會以對話框提示，不會操作雷射。</value>
+  </data>
   <metadata name="$this.TrayHeight" type="System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>25</value>
   </metadata>

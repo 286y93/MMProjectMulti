@@ -1,74 +1,161 @@
 ===========================================
-MarkingMateMulti 命令列模式使用說明
+MarkingMate Multi-Board 命令列模式使用說明
 ===========================================
 
-版本：2.0
-更新日期：2026-03-10
+版本：3.0
+更新日期：2026-07-17
+
+主要變動 (v2.0 → v3.0)：
+  - exe 名稱由 WindowsFormsApp1.exe 改為 MarkingMate.exe
+  - 新增 Daemon / Client 模式（多板並行的正確做法）
+  - 新增 QR Code 打標（含 QRCODE_白底 反相雙圖層）
+  - 新增 DXF 檔案載入、Wobble 線寬、紅光預覽
+  - 新增 雷射參數（power/speed/freq/pulse-width/repeat）與工作區覆寫
+  - QRCODE_白底 預設值同步 GUI：15×15mm、外框 2、QR 功率 80、
+    QR 速度 1000、矩形功率 100、矩形速度 800
 
 ===========================================
-一、概述
+一、程式支援的三種執行模式
 ===========================================
-
-本程式現在支援兩種模式：
 
 1. GUI 模式（原有功能）
-   - 不帶參數啟動：WindowsFormsApp1.exe
-   - 顯示完整圖形介面，可手動操作
+   - 不帶任何參數啟動：MarkingMate.exe
+   - 顯示完整圖形介面，可手動操作全部頁籤
 
-2. 命令列模式（新增功能）
-   - 帶參數啟動：WindowsFormsApp1.exe [選項]
-   - 隱藏視窗自動執行，完成後退出
-   - 適合由其他系統呼叫
+2. 命令列 單命令模式（Mode A，適合一次性動作）
+   - 帶參數啟動：MarkingMate.exe [選項]
+   - 該 process 自己 init OCX、執行完動作、退出
+   - 限制：一台機器同時只能跑一個 CLI 單命令（SDK OCX 為 process-global）
+   - 若已有 daemon 在跑，會被自動轉發成 Client（見下方）
 
-===========================================
-二、命令列參數說明
-===========================================
-
---help, -h, /?
-    顯示說明訊息
-
---board <0-3>, -b <0-3>
-    指定要使用的晶片板編號（0-3）
-    預設值：0
-
---config <path>, -c <path>
-    指定配置路徑
-    預設值：/cfg_config_MM1
-    可選值：
-      /cfg_config_MM1 (板 0)
-      /cfg_config_MM2 (板 1)
-      /cfg_config_MM3 (板 2，需手動設定)
-      /cfg_config_MM4 (板 3，需手動設定)
-
---line <x1,y1,x2,y2>, -l <x1,y1,x2,y2>
-    新增單一線段
-    座標格式：起點X,起點Y,終點X,終點Y
-    單位：毫米 (mm)
-    範圍：-50 到 +50（工作區 100x100mm）
-
---lines <線段列表>
-    新增多條線段（以分號分隔）
-    格式：x1,y1,x2,y2;x1,y1,x2,y2;...
-    範例：--lines "0,0,50,50;10,10,40,40"
-
---mark, -m
-    自動執行打標
-    如果不加此參數，只會繪製線段不打標
+3. Daemon + Client 模式（Mode B，推薦，多板可並行）
+   - Daemon：一次 init 全 4 板，聽 HTTP localhost:19527
+     啟動：start "" MarkingMate.exe --daemon
+   - Client：把命令 POST 進 daemon，daemon 在同一 process 內派工
+     用法：MarkingMate.exe --client [其他選項]
+   - 多個 client 可同時發到不同板做 in-process 並行
 
 ===========================================
-三、結束代碼 (Exit Code)
+二、命令列參數（完整列表）
 ===========================================
 
-外部系統可透過結束代碼判斷執行結果：
+--- 基本 ---
+  --help, -h, /?             顯示說明訊息（app 內建 CommandLineArgs 版本）
+  --board <0-3>, -b <0-3>    晶片板編號 0-3 (預設: 0)
+  --config <path>, -c <path> 配置路徑 (預設: /cfg_config_MM1)
+                             建議跟 --board 對應：
+                               --board 0 → /cfg_config_MM1
+                               --board 1 → /cfg_config_MM2
+                               --board 2 → /cfg_config_MM3
+                               --board 3 → /cfg_config_MM4
 
-0 - 成功
-1 - 初始化失敗
-2 - 繪圖失敗
-3 - 打標失敗
-4 - 參數錯誤
+--- 工作區 ---
+  --workspace <mm>, -w <mm>  工作區寬高相等 (預設: 150)
+  --workspace-w <mm>         工作區寬 W mm（與 --workspace 二擇一）
+  --workspace-h <mm>         工作區高 H mm（可與 W 不同；DXF 縮放取 min(W,H)）
+
+--- 內容（三擇一或組合）---
+  --line <x1,y1,x2,y2>, -l   單一線段 (mm)，原點為工作區中心
+  --lines "<清單>"           多條線段，分號分隔："x1,y1,x2,y2;x1,y1,x2,y2;..."
+  --dxf <path>, -d <path>    載入 DXF 檔案（手動解析 LINE entity）
+  --qrcode <content>, -qr    QR Code 內容
+  --qr-width <mm>            QR 寬 mm。單獨 QR 預設 10；--qr-whitebg 未帶時走 15（與 GUI 同）
+  --qr-height <mm>           QR 高 mm。單獨 QR 預設 10；--qr-whitebg 未帶時走 15（與 GUI 同）
+  --qr-invert                QR 反相（單獨 QR 用；白底反相請改用 --qr-whitebg）
+  --qr-whitebg               白底反相 QR：矩形白底 + 反相 QR 雙圖層
+                             *** 詳見第三節 QRCODE_白底 ***
+  --qr-border <cells>        白底 QR 外框單元數。--qr-whitebg 未帶時走 2（與 GUI 同）；
+                             單獨 QR schema 預設 5
+
+--- 雷射參數（不指定 = 用板現行預設）---
+  --power <0-100>, -p        功率 % 0-100
+  --speed <mm/s>, -s         速度 mm/s
+  --freq <kHz>, -f           頻率 kHz
+  --pulse-width <ns>, --pw   脈波寬度 ns
+  --repeat <n>, -r           雷射次數
+
+--- Wobble 線寬（線段類專用） ---
+  --wobble-width <mm>, --wobble  線條加粗寬度 mm (預設: 0.5)
+  --wobble-overlap <%>           重疊率 % (預設: 50)
+  --wobble-speed <mm/s>          擺動速度 (預設: 5026.55)
+
+--- 動作 ---
+  --mark, -m                 執行打標（缺此僅建立內容不打）
+  --preview <outline|full>   紅光預覽模式（不出雷射，需搭配 --mark）
+                               outline = 外框，full = 全路徑（預設 full）
+  --preview-speed <mm/s>     預覽速度
+  --preview-time <秒>        預覽持續秒數 (預設: 15)
+
+--- Daemon / Client ---
+  --daemon                   啟動常駐 daemon（一次 init 全 4 板）
+  --client                   Thin client：把命令 POST 到 daemon
+  --port <N>                 Daemon 監聽 port / client 連接 port (預設: 19527)
+  --shutdown                 (搭配 --client) 通知 daemon 結束
+
+===========================================
+三、QRCODE_白底（重要，最常用的 QR 工作流）
+===========================================
+
+「白底反相 QR」= 一個雕實心白底矩形 + 一個反相 QR，兩層合在一起，
+                 讓黑色鋼鐵表面呈現「白底 + 反相黑碼」的高對比 QR。
+
+3.1 GUI 對應
+    在「6. QRCODE」頁籤的「QRCODE_白底」GroupBox：
+      矩形速度: 800     矩形功率: 100
+      QR 速度:  1000    QR 功率:  80
+      QR 長:    15      QR 寬:   15
+      外框單元: 2       X:       0     （X 為矩形額外加大量）
+      打標:     全部    序號:    自動遞增
+
+3.2 CLI 對應（最簡形式）
+    只需帶 --qrcode 內容 + --qr-whitebg，其餘由後端 WhiteBgQRParams
+    寫死預設補齊（值同 GUI GroupBox 目前設定）：
+
+    MarkingMate.exe --client --board 0 --config /cfg_config_MM1 ^
+      --qrcode "1234567" --qr-whitebg --mark
+
+3.3 CLI 對應（完整顯式；等同 GUI 目前設定）
+    MarkingMate.exe --client --board 0 --config /cfg_config_MM1 ^
+      --qrcode "1234567" --qr-whitebg ^
+      --qr-width 15 --qr-height 15 --qr-border 2 ^
+      --power 80 --speed 1000 --mark
+
+3.4 各板對應範例
+    板 1：--board 0 --config /cfg_config_MM1
+    板 2：--board 1 --config /cfg_config_MM2
+    板 3：--board 2 --config /cfg_config_MM3
+    板 4：--board 3 --config /cfg_config_MM4
+
+3.5 寫死於後端、CLI 無法覆寫的部分
+    矩形速度 800、矩形功率 100、矩形 FillStyle=3、FillTimes=4、
+    向內填滿、StartAngle=90、StepAngle=45、矩形 Freq=80、
+    PulseWidth=250 —— 位於 Form1.cs BuildWhiteBgQR / WhiteBgQRParams。
+    若要調整需改 code + 重新編譯。
+
+3.6 CLI 可覆寫的 QR 圖層參數
+    --qr-width / --qr-height / --qr-border  → QR 尺寸與外框
+    --power / --speed                       → QR 圖層雷射參數
+    （矩形圖層的功率/速度不能透過 CLI 覆寫）
+
+===========================================
+四、結束代碼 (Exit Code)
+===========================================
+
+CLI 單命令模式 / Daemon 內動作：
+  0  - 成功
+  1  - 初始化失敗（含 IP 主表未填、SDK 部署權限不足）
+  2  - 繪圖失敗（含板已被其他 CLI process 佔用時的 -2）
+  3  - 打標失敗
+  4  - 參數錯誤
+  5  - 板正忙（daemon 收到 client 命令但該板正在打標/預覽）
+  -3 - 已有 daemon 在同 port 運行
+
+Client 模式（僅 client process 自身）：
+  6  - 無法連線到 daemon（未啟動或 port 不對）
+  7  - Client 例外（HTTP 傳輸或解析失敗）
 
 批次檔範例：
-    WindowsFormsApp1.exe --board 0 --line 0,0,50,50 --mark
+    MarkingMate.exe --client --board 0 --qrcode "TEST" --qr-whitebg --mark
     if %ERRORLEVEL% EQU 0 (
         echo 成功
     ) else (
@@ -76,7 +163,7 @@ MarkingMateMulti 命令列模式使用說明
     )
 
 PowerShell 範例：
-    & "WindowsFormsApp1.exe" --board 0 --line 0,0,50,50 --mark
+    & "MarkingMate.exe" --client --board 0 --qrcode "TEST" --qr-whitebg --mark
     if ($LASTEXITCODE -eq 0) {
         Write-Host "成功"
     } else {
@@ -84,221 +171,270 @@ PowerShell 範例：
     }
 
 ===========================================
-四、使用範例
+五、使用範例
 ===========================================
 
-範例 1：顯示說明
-------------------------------------------
-WindowsFormsApp1.exe --help
+--- 5.1 GUI / 說明 ---
+範例 1：啟動 GUI
+    MarkingMate.exe
 
-範例 2：在板 0 上畫一條線（不打標）
-------------------------------------------
-WindowsFormsApp1.exe --board 0 --line 0,0,50,50
+範例 2：顯示說明
+    MarkingMate.exe --help
 
-範例 3：在板 0 上畫一條線並打標
-------------------------------------------
-WindowsFormsApp1.exe --board 0 --line 0,0,50,50 --mark
+--- 5.2 單命令模式（Mode A） ---
+範例 3：畫一條線並打標
+    MarkingMate.exe --board 0 --line 0,0,50,50 --mark
 
-範例 4：在板 1 上畫多條線並打標
-------------------------------------------
-WindowsFormsApp1.exe --board 1 --lines "0,0,50,50;10,10,40,40;20,20,30,30" --mark
+範例 4：畫多條線
+    MarkingMate.exe --board 1 --lines "0,0,50,50;10,10,40,40;20,20,30,30" --mark
 
-範例 5：使用自訂配置
-------------------------------------------
-WindowsFormsApp1.exe --board 2 --config /cfg_config_MM3 --line 0,0,100,100 --mark
+範例 5：載入 DXF 並指定雷射參數
+    MarkingMate.exe --board 0 --dxf "File\test.dxf" --power 50 --speed 800 --freq 20 --pw 5 --repeat 1 --mark
 
-範例 6：只畫線不打標（測試用）
-------------------------------------------
-WindowsFormsApp1.exe -b 0 -l 0,0,50,50
+範例 6：Wobble 加粗線條
+    MarkingMate.exe --board 0 --lines "-20,-20,20,20" --wobble-width 1.0 --mark
 
-範例 7：完整參數
-------------------------------------------
-WindowsFormsApp1.exe --board 1 --config /cfg_config_MM2 --lines "0,0,50,50;25,25,75,75" --mark
+範例 7：外框紅光預覽 15 秒
+    MarkingMate.exe --board 0 --dxf "File\test.dxf" --mark --preview outline --preview-time 15
+
+範例 8：自訂工作區大小 200×120
+    MarkingMate.exe --board 0 --workspace-w 200 --workspace-h 120 --dxf "File\big.dxf" --mark
+
+範例 9：白底反相 QR（最簡）
+    MarkingMate.exe --board 0 --config /cfg_config_MM1 --qrcode "1234567" --qr-whitebg --mark
+
+範例 10：白底反相 QR（完整參數，等同 GUI）
+    MarkingMate.exe --board 0 --config /cfg_config_MM1 ^
+      --qrcode "ABC-20260717-001" --qr-whitebg ^
+      --qr-width 15 --qr-height 15 --qr-border 2 ^
+      --power 80 --speed 1000 --mark
+
+--- 5.3 Daemon + Client 模式（Mode B，推薦） ---
+範例 11：啟動 daemon（每台機器只跑一個）
+    start "" MarkingMate.exe --daemon
+
+範例 12：Client 發送打標命令（daemon 已在跑）
+    MarkingMate.exe --client --board 0 --config /cfg_config_MM1 --qrcode "1234567" --qr-whitebg --mark
+
+範例 13：多板同時並行（開多個 client）
+    MarkingMate.exe --client --board 0 --qrcode "A001" --qr-whitebg --mark
+    MarkingMate.exe --client --board 1 --qrcode "B002" --qr-whitebg --mark
+    MarkingMate.exe --client --board 2 --qrcode "C003" --qr-whitebg --mark
+    MarkingMate.exe --client --board 3 --qrcode "D004" --qr-whitebg --mark
+
+範例 14：結束 daemon
+    MarkingMate.exe --client --shutdown
+    或直接： curl -X POST http://localhost:19527/shutdown
+
+範例 15：網頁 JS 呼叫（CORS 已允許 *）
+    fetch('http://localhost:19527/cmd', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: '--board 0 --qrcode "WEB-TEST" --qr-whitebg --mark'
+    }).then(r => r.json()).then(r => console.log(r.exitCode, r.logs));
 
 ===========================================
-五、C# 程式呼叫範例
+六、C# 程式呼叫範例
 ===========================================
 
 using System.Diagnostics;
 
-public int ExecuteMarking(int board, string line, bool autoMark)
+// 6.1 單命令模式
+public int ExecuteMarking(int board, string qrContent)
 {
     var psi = new ProcessStartInfo
     {
-        FileName = @"C:\Path\To\WindowsFormsApp1.exe",
-        Arguments = $"--board {board} --line {line}" + (autoMark ? " --mark" : ""),
+        FileName = @"C:\Path\To\MarkingMate.exe",
+        Arguments = $"--client --board {board} --config /cfg_config_MM{board + 1} " +
+                    $"--qrcode \"{qrContent}\" --qr-whitebg --mark",
         UseShellExecute = false,
-        CreateNoWindow = true
+        CreateNoWindow = true,
+        RedirectStandardOutput = true,
+        RedirectStandardError = true
     };
 
     using (var process = Process.Start(psi))
     {
         process.WaitForExit();
-        return process.ExitCode; // 0=成功, 非0=失敗
+        return process.ExitCode;
     }
 }
 
 // 使用
-int result = ExecuteMarking(0, "0,0,50,50", true);
-if (result == 0)
-{
-    Console.WriteLine("打標成功");
-}
-else
-{
-    Console.WriteLine($"打標失敗，錯誤碼：{result}");
-}
+int rc = ExecuteMarking(0, "SERIAL-001");
+if (rc == 0) Console.WriteLine("打標成功");
+else Console.WriteLine($"失敗 exitCode={rc}");
 
 ===========================================
-六、Python 程式呼叫範例
+七、Python 程式呼叫範例
 ===========================================
 
 import subprocess
 
-def execute_marking(board, line, auto_mark=True):
+def execute_qr_whitebg(board: int, content: str, exe: str = r"C:\Path\To\MarkingMate.exe") -> int:
     """
-    呼叫 MarkingMateMulti 執行打標
+    透過 CLI Client 呼叫 MarkingMate daemon 打白底反相 QR
 
     Args:
-        board: 板編號 (0-3)
-        line: 線段座標 "x1,y1,x2,y2"
-        auto_mark: 是否自動打標
+        board: 晶片板 0-3
+        content: QR 內容
+        exe: MarkingMate.exe 完整路徑
 
     Returns:
         int: 結束代碼 (0=成功)
     """
     args = [
-        r"C:\Path\To\WindowsFormsApp1.exe",
+        exe, "--client",
         "--board", str(board),
-        "--line", line
+        "--config", f"/cfg_config_MM{board + 1}",
+        "--qrcode", content,
+        "--qr-whitebg",
+        "--mark",
     ]
-
-    if auto_mark:
-        args.append("--mark")
-
-    result = subprocess.run(args, capture_output=True)
+    result = subprocess.run(args, capture_output=True, text=True, encoding="utf-8")
     return result.returncode
 
 # 使用
-exit_code = execute_marking(0, "0,0,50,50", True)
-if exit_code == 0:
-    print("打標成功")
-else:
-    print(f"打標失敗，錯誤碼：{exit_code}")
+rc = execute_qr_whitebg(0, "SERIAL-001")
+print(f"打標成功" if rc == 0 else f"失敗 exitCode={rc}")
 
 ===========================================
-七、注意事項
+八、雷射頭 IP 設定（初始化前置條件）
 ===========================================
 
-1. 硬體需求
-   - MarkingMate SDK 必須已安裝
-   - 控制卡 IP 必須已正確設定
-   - 硬體連接必須正常
+IP 主表位置：
+    WindowsFormsApp1\Drivers\EMC6\DevIPAddress.ini
+    DEV0 → MM1 / CARD0
+    DEV1 → MM2 / CARD1
+    DEV2 → MM3 / CARD2
+    DEV3 → MM4 / CARD3
 
-2. 權限需求
-   - 如果需要修改 IP 設定，需管理員權限
-   - 一般使用不需要管理員權限
+初始化流程（含 CLI）：
+    1. 驗證主表 DEV0~DEV(--board) 已填入有效 IP，缺值即中止
+    2. 依 CARD 對應把主表 IP 同步到各 EMC6_MMx\DevIPAddress.ini 的 DEV0
+    3. 部署 Drivers\EMC6\ 到 MarkingMate 安裝路徑
+    4. 部署 config\config.ini 與 config_MMx.ini、cfg\*.cfg
 
-3. 執行時間
-   - 初始化約需 1-3 秒
-   - 打標時間視圖形複雜度而定
-   - 建議設定合理的超時時間（建議 30-60 秒）
+若主表 IP 未填或部署失敗：
+    CLI 在 stderr 列出具體原因，ExitCode = 1
+    Daemon 啟動時同樣校驗，缺 IP 拒絕啟動
 
-4. 錯誤處理
-   - 務必檢查結束代碼
-   - 非 0 代碼表示執行失敗
-   - 可透過 Debug 輸出查看詳細錯誤（使用 DebugView 工具）
-
-5. 座標系統
-   - 原點 (0,0) 在工作區中心
-   - X 軸：右為正
-   - Y 軸：下為正
-   - 單位：毫米 (mm)
-   - 工作區大小：100x100mm
-   - 有效範圍：-50 到 +50
-
-6. 多板使用
-   - 每次呼叫只能操作一塊板
-   - 如需多板同時操作，需多次呼叫程式
-   - 建議使用多執行緒或非同步呼叫
-
-7. GUI 模式保留
-   - 不帶參數啟動仍是原本的 GUI 模式
-   - 所有原有功能完全保留
-   - 可用於手動測試和調試
+IP 編輯：目前僅 GUI 模式支援（在「1. 連接設定」頁填後按「儲存IP」）
 
 ===========================================
-八、疑難排解
+九、注意事項
 ===========================================
 
-問題：執行後立即退出，無任何反應
-解決：檢查參數格式是否正確，使用 --help 查看說明
+9.1 為什麼要用 Daemon？
+    SDK OCX（AxMMMarkx64 / AxMMEditx64）為 process-global 註冊，
+    兩個 process 同時 init 會撞驅動全域鎖，症狀：
+        「Please initial MMMark_1 OCX first!」
+    且壞在驅動層，重啟 daemon 也接不回來，通常需重開機。
+    因此偵測到已有 daemon 時，程式會自動把單命令模式轉發成 Client。
 
-問題：結束代碼為 1（初始化失敗）
-解決：
-  - 檢查 MarkingMate SDK 是否已安裝
-  - 檢查配置路徑是否存在
-  - 使用 GUI 模式測試是否能正常初始化
+9.2 執行時間
+    - Daemon 啟動：3-6 秒（4 板全 init）
+    - Client 單次命令：< 1 秒往返 + 打標時間
+    - QRCODE_白底 打完約 30-90 秒（視內容複雜度）
+    - 建議超時：一般 --mark 90 秒；DXF 大檔 300 秒
 
-問題：結束代碼為 2（繪圖失敗）
-解決：
-  - 檢查座標是否在有效範圍內
-  - 檢查座標格式是否正確（逗號分隔）
+9.3 座標系統
+    - 原點 (0,0) 在工作區中心
+    - X 軸：右為正
+    - Y 軸：上為正（SDK 內部座標）
+    - 單位：毫米 (mm)
+    - 有效範圍：依 --workspace 設定（預設 150 → -75 到 +75）
 
-問題：結束代碼為 3（打標失敗）
-解決：
-  - 檢查硬體連接
-  - 檢查控制卡 IP 設定
-  - 使用 GUI 模式的「測試連接」功能
+9.4 序號自動遞增
+    - Steel Quest3 / QRCODE_白底 各自有 counter 檔：
+        counter.txt          （Steel Quest3）
+        counter_whitebg.txt  （QRCODE_白底）
+    - 每次執行 +1，跨天不重置
+    - 檔案位於 exe 同目錄
 
-問題：結束代碼為 4（參數錯誤）
-解決：
-  - 檢查板編號是否在 0-3 範圍
-  - 檢查參數格式
-  - 使用 --help 查看正確格式
-
-===========================================
-九、快速測試步驟
-===========================================
-
-1. 編譯專案
-   - 開啟 Visual Studio
-   - 選擇 x64 平台
-   - 建置方案
-
-2. 測試 GUI 模式（確保基本功能正常）
-   - 雙擊執行 WindowsFormsApp1.exe
-   - 點擊「初始化」
-   - 測試繪製線段
-
-3. 測試命令列模式
-   - 開啟命令提示字元
-   - cd 到 exe 目錄
-   - 執行：WindowsFormsApp1.exe --help
-   - 執行：WindowsFormsApp1.exe --board 0 --line 0,0,10,10
-
-4. 測試從其他程式呼叫
-   - 使用上述 C# 或 Python 範例
-   - 檢查結束代碼
+9.5 GUI 與 CLI 共享後端
+    - QRCODE_白底 打標邏輯由 GUI btn 與 CLI 共用 BuildWhiteBgQR
+    - 若 GUI GroupBox 調整參數，CLI 預設值需同步更新（見 WhiteBgQRParams）
 
 ===========================================
-十、技術細節
+十、疑難排解
+===========================================
+
+Q1: 執行後立即退出，無任何反應
+A: 檢查參數格式與引號跳脫，用 --help 查看說明
+
+Q2: ExitCode = 1（初始化失敗）
+A: - 檢查 IP 主表 DevIPAddress.ini 是否已填
+   - 檢查 MarkingMate SDK 是否已安裝
+   - 用 GUI 模式測試初始化能否成功
+   - 檢查是否需以管理員身分執行（首次部署 config 到 Program Files）
+
+Q3: ExitCode = 2（繪圖失敗 / 板被佔用）
+A: - 檢查座標是否在工作區內
+   - 座標格式是否正確（逗號分隔）
+   - 是否已有 CLI 單命令在跑同一板
+
+Q4: ExitCode = 3（打標失敗）
+A: - 檢查硬體連接與控制卡 IP
+   - GUI 模式「測試連接」是否 OK
+   - 檢查雷射頭 shutter 是否開啟
+
+Q5: ExitCode = 4（參數錯誤）
+A: - --board 範圍是否 0-3
+   - QR 內容是否含特殊字元需引號跳脫
+   - --workspace-w / --workspace-h 是否為正數
+
+Q6: ExitCode = 5（板正忙）
+A: - Daemon 該板正在打標/預覽，等該任務結束再試
+   - 或呼叫另一板
+
+Q7: ExitCode = 6（Client 無法連線 daemon）
+A: - Daemon 未啟動：start "" MarkingMate.exe --daemon
+   - 使用了非預設 port：帶 --port <N>
+   - 防火牆阻擋 localhost 19527（少見）
+
+Q8: ExitCode = 7（Client 例外）
+A: - HTTP 傳輸中斷，通常伴隨 daemon crash
+   - 檢查 daemon 視窗是否還在
+   - 重啟 daemon
+
+Q9: QR 打出來位置偏移
+A: - 檢查 config 對應板：--board N 需搭配 --config /cfg_config_MM(N+1)
+   - 檢查工作區大小與雷射頭校正
+
+Q10: 白底 QR 打完後表面反光看不到碼
+A: - 這是預期：白底反相 QR 需要「有髒污/氧化底層」時才明顯
+   - 若表面過亮/過暗，可調 QR 圖層 --power / --speed（矩形不動）
+
+===========================================
+十一、技術細節
 ===========================================
 
 實作方式：
-- 保持 WinExe 類型（ActiveX 控件需要）
-- 命令列模式建立隱藏視窗
-- 使用 Form.Opacity = 0 完全透明
-- 使用 FormWindowState.Minimized 最小化
-- 透過 Application.DoEvents() 保持訊息迴圈
-- 執行完畢後呼叫 Form.Close()
-- 透過 Main() 回傳值傳遞結束代碼
+    - Application 類型：WinExe（AxHost / OCX 需要 STA + Message Pump）
+    - CLI 模式視窗以 Opacity=0 + Minimized 建立，Application.DoEvents 保持訊息
+    - Daemon 內建 HttpListener，POST /cmd 派工到對應板
+    - CORS 開放 * 供網頁呼叫
+    - 4 個 AxMMMarkx64 + 4 個 AxMMEditx64 共存於同 process（in-process parallel）
+
+Mutex 命名（同時只能一個實例）：
+    - GUI 模式：MarkingMateMulti_SingleInstance
+    - Daemon 模式：MarkingMateMulti_Daemon
+    - CLI Board N 模式：MarkingMateMulti_Board<N>
+    - Client 模式：不持 Mutex（因為不 init SDK）
+
+檔案位置：
+    exe：           MarkingMate.exe (原 WindowsFormsApp1 專案，OutputName)
+    序號 counter：  exe 同目錄 counter.txt / counter_whitebg.txt
+    QRCode 素材：   exe 同目錄 QRCodePara\
+    Config：        C:\Program Files (x86)\MarkingMate\ 底下
 
 限制：
-- 必須有 Windows 視窗環境（無法在純 Console 環境執行）
-- 必須有 MarkingMate SDK 和 ActiveX 控件
-- 僅支援 x64 平台
-- 需要 .NET Framework 4.7.2
+    - x64 平台，.NET Framework 4.7.2/4.8
+    - 需要 Windows 視窗環境（無 headless）
+    - 需要 MarkingMate SDK 與 OCX 註冊
+    - 一台機器同時只能有一個 Daemon
+    - QR-only 命令僅 --qr-whitebg 支援白底反相（單獨 QR 無反相白底）
 
 ===========================================
 結束
