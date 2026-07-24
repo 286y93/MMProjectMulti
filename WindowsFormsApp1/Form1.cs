@@ -2095,8 +2095,8 @@ namespace WindowsFormsApp1
         private class WhiteBgQRParams
         {
             public string Content = "1234567";
-            public double QrWidth = 15.0;    // QR 資料模組區寬 (mm)
-            public double QrHeight = 15.0;   // QR 資料模組區高 (mm)
+            public double QrWidth = 25.0;    // QR 資料模組區寬 (mm)
+            public double QrHeight = 25.0;   // QR 資料模組區高 (mm)
             public int Border = 2;           // 外框單元數 (cell)
             public double QrSpeed = 1200;    // QR 打標速度
             public double QrPower = 80;      // QR 功率
