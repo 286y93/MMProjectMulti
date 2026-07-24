@@ -302,6 +302,22 @@ namespace WindowsFormsApp1
                         return;
                     }
 
+                    // 卡未連接就不建內容 / 不打標，直接回報讓 client 稍後重試（等卡連上）。
+                    // 針對「最後初始化、連線最慢的板（如 board 4）」：即使 daemon 啟動的
+                    // WaitForCardsConnected 逾時放行，這裡每條命令仍會擋住未連線的板，
+                    // 由前端 sendDaemonCmd 的「未連接」重試補上，不會打到沒 ready 的板。
+                    long cardConn = 0;
+                    try { cardConn = m_MMMark[board].IsCardConnect(); } catch { cardConn = 0; }
+                    if (cardConn == 0)
+                    {
+                        tcs.SetResult(new DaemonSpecResult
+                        {
+                            ExitCode = 9,
+                            Logs = $"[Board {board + 1}] control card not connected（卡未連接），請稍後重試"
+                        });
+                        return;
+                    }
+
                     if (spec.Lines == null || spec.Lines.Count == 0)
                     {
                         if (string.IsNullOrEmpty(spec.QRContent))
@@ -1817,7 +1833,7 @@ namespace WindowsFormsApp1
         /// 非致命：逾時未連線只警告、不阻擋 daemon 啟動（其他板仍可用；前端另有 rc=1/9 重試）。
         /// 目的：讓 daemon /health 就緒時 EMC6 卡真的 ready，避免第一條命令 StartMarking 回 rc=1/9。
         /// </summary>
-        private void WaitForCardsConnected(int boardCount, int overallTimeoutMs = 15000)
+        private void WaitForCardsConnected(int boardCount, int overallTimeoutMs = 40000)
         {
             var connected = new bool[boardCount];
             var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -2082,7 +2098,7 @@ namespace WindowsFormsApp1
             public double QrWidth = 15.0;    // QR 資料模組區寬 (mm)
             public double QrHeight = 15.0;   // QR 資料模組區高 (mm)
             public int Border = 2;           // 外框單元數 (cell)
-            public double QrSpeed = 1000;    // QR 打標速度
+            public double QrSpeed = 1200;    // QR 打標速度
             public double QrPower = 80;      // QR 功率
             public double RectSpeed = 800;   // 白底矩形速度
             public double RectPower = 100;   // 白底矩形功率
