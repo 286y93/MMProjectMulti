@@ -2099,9 +2099,9 @@ namespace WindowsFormsApp1
             public double QrHeight = 25.0;   // QR 資料模組區高 (mm)
             public int Border = 2;           // 外框單元數 (cell)
             public double QrSpeed = 1200;    // QR 打標速度
-            public double QrPower = 80;      // QR 功率
+            public double QrPower = 90;      // QR 功率80
             public double RectSpeed = 800;   // 白底矩形速度
-            public double RectPower = 100;   // 白底矩形功率
+            public double RectPower = 100;   // 白底矩形功率100
             public double RectExtra = 0;     // 矩形額外加大量 (mm)
         }
 
