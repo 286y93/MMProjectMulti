@@ -163,7 +163,7 @@ namespace WindowsFormsApp1
                 var req = (HttpWebRequest)WebRequest.Create(url);
                 req.Method = "POST";
                 req.ContentType = "text/plain; charset=utf-8";
-                req.Timeout = 5 * 60 * 1000; // 5 分鐘上限，preview-time 最長設計
+                req.Timeout = 10 * 60 * 1000; // 10 分鐘上限（與 daemon task.Wait 一致；清晰版多輪重複打標較久）
 
                 if (!shutdown)
                 {

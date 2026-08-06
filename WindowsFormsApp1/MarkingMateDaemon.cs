@@ -130,13 +130,13 @@ namespace WindowsFormsApp1
             }
 
             // 同步等 spec 完成（HTTP request thread block 在這）
-            // 最長 5 分鐘，避免 preview-time 設太長或卡住
+            // 最長 10 分鐘，避免 preview-time 設太長或卡住（清晰版 laser_shots_num 多輪重複打標可能較久）
             Form1.DaemonSpecResult result;
             try
             {
-                if (!task.Wait(TimeSpan.FromMinutes(5)))
+                if (!task.Wait(TimeSpan.FromMinutes(10)))
                 {
-                    WriteJson(ctx, 504, new Form1.DaemonSpecResult { ExitCode = 3, Logs = "daemon timeout (>5min)" });
+                    WriteJson(ctx, 504, new Form1.DaemonSpecResult { ExitCode = 3, Logs = "daemon timeout (>10min)" });
                     return;
                 }
                 result = task.Result;
