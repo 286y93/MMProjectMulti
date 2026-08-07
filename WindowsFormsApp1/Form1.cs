@@ -453,11 +453,13 @@ namespace WindowsFormsApp1
                     // mode 4 打標上限：固定 60 秒會讓「低速 / 多重複 / 長線段」的工作被誤判 timeout（exitCode=3）
                     // ——例如 speed=12 或 repeat=20 的清晰版參數，單件本來就會超過 60 秒。改依實際參數動態估算，
                     // 保留下限 60 秒（不比舊行為差），並設上限避免真卡死時佔用過久拖累連續打標。
-                    // 白底 QR 密填較久，維持固定 5 分鐘（其物件參數在 BuildWhiteBgQR 內設定，不走這裡估算）。
+                    // 白底 QR 密填很慢（白底矩形 + 反相 QR 雙圖層、FillTimes 4），長內容可能超過 5 分鐘
+                    // 而被砍在半途（QR 只打了上半、下半空白）。上限拉到 570 秒（< 外層 10 分鐘），
+                    // 與動態估算的 MaxMs 一致。其物件參數在 BuildWhiteBgQR 內設定，不走這裡估算。
                     int markTimeoutMs;
                     if (spec.QRWhiteBg)
                     {
-                        markTimeoutMs = 300000;
+                        markTimeoutMs = 570000;
                     }
                     else
                     {
