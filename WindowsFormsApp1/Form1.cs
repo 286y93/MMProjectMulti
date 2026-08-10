@@ -179,8 +179,10 @@ namespace WindowsFormsApp1
             // 自動模式（包含 daemon）：最小化但不隱藏（OCX 需要 Window Handle）
             if (m_IsAutoMode)
             {
-                this.WindowState = FormWindowState.Minimized;
+                //this.WindowState = FormWindowState.Minimized;
                 this.ShowInTaskbar = false;
+                this.Text = Text + "自動模式-停用除錯功能";
+                tabControl1.Enabled = false;
             }
         }
 
@@ -405,7 +407,9 @@ namespace WindowsFormsApp1
                     {
                         var savedArgs = m_AutoModeArgs;
                         m_AutoModeArgs = spec;
-                        try { ApplyLaserParamsAuto(board); }
+                        // applyRepeat:false → laser_shots_num 走「整筆 payloaddata 重複 N 輪」（見下方 iMarkLoop），
+                        // 不套 per-object repeat（避免變成每段各打 N 次）。
+                        try { ApplyLaserParamsAuto(board, applyRepeat: false); }
                         finally { m_AutoModeArgs = savedArgs; }
                     }
 
@@ -446,11 +450,30 @@ namespace WindowsFormsApp1
                     // 4. per-spec 監控 Timer：mode 3 計時 preview-time + 自動重啟；mode 4 等 IsMarking==0
                     var sw = System.Diagnostics.Stopwatch.StartNew();
                     int previewTimeMs = Math.Max(spec.PreviewTime, 1) * 1000;
-                    // 白底 QR 密填較久 → 5 分鐘；一般線段/QR → 60 秒（與 699d4ac 相同，卡住能較快恢復，
-                    // 不會讓某板連續佔用 5 分鐘拖累連續打標）。
-                    int markTimeoutMs = spec.QRWhiteBg ? 300000 : 60000;
+                    // mode 4 打標上限：固定 60 秒會讓「低速 / 多重複 / 長線段」的工作被誤判 timeout（exitCode=3）
+                    // ——例如 speed=12 或 repeat=20 的清晰版參數，單件本來就會超過 60 秒。改依實際參數動態估算，
+                    // 保留下限 60 秒（不比舊行為差），並設上限避免真卡死時佔用過久拖累連續打標。
+                    // 白底 QR 密填很慢（白底矩形 + 反相 QR 雙圖層、FillTimes 4），長內容可能超過 5 分鐘
+                    // 而被砍在半途（QR 只打了上半、下半空白）。上限拉到 570 秒（< 外層 10 分鐘），
+                    // 與動態估算的 MaxMs 一致。其物件參數在 BuildWhiteBgQR 內設定，不走這裡估算。
+                    int markTimeoutMs;
+                    if (spec.QRWhiteBg)
+                    {
+                        markTimeoutMs = 570000;
+                    }
+                    else
+                    {
+                        markTimeoutMs = EstimateMarkTimeoutMs(spec);
+                        sbLog.AppendLine($"[Board {board + 1}] markTimeout={markTimeoutMs}ms " +
+                            $"(speed={spec.Speed?.ToString() ?? "default"}, repeat={spec.MarkRepeat?.ToString() ?? "1"})");
+                    }
                     long lastRestartMs = 0;
                     int idleTicks = 0;   // mode 4：連續讀到 IsMarking==0 的次數，達門檻才算真的打完
+                    // 整筆重複：laser_shots_num（= slm-upper 的 iMarkLoop）語意為「整筆 payloaddata 打完一遍算一輪，
+                    // 整輪重複 N 次」。per-object repeat 已在 ApplyLaserParamsAuto 設回 1，這裡用 StartMarking 重跑 N 輪實現。
+                    int iMarkLoop = (spec.MarkRepeat.HasValue && spec.MarkRepeat.Value > 0) ? spec.MarkRepeat.Value : 1;
+                    int passesDone = 0;   // 已完成的整輪次數
+                    long passStartMs = 0; // 本輪 StartMarking 的 elapsed 基準（「開打 300ms 後才判定 idle」用）
                     System.Windows.Forms.Timer monitor = new System.Windows.Forms.Timer { Interval = 100 };
                     int capturedBoard = board;
                     int capturedMode = markMode;
@@ -492,16 +515,49 @@ namespace WindowsFormsApp1
                                 // 需「開打 300ms 後、且連續 2 次讀到 0」才算真的完成。
                                 // 否則 IsMarking 一次瞬間誤報 0 就提早回完成 → client 立刻發下一條，
                                 // 在本板還在打時 ResetFile 破壞正在跑的工作 → 下一條 StartMarking 回 6。
-                                if (elapsed >= 300 && im == 0)
+                                if (elapsed - passStartMs >= 300 && im == 0)
                                 {
                                     idleTicks++;
                                     if (idleTicks >= 2)
                                     {
+                                        passesDone++;
+                                        if (passesDone < iMarkLoop)
+                                        {
+                                            // 本輪打完、還沒滿 N 輪 → 重跑一輪（整筆 payloaddata 再打一遍），不結束命令。
+                                            idleTicks = 0;
+                                            try
+                                            {
+                                                m_MMMark[capturedBoard].MarkStandBy();
+                                                Application.DoEvents();
+                                                int rcLoop = m_MMMark[capturedBoard].StartMarking(4);
+                                                passStartMs = sw.ElapsedMilliseconds;
+                                                if (rcLoop != 0)
+                                                {
+                                                    monitor.Stop();
+                                                    monitor.Dispose();
+                                                    try { m_MMMark[capturedBoard].MarkShutdown(); } catch { }
+                                                    m_bCmdPreviewing[capturedBoard] = false;
+                                                    sbLog.AppendLine($"[Board {capturedBoard + 1}] loop {passesDone + 1}/{iMarkLoop} StartMarking(4) returned {rcLoop} @{elapsed}ms");
+                                                    tcs.SetResult(new DaemonSpecResult { ExitCode = 3, Logs = sbLog.ToString() });
+                                                    return;
+                                                }
+                                                sbLog.AppendLine($"[Board {capturedBoard + 1}] loop {passesDone}/{iMarkLoop} done @{elapsed}ms, next loop started");
+                                            }
+                                            catch (Exception exLoop)
+                                            {
+                                                monitor.Stop();
+                                                try { monitor.Dispose(); } catch { }
+                                                m_bCmdPreviewing[capturedBoard] = false;
+                                                tcs.SetResult(new DaemonSpecResult { ExitCode = 1, Logs = sbLog.ToString() + $"loop restart exception: {exLoop.Message}" });
+                                            }
+                                            return;
+                                        }
+                                        // 已滿 N 輪 → 整筆完成
                                         monitor.Stop();
                                         monitor.Dispose();
                                         try { m_MMMark[capturedBoard].MarkShutdown(); } catch { }
                                         m_bCmdPreviewing[capturedBoard] = false;
-                                        sbLog.AppendLine($"[Board {capturedBoard + 1}] mark done @{elapsed}ms");
+                                        sbLog.AppendLine($"[Board {capturedBoard + 1}] mark done @{elapsed}ms ({iMarkLoop} loop(s))");
                                         tcs.SetResult(new DaemonSpecResult { ExitCode = 0, Logs = sbLog.ToString() });
                                         return;
                                     }
@@ -1828,6 +1884,42 @@ namespace WindowsFormsApp1
         }
 
         /// <summary>
+        /// 估算 mode 4 打標上限（ms）。低速 / 多重複 / 長線段的工作需要更長時間，
+        /// 固定 60 秒會誤判 timeout（exitCode=3）。估算模型：打標時間 ≈ 重複次數 × (總線段長 / 速度)，
+        /// 乘上安全係數（填充 / wobble / 跳轉 settle 讓實際路徑遠大於裸線長）再加基礎緩衝。
+        /// 夾在 [60s, 570s]：不低於原本 60 秒（不比舊行為差）；上限低於上層 HTTP/task 的 10 分鐘（600s）
+        /// 留餘裕，避免外層先 504。若估算仍不夠，可從 log 的 markTimeout=... 值調整係數。
+        /// </summary>
+        private int EstimateMarkTimeoutMs(CommandLineArgs spec)
+        {
+            const int MinMs = 60000;
+            const int MaxMs = 570000;   // < 外層 10 分鐘（600s），留 ~30s 餘裕讓內層先回、避免外層 504
+            const double SafetyFactor = 3.0;   // 填充 / wobble / 跳轉讓實際路徑遠大於裸線長
+
+            double speed = (spec.Speed.HasValue && spec.Speed.Value > 0) ? spec.Speed.Value : 800.0;  // mm/s
+            int repeat = (spec.MarkRepeat.HasValue && spec.MarkRepeat.Value > 0) ? spec.MarkRepeat.Value : 1;
+
+            double totalLenMm = 0;
+            if (spec.Lines != null)
+            {
+                foreach (var ln in spec.Lines)
+                {
+                    double dx = ln.X2 - ln.X1, dy = ln.Y2 - ln.Y1;
+                    totalLenMm += Math.Sqrt(dx * dx + dy * dy);
+                }
+            }
+            // 沒有線段長度資訊（例如純 QR）或極短時，用工作範圍當保守估計
+            if (totalLenMm < 1) totalLenMm = Math.Max(m_WorkspaceSize, 1) * 4;
+
+            double estMs = (totalLenMm / speed) * 1000.0 * repeat * SafetyFactor
+                           + repeat * 500.0   // 每次重複的跳轉 / settle 緩衝
+                           + 5000.0;          // 基礎啟動緩衝
+            if (estMs < MinMs) estMs = MinMs;
+            if (estMs > MaxMs) estMs = MaxMs;
+            return (int)estMs;
+        }
+
+        /// <summary>
         /// 等各板 EMC6 控制卡連線（IsCardConnect != 0）。所有板一起輪詢，總逾時 overallTimeoutMs，
         /// 讓總等待時間 ≈ 最慢一張卡（而非各板相加）。
         /// 非致命：逾時未連線只警告、不阻擋 daemon 啟動（其他板仍可用；前端另有 rc=1/9 重試）。
@@ -2464,7 +2556,7 @@ namespace WindowsFormsApp1
         /// <summary>
         /// 自動模式：套用雷射參數到所有物件
         /// </summary>
-        private void ApplyLaserParamsAuto(int boardIndex)
+        private void ApplyLaserParamsAuto(int boardIndex, bool applyRepeat = true)
         {
             try
             {
@@ -2497,8 +2589,11 @@ namespace WindowsFormsApp1
                     if (m_AutoModeArgs.PulseWidth.HasValue)
                         m_MMMark[boardIndex].SetPulseWidth(objName, m_AutoModeArgs.PulseWidth.Value);
 
+                    // applyRepeat=false（daemon 整筆重複模式）：per-object 一律設 1，
+                    // laser_shots_num（= slm-upper 的 iMarkLoop）改由呼叫端「整輪重跑 N 次」實現，
+                    // 而非每個線段各自連打 N 次。
                     if (m_AutoModeArgs.MarkRepeat.HasValue)
-                        m_MMMark[boardIndex].SetMarkRepeat(objName, m_AutoModeArgs.MarkRepeat.Value);
+                        m_MMMark[boardIndex].SetMarkRepeat(objName, applyRepeat ? m_AutoModeArgs.MarkRepeat.Value : 1);
 
                     // 擺動：有指定寬度則啟動
                     // 頻率 = 擺動速度 / (π × 擺動寬度)，不覆蓋標記速度
