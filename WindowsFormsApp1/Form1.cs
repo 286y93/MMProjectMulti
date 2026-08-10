@@ -2099,16 +2099,21 @@ namespace WindowsFormsApp1
             public double QrHeight = 25.0;   // QR 資料模組區高 (mm)
             public int Border = 2;           // 外框單元數 (cell)
             public double QrSpeed = 1200;    // QR 打標速度
-            public double QrPower = 90;      // QR 功率80
+            public double QrPower = 90;      // QR 功率
+            public double QrFreq = 80;       // QR 頻率 (kHz)
+            public double QrPulseWidth = 30; // QR 脈波寬度
             public double RectSpeed = 800;   // 白底矩形速度
-            public double RectPower = 100;   // 白底矩形功率100
+            public double RectPower = 100;   // 白底矩形功率
+            public double RectFreq = 80;     // 白底矩形頻率 (kHz)
+            public double RectPulseWidth = 250; // 白底矩形脈波寬度
             public double RectExtra = 0;     // 矩形額外加大量 (mm)
         }
 
         /// <summary>
-        /// 依 CLI 參數組出白底 QR 參數：content 必填，其餘用寫死預設，
-        /// 有明確帶 --qr-width/--qr-height/--qr-border/--power/--speed 才覆寫。
-        /// （--power/--speed 覆寫的是 QR 圖層；矩形參數目前維持寫死。）
+        /// 依 CLI 參數組出白底 QR 參數：content 必填，其餘用寫死預設，有明確帶才覆寫。
+        /// QR 資料層：--qr-power/--qr-speed/--qr-freq/--qr-pw；功率/速度未帶時 fallback 到通用 --power/--speed。
+        /// 白底矩形層：--rect-power/--rect-speed/--rect-freq/--rect-pw（不吃 fallback）。
+        /// 尺寸：--qr-width/--qr-height/--qr-border。
         /// </summary>
         private WhiteBgQRParams MakeWhiteBgParams(CommandLineArgs a)
         {
@@ -2116,8 +2121,18 @@ namespace WindowsFormsApp1
             if (a.QRWidthExplicit) p.QrWidth = a.QRWidth;
             if (a.QRHeightExplicit) p.QrHeight = a.QRHeight;
             if (a.QRBorderExplicit) p.Border = a.QRBorder;
-            if (a.Power.HasValue) p.QrPower = a.Power.Value;
-            if (a.Speed.HasValue) p.QrSpeed = a.Speed.Value;
+            // QR 資料層：--qr-* 優先，未帶則 fallback 到通用 --power/--speed（向後相容）
+            if (a.QRPower.HasValue) p.QrPower = a.QRPower.Value;
+            else if (a.Power.HasValue) p.QrPower = a.Power.Value;
+            if (a.QRSpeed.HasValue) p.QrSpeed = a.QRSpeed.Value;
+            else if (a.Speed.HasValue) p.QrSpeed = a.Speed.Value;
+            if (a.QRFreq.HasValue) p.QrFreq = a.QRFreq.Value;
+            if (a.QRPulseWidth.HasValue) p.QrPulseWidth = a.QRPulseWidth.Value;
+            // 白底矩形層：只認 --rect-*
+            if (a.RectPower.HasValue) p.RectPower = a.RectPower.Value;
+            if (a.RectSpeed.HasValue) p.RectSpeed = a.RectSpeed.Value;
+            if (a.RectFreq.HasValue) p.RectFreq = a.RectFreq.Value;
+            if (a.RectPulseWidth.HasValue) p.RectPulseWidth = a.RectPulseWidth.Value;
             return p;
         }
 
@@ -2159,13 +2174,17 @@ namespace WindowsFormsApp1
             m_MMEdit[boardIndex].SetBarcodeLineTwoway(qrName, 1);
             m_MMEdit[boardIndex].SetFrameSwitch(qrName, 1);
             m_MMEdit[boardIndex].SetFillSwitch(qrName, 1);
-            m_MMEdit[boardIndex].SetFillFirstExt(qrName, 0, 1);
-            m_MMMark[boardIndex].SetSpeed(qrName, p.QrSpeed);
-            m_MMMark[boardIndex].SetPower(qrName, p.QrPower);
-            m_MMMark[boardIndex].SetFrequency(qrName, 80);                          // 200 → 80
+            m_MMEdit[boardIndex].SetFillFirstExt(qrName, 0, 1);                        // 200 → 80
             m_MMMark[boardIndex].SetMarkRepeat(qrName, 1);
             m_MMEdit[boardIndex].SetBarcodeSpotDelay(qrName, 1000);
-            m_MMMark[boardIndex].SetPulseWidth(qrName, 30);                         // 13 → 30
+            // 速度
+            m_MMMark[boardIndex].SetSpeed(qrName, p.QrSpeed);
+            // 功率
+            m_MMMark[boardIndex].SetPower(qrName, p.QrPower);
+            // 頻率
+            m_MMMark[boardIndex].SetFrequency(qrName, p.QrFreq);
+            // 脈衝寬度
+            m_MMMark[boardIndex].SetPulseWidth(qrName, p.QrPulseWidth);
 
             // 反推 cellSize，讓 QR 資料區渲染 = UI 長寬
             m_MMMark[boardIndex].Redraw();
@@ -2212,13 +2231,17 @@ namespace WindowsFormsApp1
             m_MMEdit[boardIndex].SetFillAverageDistribution(rectName, 1);
             m_MMEdit[boardIndex].SetFrameSwitch(rectName, 1);
             m_MMEdit[boardIndex].SetFillSwitch(rectName, 1);
-            m_MMEdit[boardIndex].SetFillFirstExt(rectName, 0, 1);
-            m_MMMark[boardIndex].SetSpeed(rectName, p.RectSpeed);
-            m_MMMark[boardIndex].SetPower(rectName, p.RectPower);
-            m_MMMark[boardIndex].SetFrequency(rectName, 80);                        // 20 → 80
+            m_MMEdit[boardIndex].SetFillFirstExt(rectName, 0, 1);                      // 20 → 80
             m_MMMark[boardIndex].SetMarkRepeat(rectName, 1);
             m_MMEdit[boardIndex].SetBarcodeSpotDelay(rectName, 100);
-            m_MMMark[boardIndex].SetPulseWidth(rectName, 250);                      // 200 → 250
+            // 速度
+            m_MMMark[boardIndex].SetSpeed(rectName, p.RectSpeed);
+            // 功率
+            m_MMMark[boardIndex].SetPower(rectName, p.RectPower);
+            // 頻率
+            m_MMMark[boardIndex].SetFrequency(rectName, p.RectFreq);
+            // 脈衝寬度
+            m_MMMark[boardIndex].SetPulseWidth(rectName, p.RectPulseWidth);
 
             // 矩形排到 QR 前面 → 先打白底、再打 QR
             long rOrd = m_MMEdit[boardIndex].ChangeObjectOrder(rectName, qrName, 0);

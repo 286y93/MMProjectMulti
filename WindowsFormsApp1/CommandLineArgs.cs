@@ -43,6 +43,17 @@ namespace WindowsFormsApp1
         public bool QRWidthExplicit { get; private set; }   // 使用者是否有明確帶 --qr-width
         public bool QRHeightExplicit { get; private set; }  // 使用者是否有明確帶 --qr-height
         public bool QRBorderExplicit { get; private set; }  // 使用者是否有明確帶 --qr-border
+        // 白底反相 QR 各圖層雷射參數（null=不覆寫，沿用 WhiteBgQRParams 內建預設）
+        // QR 資料層：未帶 --qr-power/--qr-speed 時，功率/速度會 fallback 到通用 --power/--speed（見 Form1.MakeWhiteBgParams）
+        public double? QRPower { get; private set; }
+        public double? QRSpeed { get; private set; }
+        public double? QRFreq { get; private set; }
+        public double? QRPulseWidth { get; private set; }
+        // 白底矩形層（不吃 fallback，只認 --rect-*）
+        public double? RectPower { get; private set; }
+        public double? RectSpeed { get; private set; }
+        public double? RectFreq { get; private set; }
+        public double? RectPulseWidth { get; private set; }
         // 預覽模式：0=不預覽, 1=外框預覽, 2=全路徑預覽
         public int PreviewMode { get; private set; }
         public double? PreviewSpeed { get; private set; }
@@ -86,6 +97,14 @@ namespace WindowsFormsApp1
             QRWidthExplicit = false;
             QRHeightExplicit = false;
             QRBorderExplicit = false;
+            QRPower = null;
+            QRSpeed = null;
+            QRFreq = null;
+            QRPulseWidth = null;
+            RectPower = null;
+            RectSpeed = null;
+            RectFreq = null;
+            RectPulseWidth = null;
             PreviewMode = 0;
             PreviewSpeed = null;
             PreviewTime = 15;
@@ -361,6 +380,72 @@ namespace WindowsFormsApp1
                         i++;
                     }
                 }
+                // ---- 白底反相 QR：QR 資料層雷射參數 ----
+                else if (argLower == "--qr-power")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double v))
+                    {
+                        result.QRPower = v;
+                        i++;
+                    }
+                }
+                else if (argLower == "--qr-speed")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double v))
+                    {
+                        result.QRSpeed = v;
+                        i++;
+                    }
+                }
+                else if (argLower == "--qr-freq")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double v))
+                    {
+                        result.QRFreq = v;
+                        i++;
+                    }
+                }
+                else if (argLower == "--qr-pw" || argLower == "--qr-pulse-width")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double v))
+                    {
+                        result.QRPulseWidth = v;
+                        i++;
+                    }
+                }
+                // ---- 白底反相 QR：白底矩形層雷射參數 ----
+                else if (argLower == "--rect-power")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double v))
+                    {
+                        result.RectPower = v;
+                        i++;
+                    }
+                }
+                else if (argLower == "--rect-speed")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double v))
+                    {
+                        result.RectSpeed = v;
+                        i++;
+                    }
+                }
+                else if (argLower == "--rect-freq")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double v))
+                    {
+                        result.RectFreq = v;
+                        i++;
+                    }
+                }
+                else if (argLower == "--rect-pw" || argLower == "--rect-pulse-width")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double v))
+                    {
+                        result.RectPulseWidth = v;
+                        i++;
+                    }
+                }
                 else if (argLower == "--mark" || argLower == "-m")
                 {
                     result.AutoMark = true;
@@ -431,11 +516,19 @@ namespace WindowsFormsApp1
   --qr-invert                           QR Code 反相（黑白互換），預設關閉
   --qr-whitebg                          白底反相 QR（白底矩形 + 反相 QR 雙圖層）；
                                           只需再帶 --qrcode 內容，其餘用 WhiteBgQRParams 預設
-                                          （15x15mm、外框 2、QR power80/speed1000、
-                                          矩形 power100/speed800）。可用 --qr-width /
-                                          --qr-height / --qr-border / --power / --speed 覆寫
+                                          （QR 25x25mm、外框 2；QR power90/speed1200/freq80/pw30、
+                                          矩形 power100/speed800/freq80/pw250）。尺寸可用
+                                          --qr-width / --qr-height / --qr-border 覆寫
   --qr-border <cells>                   白底 QR 外框單元數（不帶時 --qr-whitebg 走 WhiteBgQRParams 預設 2；
                                           單獨 QR 模式走 CLI 預設 5）
+  --qr-power <0-100>                    白底 QR 之 QR 資料層功率 %（不帶時 fallback 到 --power，再無則預設 90）
+  --qr-speed <mm/s>                     白底 QR 之 QR 資料層速度（不帶時 fallback 到 --speed，再無則預設 1200）
+  --qr-freq <kHz>                       白底 QR 之 QR 資料層頻率（預設 80）
+  --qr-pw <val>, --qr-pulse-width       白底 QR 之 QR 資料層脈波寬度（預設 30）
+  --rect-power <0-100>                  白底 QR 之白底矩形功率 %（預設 100）
+  --rect-speed <mm/s>                   白底 QR 之白底矩形速度（預設 800）
+  --rect-freq <kHz>                     白底 QR 之白底矩形頻率（預設 80）
+  --rect-pw <val>, --rect-pulse-width   白底 QR 之白底矩形脈波寬度（預設 250）
   --mark, -m                            自動執行打標
   --preview <outline|full>               紅光預覽模式（不打雷射，需搭配 --mark）
                                           outline = 外框預覽, full = 全路徑預覽 (預設: full)

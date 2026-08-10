@@ -4,7 +4,7 @@
 > GUI 模式請見 [故障排除完整指南.md](故障排除完整指南.md)。
 > 完整命令列使用手冊請見 [命令列模式使用說明.txt](../命令列模式使用說明.txt)。
 >
-> **最後同步日期：2026-07-17**（QRCODE_白底 GUI 預設調至 15×15/border 2/QR power 80/QR speed 1000/矩形 power 100/矩形 speed 800）
+> **最後同步日期：2026-08-07**（`--qr-whitebg` 兩圖層雷射參數改為可用 `--qr-*` / `--rect-*` CLI 覆寫；exe `WhiteBgQRParams` 預設：QR 25×25/border 2/power 90/speed 1200/freq 80/pw 30、矩形 power 100/speed 800/freq 80/pw 250）
 
 ---
 
@@ -364,19 +364,28 @@ cmd> MarkingMate.exe --board 0 --line 0,0,50,50 --mark
 
 9a. **`--qr-whitebg` 白底反相 QR（雙圖層）**
    - 旗標型。加上後會建成「白底矩形 + 反相 QR」兩個圖層（矩形先打、QR 後打），等同 GUI「QRCODE_白底」GroupBox。
-   - **只需帶 `--qrcode` 內容即可**，其餘由 `WhiteBgQRParams` 預設補齊（與 GUI GroupBox 目前值同步）：
-     - QR 資料區：**15×15mm**（可用 `--qr-width/--qr-height` 覆寫；GUI GroupBox 同值）
-     - QR 外框：**2 單元**（可用 `--qr-border` 覆寫；GUI GroupBox 同值）
-     - QR 圖層：power 80 / speed 1000 / freq 80 / pulse-width 30 / spot-size 0.04 / line-times 4 / step-angle 45
+   - **只需帶 `--qrcode` 內容即可**，其餘由 `WhiteBgQRParams` 預設補齊：
+     - QR 資料區：**25×25mm**（可用 `--qr-width/--qr-height` 覆寫）
+     - QR 外框：**2 單元**（可用 `--qr-border` 覆寫）
+     - QR 圖層：power 90 / speed 1200 / freq 80 / pulse-width 30 / spot-size 0.04 / line-times 4 / step-angle 45
      - 矩形圖層：power 100 / speed 800 / freq 80 / pulse-width 250 / FillStyle 3 / FillTimes 4 / 向內填滿 (InsideOut) / StartAngle 90 / StepAngle 45
-   - **可透過 CLI 覆寫**：`--qr-width` / `--qr-height` / `--qr-border` / `--power` / `--speed`（後兩者僅影響 **QR 圖層**，矩形圖層無 CLI 覆寫途徑）。
-   - **CLI 無法覆寫的寫死參數**：矩形 FillStyle/FillTimes/InsideOut/StartAngle/StepAngle/Freq/PulseWidth、QR SpotSize/LineTimes/StepAngle/Freq/PulseWidth。若需調整需改 `Form1.cs`（`BuildWhiteBgQR` 或 `WhiteBgQRParams`）並重編。
+   - **兩圖層雷射參數可透過 CLI 覆寫**（速度/功率/頻率/脈寬）：
+
+     | 圖層 | 功率 | 速度 | 頻率 | 脈寬 |
+     |---|---|---|---|---|
+     | QR 資料層 | `--qr-power` | `--qr-speed` | `--qr-freq` | `--qr-pw` |
+     | 白底矩形層 | `--rect-power` | `--rect-speed` | `--rect-freq` | `--rect-pw` |
+
+     - **QR 層功率/速度的 fallback**：未帶 `--qr-power`/`--qr-speed` 時，會退回通用 `--power`/`--speed`（向後相容），皆無則用預設 90/1200。優先序：`--qr-power` > `--power` > 預設。
+     - QR 層頻率/脈寬、以及**矩形層四個參數**都只認自己的 `--qr-freq`/`--qr-pw`/`--rect-*`，**不吃** `--power`/`--speed` fallback。
+   - 尺寸/外框覆寫：`--qr-width` / `--qr-height` / `--qr-border`。
+   - **CLI 仍無法覆寫的寫死參數**：矩形 FillStyle/FillTimes/InsideOut/StartAngle/StepAngle、QR SpotSize/LineTimes/StepAngle。若需調整需改 `Form1.cs`（`BuildWhiteBgQR` 或 `WhiteBgQRParams`）並重編。
    - 白底模式會**跳過** `ApplyLaserParamsAuto`，避免覆寫各圖層已個別設好的雷射參數。
    - 適用 daemon、模式 A、GUI「命令提示」頁籤（tab 8）與「CLI 編輯器」頁籤（tab 7 的 QRCODE 區塊），四條路徑共用 `BuildWhiteBgQR` 後端。
    - 範例：
-     - 最簡：`--client --board 0 --qrcode "1234567" --qr-whitebg --mark`
-     - 完整（等同 GUI 目前設定）：`--client --board 0 --qrcode "1234567" --qr-whitebg --qr-width 15 --qr-height 15 --qr-border 2 --power 80 --speed 1000 --mark`
-     - 覆寫（大 QR、多外框）：`--client --board 0 --qrcode "ABC123" --qr-whitebg --qr-width 40 --qr-border 6 --power 60 --speed 1200 --mark`
+     - 最簡（全走預設）：`--client --board 0 --qrcode "1234567" --qr-whitebg --mark`
+     - 顯式帶兩層雷射參數（slm-api `whiteBgQrLaserArgs()` 產生的形式）：`--client --board 0 --qrcode "1234567" --qr-whitebg --qr-width 20 --qr-height 20 --qr-border 2 --qr-power 90 --qr-speed 1200 --qr-freq 80 --qr-pw 30 --rect-power 100 --rect-speed 800 --rect-freq 80 --rect-pw 250 --mark`
+     - 只調 QR 層功率（矩形不動）：`--client --board 0 --qrcode "ABC123" --qr-whitebg --qr-power 60 --qr-speed 1500 --mark`
 
 10. **Daemon 目前不支援 `--dxf`（MVP 階段）**
     要打 DXF 請用模式 A，或之後擴充 `RunDaemonSpec` 加入 `LoadDxfAuto` 呼叫
