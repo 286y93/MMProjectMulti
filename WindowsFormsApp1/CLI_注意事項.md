@@ -71,7 +71,7 @@ SDK 似乎用了 process-global 的鎖（COM 全域旗標或類似機制），�
 [網頁 fetch]  ──┘    localhost:19527
 ```
 
-- Daemon 啟動時一次 init 全 4 板（OCX、配置部署、MarkStandBy）
+- Daemon 啟動時依機台主表 `EMC6\DevIPAddress.ini` 的 `[DEVICE]`（`DEV0` 起連續有值的 `DEVn` 數量）自動偵測軸卡數量，一次 init 該數量的板（OCX、配置部署、MarkStandBy）；例如只有 `DEV0` 有值 → 只 init 1 塊
 - HttpListener 只 bind `127.0.0.1`（網段其他機器無法存取，這是設計上的安全保護）
 - 每個 client 命令 → daemon 在 UI thread 上派發到 target 板，完成後回 ExitCode + logs
 - 同板互斥：若 board N 還在跑前一條命令，第二個 client 立即拿到 `exitCode=5, "board N busy"`
@@ -82,12 +82,17 @@ SDK 似乎用了 process-global 的鎖（COM 全域旗標或類似機制），�
 CLI 每次啟動（包含 daemon）都會跑這個流程：
 
 1. **配置部署 / 驗證**
-   - 主 IP 表 `Drivers\EMC6\DevIPAddress.ini` 的 `DEV0~DEV3` 必須都有值
-   - 把整個 `Drivers\EMC6\` 部署到 `C:\Program Files (x86)\MarkingMate\`
-   - 偵測到其他 MarkingMate 實例正在跑 → **跳過寫檔**，只驗證已部署設定（避免覆寫對方還在用的檔案）
+   - **軸卡數量與各軸卡 IP＝機台主表 `Drivers\EMC6\DevIPAddress.ini` 的 `[DEVICE]`**（`DEV0~DEVn`，由 `MultiMMSetting.exe` 維護）。本程式**只讀主表、不寫主表**，也**不提供「儲存IP」寫入**。
+   - 驗證：要啟用的各板（`DEV0~DEV{N-1}`）必須都有值；否則報錯，請以 `MultiMMSetting.exe` 設定。
+   - **對應軸卡**：把主表 `DEV{i}` 同步寫到各 `EMC6_MM{i+1}\DevIPAddress.ini` 的 `DEV0`（SDK 初始化各板實際讀此檔）；值已相同則跳過。
+   - 部署把 `Drivers\EMC6\` 與各 `Drivers\EMC6_MMx\`（驅動 binary、cfg）複製到 `C:\Program Files (x86)\MarkingMate\`，但**一律排除 `DevIPAddress.ini`**——不覆蓋主表（避免把某台的 IP 佈到別台）。
+   - 偵測到其他 MarkingMate 實例正在跑 → **跳過寫檔 / 同步**，只驗證主表 `DEV0~DEV{N-1}`（避免覆寫對方還在用的檔案）
 2. **OCX 初始化**
-   - 一律 init 全 4 板（`m_MMMark[0..3]` + `m_MMEdit[0..3]`）
-   - 順序固定：板 0 → 1 → 2 → 3（SDK 要求）
+   - 依主表 `EMC6\DevIPAddress.ini` 的 `[DEVICE]` 自動偵測軸卡數量：從 `DEV0` 起算連續有值的 `DEVn` 數量，遇第一個空值即停（SDK 要求 0..N-1 連續 init）
+   - 只 init 偵測到的 N 塊（`m_MMMark[0..N-1]` + `m_MMEdit[0..N-1]`），順序固定 0 → 1 → …（SDK 要求）
+   - 模式 A 指定的 `--board M` 若 `M ≥ N`（`DEV{M}` 未設定）→ 直接報錯 ExitCode=1，不再空等連線
+   - GUI「連接設定」頁的板數微調器（`numBoardCount`）也會在讀 IP 時自動帶入偵測值，仍可手動覆寫
+   - ⚠️ 注意：偵測反映主表「宣告的軸卡數」。若機台被 `MultiMMSetting.exe` 設成 4 個 `DEVn` 都有值，即使實體只插 1 張卡也會偵測為 4；「依實體連上幾張卡」需另以 `IsCardConnect()` 判定
    - 同 process 內已 init 過則跳過
 
 ### Config Path 自動推導
@@ -252,20 +257,21 @@ CORS preflight (`OPTIONS`) 已支援。
 - **終端機本身**也要先以「系統管理員身分執行 cmd / PowerShell」
 - 模式 A 與 daemon 啟動都適用；**client 模式不需要**（只是 HTTP 呼叫，不碰檔案系統與 SDK）
 
-### 2. IP 必須先在 GUI 設定好
+### 2. IP 必須先用 MultiMMSetting.exe 設定好
 
-- CLI 模式**不能**編輯 IP
-- 主表 `Drivers\EMC6\DevIPAddress.ini` 的 `DEV0~DEV3` 任一空值 → ExitCode = 1
+- 本程式（GUI / CLI）**都不能編輯或寫入主表 IP**；「連接設定」頁的 IP 欄位只是**唯讀顯示**（已移除「儲存IP」按鈕）。
+- **軸卡數量與各軸卡 IP 的唯一來源＝主表 `Drivers\EMC6\DevIPAddress.ini` 的 `[DEVICE]`（`DEV0~DEVn`）**，由 `MultiMMSetting.exe` 維護；本程式只讀主表、初始化時把 `DEV{i}` 同步到各 `EMC6_MMx\DEV0`，部署時排除 `DevIPAddress.ini` 不覆蓋主表。
+- 要啟用的板其主表 `DEVn` 為空 → 部署 / 驗證失敗 → ExitCode = 1。
 - 對應關係（固定）：
 
-  | 主表 | → 板 / CARD |
-  |---|---|
-  | `DEV0` | MM1 / CARD0 |
-  | `DEV1` | MM2 / CARD1 |
-  | `DEV2` | MM3 / CARD2 |
-  | `DEV3` | MM4 / CARD3 |
+  | 主表 | → 板 / CARD | 同步到 |
+  |---|---|---|
+  | `DEV0` | MM1 / CARD0 | `EMC6_MM1\DEV0` |
+  | `DEV1` | MM2 / CARD1 | `EMC6_MM2\DEV0` |
+  | `DEV2` | MM3 / CARD2 | `EMC6_MM3\DEV0` |
+  | `DEV3` | MM4 / CARD3 | `EMC6_MM4\DEV0` |
 
-- 第一次使用流程：先 GUI 啟動 → 連接設定頁填 IP → 按「儲存IP」→ 之後才能用 CLI
+- 第一次使用流程：先用 `C:\Program Files (x86)\MarkingMate\MultiMMSetting.exe` 設定軸卡 IP → 之後才能用本程式 GUI / CLI
 
 ### 3. 必須從 cmd / PowerShell 啟動才看得到輸出
 
@@ -437,9 +443,10 @@ CLI 模式不是真正的 headless：
 cd C:\Users\MyUser\Documents\MMProjectMulti\MMProjectMulti\WindowsFormsApp1
 .\CheckMMSetup.ps1
 
-# 3.（首次）以 GUI 啟動填 IP
-.\bin\x64\Debug\MarkingMate.exe
-# → 連接設定頁填 4 塊板的 IP → 儲存IP → 關閉
+# 3.（首次）用 MarkingMate 官方工具設定各板 IP
+& "C:\Program Files (x86)\MarkingMate\MultiMMSetting.exe"
+# → 設定軸卡 IP（寫入主表 EMC6\DevIPAddress.ini 的 [DEVICE] DEV0~DEVn）→ 關閉
+# 本程式 GUI 的「連接設定」頁只唯讀顯示 IP，不再提供「儲存IP」；初始化時會把主表同步到各板
 ```
 
 ### 日常單板 CLI（模式 A）
@@ -504,9 +511,10 @@ console.log(results);
 | `Error: 已有 daemon 在 port N 運行` | Daemon 重複啟動 | 用 `--client --shutdown` 收掉舊的、或換 port |
 | `Error: 無法連線到 daemon (...)` | Client 找不到 daemon | 先 `start "" MarkingMate.exe --daemon` |
 | `{"exitCode":5,"logs":"board N busy"}` | 同板已有 spec 在跑 | 等該板結束、或改派到別塊板 |
-| `Error: 雷射頭設定部署 / 驗證失敗：主 IP 表 DEVx 為空…` | 主表沒填 IP | 開 GUI 模式設定 IP 再儲存 |
+| `Error: 主 IP 表 DEVx 為空…` | 主表 `EMC6\DevIPAddress.ini` 的 `[DEVICE]` 該 `DEVx` 未設定 | 執行 `C:\Program Files (x86)\MarkingMate\MultiMMSetting.exe` 設定軸卡 IP |
 | `Error: 雷射頭設定部署 / 驗證失敗… 寫入權限不足` | 沒有系統管理員權限 | 以系統管理員身分啟動 cmd / PowerShell |
 | `Error: 初始化板 N 失敗：…` | OCX 初始化失敗 | 檢查 OCX 註冊（`ELOCXRegister.exe`）、Lens 校正檔 |
+| 對話框：`...\Drivers\EMC6_MM1\EMC6_x64.DRV driver load Error !` +「驅動程式載入失敗！」，隨後 `MarkLibrary4_x64  Init Time out!! (config_MM1)` | 已部署的 `EMC6_MMx\` 缺驅動 binary（`EMC6_x64.DRV` 等），SDK 用 `config_MMx` 初始化時載不到驅動。根因：舊版 `DeployAndValidateLaserHeadConfigs` 只複製 `DevIPAddress.ini` + `cfg\*.cfg`，未複製 `EMC6_MMx\` 根目錄的驅動 binary | 已修：部署改為 `CopyDirectoryRecursive` 遞迴複製**整個** `EMC6_MMx\` 目錄（含驅動 binary）。修好前的機器可手動把 repo `Drivers\EMC6_MMx\` 整包複製到 `C:\Program Files (x86)\MarkingMate\Drivers\EMC6_MMx\`（保留該處既有 `DevIPAddress.ini`）再重新初始化 |
 | `Error: Failed to load DXF.` | DXF 解析失敗或檔不存在 | 檢查路徑（相對路徑以 exe 所在資料夾為基準） |
 | `Error: StartMarking(N) failed with code 1` | SDK 拒絕啟動（多半是配置 / standby / 內容問題） | 確認 `--config` 對得上 `--board`、有實際內容、`MarkStandBy` 成功 |
 | daemon log：`[Board N] StartMarking(4) returned 1`（或 `9`）＝ daemon exitCode 3 | **首次打標卡未就緒**：rc=1=MMMark 未初始化、rc=9=EMC6 控制卡未連接。多發生在 daemon 剛啟動、EMC6 乙太網卡還沒連上時的頭幾條命令 | 已修：① daemon init 後加 `WaitForCardsConnected`（輪詢 `IsCardConnect` 等卡連上、逾時 15s 才讓 /health 就緒）；② 前端 `sendDaemonCmd` 對 rc=1/9 自動等 1.5s 重送最多 4 次。若仍持續出現，檢查該板 IP（主表 `DevIPAddress.ini`）與網路連線 |

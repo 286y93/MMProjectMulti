@@ -65,7 +65,6 @@
             this.lblIP4 = new System.Windows.Forms.Label();
             this.txtIP4 = new System.Windows.Forms.TextBox();
             this.btnReadIP = new System.Windows.Forms.Button();
-            this.btnSaveIP = new System.Windows.Forms.Button();
             this.tabPage1 = new System.Windows.Forms.TabPage();
             this.lblDXFInfo = new System.Windows.Forms.Label();
             this.txtDXFInfo = new System.Windows.Forms.TextBox();
@@ -735,7 +734,6 @@
             this.groupBoxIP.Controls.Add(this.lblIP4);
             this.groupBoxIP.Controls.Add(this.txtIP4);
             this.groupBoxIP.Controls.Add(this.btnReadIP);
-            this.groupBoxIP.Controls.Add(this.btnSaveIP);
             this.groupBoxIP.Location = new System.Drawing.Point(6, 104);
             this.groupBoxIP.Name = "groupBoxIP";
             this.groupBoxIP.Size = new System.Drawing.Size(160, 136);
@@ -825,18 +823,7 @@
             this.btnReadIP.Text = "讀取IP";
             this.btnReadIP.UseVisualStyleBackColor = true;
             this.btnReadIP.Click += new System.EventHandler(this.btnReadIP_Click);
-            // 
-            // btnSaveIP
-            // 
-            this.btnSaveIP.Location = new System.Drawing.Point(82, 114);
-            this.btnSaveIP.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
-            this.btnSaveIP.Name = "btnSaveIP";
-            this.btnSaveIP.Size = new System.Drawing.Size(68, 18);
-            this.btnSaveIP.TabIndex = 9;
-            this.btnSaveIP.Text = "儲存IP";
-            this.btnSaveIP.UseVisualStyleBackColor = true;
-            this.btnSaveIP.Click += new System.EventHandler(this.btnSaveIP_Click);
-            // 
+            //
             // tabPage1
             // 
             this.tabPage1.Controls.Add(this.lblDXFInfo);
@@ -5032,7 +5019,6 @@
         private System.Windows.Forms.TextBox txtIP3;
         private System.Windows.Forms.TextBox txtIP4;
         private System.Windows.Forms.Button btnReadIP;
-        private System.Windows.Forms.Button btnSaveIP;
         private System.Windows.Forms.GroupBox groupBox5;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;

@@ -65,10 +65,10 @@ namespace WindowsFormsApp1
             @"config\config_MM4.ini"
         };
 
-        // 「卡片 IP 主表」：UI 與初始化的單一來源，DEV0~DEV3 對應 CARD0~CARD3 → MM1~MM4
-        private const string MasterIPRelativePath = @"Drivers\EMC6\DevIPAddress.ini";
+        // 主 IP 表 EMC6\DevIPAddress.ini 由各機台 MarkingMate / MultiMMSetting 維護，本程式不再讀寫，
+        // IP 一律以各機台 PF EMC6_MMx\DevIPAddress.ini 的 DEV0 為準（見 DeployedBoardIpPath）。
 
-        // EMC6 共用驅動目錄（含驅動 / cfg / 主 IP 表），初始化時整個遞迴部署
+        // EMC6 共用驅動目錄（驅動 / cfg；主 IP 表在部署時排除不覆蓋），初始化時整個遞迴部署
         private const string SharedDriverDirRelativePath = @"Drivers\EMC6";
 
         // 共用主 config.ini，初始化時部署到 MarkingMate\config.ini
@@ -106,6 +106,8 @@ namespace WindowsFormsApp1
 
             m_Panels = new Panel[] { panelBoard1, panelBoard2, panelBoard3, panelBoard4 };
             m_txtIPs = new TextBox[] { txtIP1, txtIP2, txtIP3, txtIP4 };
+            // IP 由各機台 MarkingMate / MultiMMSetting 維護，本程式僅唯讀顯示（不再提供「儲存IP」）
+            foreach (var tb in m_txtIPs) tb.ReadOnly = true;
             comboBoard.SelectedIndex = 0;
             comboBoardDXF.SelectedIndex = 0;
             comboBoardLaser.SelectedIndex = 0;
@@ -194,8 +196,18 @@ namespace WindowsFormsApp1
         {
             try
             {
-                Console.WriteLine("[Daemon] 啟動中，初始化全部 4 塊板...");
-                if (!InitializeBoardAuto(m_bBoardInit.Length - 1, m_ConfigPaths[m_bBoardInit.Length - 1]))
+                // 依主 IP 表偵測要初始化的板數（取代寫死的 4）：只 init 實際設定過 IP 的板。
+                int daemonBoardCount = DetectBoardCountFromConfig();
+                if (daemonBoardCount < 1)
+                {
+                    Console.Error.WriteLine("[Daemon] 主 IP 表 DEV0 為空，無可初始化的板，退出。請於 GUI 填 IP 並儲存。");
+                    ExitCode = 1;
+                    this.Close();
+                    return;
+                }
+                Console.WriteLine($"[Daemon] 啟動中，依主 IP 表偵測到 {daemonBoardCount} 塊已設定的晶片板，開始初始化...");
+                // target 設為最後一塊（其 config 用預設），InitializeBoardAuto 內會再依偵測數 init board 0~N-1。
+                if (!InitializeBoardAuto(daemonBoardCount - 1, m_ConfigPaths[daemonBoardCount - 1]))
                 {
                     Console.Error.WriteLine("[Daemon] 初始化失敗，退出。");
                     ExitCode = 1;
@@ -1090,11 +1102,18 @@ namespace WindowsFormsApp1
 
         private void LoadIPSettings()
         {
-            // 從主 IP 表讀 DEV0~DEV3 → 對應 MM1~MM4 的 UI 欄位
-            string masterIp = ResolveProjectFile(MasterIPRelativePath);
+            // 顯示主 IP 表 EMC6\DevIPAddress.ini 的 [DEVICE] DEV0~DEV3（唯讀；IP 由 MultiMMSetting 維護）
+            string masterIp = DeployedMasterIpPath();
             for (int i = 0; i < 4; i++)
             {
-                m_txtIPs[i].Text = (masterIp != null) ? ReadDevFromIni(masterIp, i) : "";
+                m_txtIPs[i].Text = ReadDevFromIni(masterIp, i);
+            }
+
+            // 依主表 [DEVICE] 偵測到的板數自動帶入初始化數量（使用者仍可於微調器手動覆寫）
+            int detected = DetectBoardCountFromConfig();
+            if (detected >= numBoardCount.Minimum && detected <= numBoardCount.Maximum)
+            {
+                numBoardCount.Value = detected;
             }
         }
 
@@ -1115,73 +1134,10 @@ namespace WindowsFormsApp1
             return "";
         }
 
-        private void btnReadIP_Click(object sender, EventArgs e)
-        {
-            LoadIPSettings();
-            MessageBox.Show("已從 DevIPAddress.ini 讀取 IP 設定。", "讀取IP", MessageBoxButtons.OK, MessageBoxIcon.Information);
-        }
-
-        private void btnSaveIP_Click(object sender, EventArgs e)
-        {
-            // 寫入主 IP 表（單一來源），同時把 DEV0~3 同步至 4 支 EMC6_MMx 的 DEV0
-            // 固定 CARD 對應：MM1→CARD0, MM2→CARD1, MM3→CARD2, MM4→CARD3
-            string masterIp = ResolveProjectFile(MasterIPRelativePath);
-            if (masterIp == null)
-            {
-                MessageBox.Show($"找不到主 IP 表：{MasterIPRelativePath}\n請先確認檔案存在。",
-                    "儲存IP", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
-            string errorInfo = "";
-
-            // 1. 寫主表
-            try
-            {
-                for (int i = 0; i < 4; i++)
-                {
-                    WriteDevToIni(masterIp, i, m_txtIPs[i].Text.Trim());
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"寫入主 IP 表失敗：{ex.Message}", "儲存IP", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
-            // 2. 同步至各 EMC6_MMx 的 DEV0
-            int syncedCount = 0;
-            for (int i = 0; i < 4; i++)
-            {
-                string src = ResolveProjectFile(m_IPConfigRelativePaths[i]);
-                if (src == null)
-                {
-                    errorInfo += $"MM{i + 1}：找不到專案 IP 檔（{m_IPConfigRelativePaths[i]}）\n";
-                    continue;
-                }
-                try
-                {
-                    WriteDevToIni(src, 0, m_txtIPs[i].Text.Trim());
-                    syncedCount++;
-                }
-                catch (Exception ex)
-                {
-                    errorInfo += $"MM{i + 1}：{ex.Message}\n";
-                }
-            }
-
-            if (syncedCount == 4)
-            {
-                MessageBox.Show("已寫入主 IP 表，並同步至 4 支 EMC6_MMx 的 DEV0。\n\n下次按「初始化」會自動部署到 MarkingMate 安裝目錄並生效。",
-                    "儲存IP", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            else
-            {
-                MessageBox.Show($"主表已寫入；MMx 同步 {syncedCount}/4 組。\n\n問題：\n{errorInfo}",
-                    "儲存IP", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-        }
-
+        /// <summary>
+        /// 將 iniPath 內的 DEV{devIndex} 覆寫為 value（找不到該條目則丟例外）。
+        /// 用於把主表 DEV{i} 同步到各 EMC6_MMx\DevIPAddress.ini 的 DEV0。
+        /// </summary>
         private static void WriteDevToIni(string iniPath, int devIndex, string value)
         {
             if (!File.Exists(iniPath))
@@ -1202,6 +1158,45 @@ namespace WindowsFormsApp1
             if (!written)
                 throw new InvalidOperationException($"{iniPath} 找不到 DEV{devIndex}= 條目");
             File.WriteAllLines(iniPath, lines);
+        }
+
+        private void btnReadIP_Click(object sender, EventArgs e)
+        {
+            LoadIPSettings();
+            MessageBox.Show("已從 DevIPAddress.ini 讀取 IP 設定。", "讀取IP", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        /// <summary>
+        /// 主 IP 表（各機台）路徑：C:\Program Files (x86)\MarkingMate\Drivers\EMC6\DevIPAddress.ini。
+        /// 其 [DEVICE] 區的 DEV0~DEVn 是「軸卡數量與各軸卡 IP」的唯一來源（由 MultiMMSetting 維護）。
+        /// 本程式只讀不寫（部署時排除 DevIPAddress.ini，不覆蓋各機台主表）。
+        /// </summary>
+        private static string DeployedMasterIpPath()
+            => Path.Combine(MarkingMateRoot, "Drivers", "EMC6", "DevIPAddress.ini");
+
+        /// <summary>
+        /// 各機台 PF 中第 boardIndex 塊板（MM{n}）的 IP 設定檔路徑：
+        /// ...\Drivers\EMC6_MM{n}\DevIPAddress.ini。SDK 初始化該板時讀此檔的 DEV0 當卡 IP；
+        /// 其 DEV0 於初始化時由主表 DEV{boardIndex} 同步而來（見 DeployAndValidateLaserHeadConfigs）。
+        /// </summary>
+        private static string DeployedBoardIpPath(int boardIndex)
+            => Path.Combine(MarkingMateRoot, "Drivers", $"EMC6_MM{boardIndex + 1}", "DevIPAddress.ini");
+
+        /// <summary>
+        /// 依主 IP 表 EMC6\DevIPAddress.ini 的 [DEVICE] 自動判定軸卡數量：
+        /// 從 DEV0 起算連續有值的 DEVn 數量，遇第一個空值即停（SDK 要求 0..N-1 連續 init）。
+        /// 回傳 0 代表連 DEV0 都沒設定（無法初始化任何板）。
+        /// </summary>
+        private int DetectBoardCountFromConfig()
+        {
+            string masterIp = DeployedMasterIpPath();
+            int count = 0;
+            for (int i = 0; i < m_bBoardInit.Length; i++)
+            {
+                if (string.IsNullOrWhiteSpace(ReadDevFromIni(masterIp, i))) break;
+                count++;
+            }
+            return count;
         }
 
         // -----------------------------------------------------------------
@@ -1323,33 +1318,22 @@ namespace WindowsFormsApp1
             return true;
         }
 
-        private static void DeployCfgDirectory(string srcDir, string destDir, DeployStats stats)
-        {
-            if (!Directory.Exists(srcDir)) return;
-
-            foreach (string srcFile in Directory.GetFiles(srcDir, "*.cfg"))
-            {
-                string destFile = Path.Combine(destDir, Path.GetFileName(srcFile));
-                if (FilesAreIdentical(srcFile, destFile))
-                {
-                    stats.Skipped++;
-                    continue;
-                }
-                if (!Directory.Exists(destDir)) Directory.CreateDirectory(destDir);
-                File.Copy(srcFile, destFile, overwrite: true);
-                stats.Written++;
-            }
-        }
-
         /// <summary>
-        /// 遞迴複製整個目錄（用於部署 EMC6 共用驅動目錄）。已存在且內容相同的檔案會跳過。
+        /// 遞迴複製整個目錄（用於部署 EMC6 共用驅動目錄與各 EMC6_MMx 目錄）。已存在且內容相同的檔案會跳過。
+        /// excludeFileName 不為 null 時，該檔名（不分大小寫）一律略過不複製——
+        /// 用來保護各機台自有的 DevIPAddress.ini（IP 由 MarkingMate / MultiMMSetting 維護，repo 不覆蓋）。
         /// </summary>
-        private static void CopyDirectoryRecursive(string srcDir, string destDir, DeployStats stats)
+        private static void CopyDirectoryRecursive(string srcDir, string destDir, DeployStats stats, string excludeFileName = null)
         {
             if (!Directory.Exists(srcDir)) return;
 
             foreach (string srcFile in Directory.GetFiles(srcDir))
             {
+                if (excludeFileName != null &&
+                    string.Equals(Path.GetFileName(srcFile), excludeFileName, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
                 string destFile = Path.Combine(destDir, Path.GetFileName(srcFile));
                 if (FilesAreIdentical(srcFile, destFile))
                 {
@@ -1364,18 +1348,21 @@ namespace WindowsFormsApp1
             foreach (string subDir in Directory.GetDirectories(srcDir))
             {
                 string destSubDir = Path.Combine(destDir, Path.GetFileName(subDir));
-                CopyDirectoryRecursive(subDir, destSubDir, stats);
+                CopyDirectoryRecursive(subDir, destSubDir, stats, excludeFileName);
             }
         }
 
         /// <summary>
-        /// 在 InitialExt 之前，依「主 IP 表」驗證並把專案設定部署到 MarkingMate 安裝目錄。
+        /// 在 InitialExt 之前，依主 IP 表驗證軸卡 IP、同步到各板，並把專案的驅動 / cfg 部署到安裝目錄。
+        /// 軸卡數量與各軸卡 IP 一律以機台主表 EMC6\DevIPAddress.ini 的 [DEVICE]（DEV0~DEVn）為準
+        /// （由 MultiMMSetting 維護）；本程式只讀主表、不寫主表，部署時一律排除 DevIPAddress.ini。
         /// 流程：
-        ///   1. 從 Drivers\EMC6\DevIPAddress.ini 讀 DEV0~DEV(boardCount-1)，全部須非空
-        ///   2. 依固定 CARD 對應（MM1→0, MM2→1, MM3→2, MM4→3）把主表 IP 同步到各 EMC6_MMx\DevIPAddress.ini 的 DEV0
-        ///   3. 整個 Drivers\EMC6\ 遞迴部署到 MarkingMate（含主表、驅動、cfg）
+        ///   1. 讀主表 DEV0~DEV(boardCount-1)，皆須非空（否則導向 MultiMMSetting）
+        ///   2. 把主表 DEV{i} 同步到各 EMC6_MM{i+1}\DevIPAddress.ini 的 DEV0（對應軸卡依主表）
+        ///   3. Drivers\EMC6\ 遞迴部署到 MarkingMate（驅動、cfg；排除 DevIPAddress.ini）
         ///   4. 共用 config\config.ini 部署到 MarkingMate\config.ini
-        ///   5. 各 MMx 的 DevIPAddress.ini / config_MMx.ini / cfg\*.cfg 部署到對應位置
+        ///   5. 各 MMx：config_MMx.ini 部署到安裝根目錄；EMC6_MMx\ 遞迴部署（驅動 binary、雷射 cfg、
+        ///      cfg 子夾；排除 DevIPAddress.ini）到 Drivers\EMC6_MMx\
         /// </summary>
         /// <param name="boardCount">要啟用的雷射頭數（1~4）</param>
         /// <param name="errorInfo">回傳問題明細；空字串代表全部 OK</param>
@@ -1385,21 +1372,58 @@ namespace WindowsFormsApp1
             var sb = new StringBuilder();
             var stats = new DeployStats();
 
-            // === 1. 主 IP 表（單一來源）===
-            string srcMasterIp = ResolveProjectFile(MasterIPRelativePath);
-            if (srcMasterIp == null)
+            // === 1. IP 來源＝主 IP 表 EMC6\DevIPAddress.ini 的 [DEVICE]（由 MultiMMSetting 維護）===
+            // 軸卡數量與各軸卡 IP 皆以此為準；本程式只讀主表、不寫主表（部署時排除 DevIPAddress.ini 不覆蓋它）。
+            string masterIp = DeployedMasterIpPath();
+            if (!File.Exists(masterIp))
             {
-                errorInfo = $"找不到主 IP 表：{MasterIPRelativePath}";
+                errorInfo = $"主 IP 表不存在：{masterIp}\n請以 MarkingMate 的 MultiMMSetting.exe 設定軸卡 IP。";
                 return false;
             }
-
             string[] cardIps = new string[boardCount];
             for (int i = 0; i < boardCount; i++)
             {
-                cardIps[i] = ReadDevFromIni(srcMasterIp, i);
+                cardIps[i] = ReadDevFromIni(masterIp, i);
                 if (string.IsNullOrWhiteSpace(cardIps[i]))
                 {
-                    sb.AppendLine($"主 IP 表 DEV{i} 為空（對應 MM{i + 1} / CARD{i}），請於 UI 填入 IP 後按「儲存IP」：{srcMasterIp}");
+                    sb.AppendLine($"主 IP 表 DEV{i} 為空（對應 MM{i + 1} / CARD{i}）：{masterIp}");
+                }
+            }
+            if (sb.Length > 0)
+            {
+                sb.AppendLine("請以 MarkingMate 的 MultiMMSetting.exe 設定軸卡 IP 後再初始化。");
+                errorInfo = sb.ToString();
+                return false;
+            }
+
+            // === 2. 對應軸卡：把主表 DEV{i} 同步到各 EMC6_MM{i+1}\DevIPAddress.ini 的 DEV0 ===
+            // SDK 初始化各板時實際讀 EMC6_MMx\DEV0，故以主表為準覆寫之，確保「對應軸卡依主表」。
+            for (int i = 0; i < boardCount; i++)
+            {
+                string boardIp = DeployedBoardIpPath(i);
+                if (!File.Exists(boardIp))
+                {
+                    sb.AppendLine($"[MM{i + 1}] 目標 IP 檔不存在，無法同步軸卡 IP：{boardIp}\n請先以 MultiMMSetting.exe 建立各板設定。");
+                    continue;
+                }
+                try
+                {
+                    if (!string.Equals(ReadDevFromIni(boardIp, 0), cardIps[i], StringComparison.Ordinal))
+                    {
+                        WriteDevToIni(boardIp, 0, cardIps[i]);
+                        stats.Written++;
+                    }
+                    else stats.Skipped++;
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    AppendPermissionError(sb, $"[MM{i + 1}] 同步軸卡 IP");
+                    errorInfo = sb.ToString();
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    sb.AppendLine($"[MM{i + 1}] 同步軸卡 IP 失敗：{ex.Message}");
                 }
             }
             if (sb.Length > 0)
@@ -1408,29 +1432,7 @@ namespace WindowsFormsApp1
                 return false;
             }
 
-            // === 2. 主表 → 各 EMC6_MMx\DEV0 同步（寫專案內，不會碰 Program Files 權限）===
-            for (int i = 0; i < boardCount; i++)
-            {
-                string mmxSrcIp = ResolveProjectFile(m_IPConfigRelativePaths[i]);
-                if (mmxSrcIp == null)
-                {
-                    sb.AppendLine($"[MM{i + 1}] 找不到專案 IP 來源檔：{m_IPConfigRelativePaths[i]}");
-                    continue;
-                }
-                try
-                {
-                    if (!string.Equals(ReadDevFromIni(mmxSrcIp, 0), cardIps[i], StringComparison.Ordinal))
-                    {
-                        WriteDevToIni(mmxSrcIp, 0, cardIps[i]);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    sb.AppendLine($"[MM{i + 1}] 主表→DEV0 同步失敗：{ex.Message}");
-                }
-            }
-
-            // === 3. EMC6 共用目錄（含主表、驅動、cfg）整個遞迴部署 ===
+            // === 3. EMC6 共用目錄（驅動、cfg）遞迴部署——排除 DevIPAddress.ini（主表不覆蓋）===
             string srcSharedDir = ResolveProjectDir(SharedDriverDirRelativePath);
             string destSharedDir = Path.Combine(MarkingMateRoot, SharedDriverDirRelativePath);
             if (srcSharedDir == null)
@@ -1441,7 +1443,7 @@ namespace WindowsFormsApp1
             {
                 try
                 {
-                    CopyDirectoryRecursive(srcSharedDir, destSharedDir, stats);
+                    CopyDirectoryRecursive(srcSharedDir, destSharedDir, stats, "DevIPAddress.ini");
                 }
                 catch (UnauthorizedAccessException)
                 {
@@ -1491,16 +1493,11 @@ namespace WindowsFormsApp1
                     continue;
                 }
 
-                string destIp = Path.Combine(MarkingMateRoot, "Drivers", $"EMC6_{mmName}", "DevIPAddress.ini");
                 string destCfg = Path.Combine(MarkingMateRoot, $"config_{mmName}.ini");
-
-                // 雷射頭 cfg 目錄（含 DEFAULT CARD、MultiCard、MultiSYN* 等多卡同步參數）
-                string srcCfgDir = Path.Combine(Path.GetDirectoryName(srcIp), "cfg");
-                string destCfgDir = Path.Combine(MarkingMateRoot, "Drivers", $"EMC6_{mmName}", "cfg");
 
                 try
                 {
-                    if (CopyWithBackup(srcIp, destIp)) stats.Written++; else stats.Skipped++;
+                    // config_MMx.ini（位於安裝根目錄，非 EMC6_MMx 內）
                     if (srcCfg != null)
                     {
                         if (CopyWithBackup(srcCfg, destCfg)) stats.Written++; else stats.Skipped++;
@@ -1510,7 +1507,13 @@ namespace WindowsFormsApp1
                         System.Diagnostics.Debug.WriteLine(
                             $"[{mmName}] 未提供專案 config_{mmName}.ini，跳過部署（將使用共用 config.ini）");
                     }
-                    DeployCfgDirectory(srcCfgDir, destCfgDir, stats);
+
+                    // 遞迴部署整個 EMC6_MMx 目錄：含驅動 binary（EMC6_x64.DRV / EMC6_win64.dll /
+                    // EMC6.dll / RapidClient.dll 等）、雷射 cfg 與 cfg 子夾（已存在且內容相同者跳過），
+                    // 但排除 DevIPAddress.ini：該板 IP 由各機台自行維護，repo 不覆蓋。
+                    string srcMMDir = Path.GetDirectoryName(srcIp);
+                    string destMMDir = Path.Combine(MarkingMateRoot, "Drivers", $"EMC6_{mmName}");
+                    CopyDirectoryRecursive(srcMMDir, destMMDir, stats, "DevIPAddress.ini");
                 }
                 catch (UnauthorizedAccessException)
                 {
@@ -1762,29 +1765,29 @@ namespace WindowsFormsApp1
         }
 
         /// <summary>
-        /// Multi-process 模式：驗證已部署的主 IP 表存在且 DEV0~DEV(boardCount-1) 都已填值。
-        /// 跳過實際檔案部署時用，避免覆寫其他 process 正在使用的設定。
+        /// Multi-process 模式（跳過部署）：驗證機台主表 EMC6\DevIPAddress.ini 的 [DEVICE]
+        /// DEV0~DEV(boardCount-1) 都已填值（軸卡數量與 IP 的來源）。本程式不寫主表。
         /// </summary>
         private bool ValidateDeployedMasterIpTable(int boardCount, out string errorInfo)
         {
             errorInfo = null;
-            string deployedMasterIp = Path.Combine(MarkingMateRoot, MasterIPRelativePath);
-            if (!File.Exists(deployedMasterIp))
+            string masterIp = DeployedMasterIpPath();
+            if (!File.Exists(masterIp))
             {
-                errorInfo = $"已部署的主 IP 表不存在：{deployedMasterIp}\n（請先以單一 process 模式跑一次完成初次部署）";
+                errorInfo = $"主 IP 表不存在：{masterIp}\n請以 MarkingMate 的 MultiMMSetting.exe 設定軸卡 IP。";
                 return false;
             }
             var sb = new StringBuilder();
             for (int i = 0; i < boardCount; i++)
             {
-                string ip = ReadDevFromIni(deployedMasterIp, i);
-                if (string.IsNullOrWhiteSpace(ip))
+                if (string.IsNullOrWhiteSpace(ReadDevFromIni(masterIp, i)))
                 {
-                    sb.AppendLine($"已部署的主 IP 表 DEV{i} 為空（對應 MM{i + 1} / CARD{i}）：{deployedMasterIp}");
+                    sb.AppendLine($"主 IP 表 DEV{i} 為空（對應 MM{i + 1} / CARD{i}）：{masterIp}");
                 }
             }
             if (sb.Length > 0)
             {
+                sb.AppendLine("請以 MarkingMate 的 MultiMMSetting.exe 設定軸卡 IP。");
                 errorInfo = sb.ToString();
                 return false;
             }
@@ -1798,7 +1801,19 @@ namespace WindowsFormsApp1
         {
             try
             {
-                int totalBoards = m_bBoardInit.Length;
+                // 依主 IP 表自動判定要初始化的板數（取代寫死的 4），只 init 實際設定過 IP 的板。
+                int totalBoards = DetectBoardCountFromConfig();
+                if (totalBoards < 1)
+                {
+                    Console.Error.WriteLine("Error: 主 IP 表 DEV0 為空，無法判定要初始化的板數（至少需 1 塊已設定 IP 的板）。請於 GUI 填 IP 並儲存。");
+                    return false;
+                }
+                if (boardIndex >= totalBoards)
+                {
+                    Console.Error.WriteLine($"Error: 指定的 board {boardIndex} 超出偵測到的可用板數 {totalBoards}（主 IP 表僅 DEV0~DEV{totalBoards - 1} 有值）。");
+                    return false;
+                }
+                Console.WriteLine($"[AutoMode] 依主 IP 表偵測到 {totalBoards} 塊已設定的晶片板，將初始化 board 0~{totalBoards - 1}。");
 
                 // 在 InitialExt 之前部署並驗證所有 MM1~MM{totalBoards} 雷射頭設定
                 // 來源：主 IP 表 Drivers\EMC6\DevIPAddress.ini（DEV0~3 = MM1~4 對應 CARD0~3）
