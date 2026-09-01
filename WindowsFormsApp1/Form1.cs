@@ -1935,14 +1935,28 @@ namespace WindowsFormsApp1
         }
 
         /// <summary>
-        /// 等各板 EMC6 控制卡連線（IsCardConnect != 0）。所有板一起輪詢，總逾時 overallTimeoutMs，
+        /// 等各板 EMC6 控制卡「真的 ready」再讓 daemon 就緒。所有板一起輪詢，總逾時 overallTimeoutMs，
         /// 讓總等待時間 ≈ 最慢一張卡（而非各板相加）。
         /// 非致命：逾時未連線只警告、不阻擋 daemon 啟動（其他板仍可用；前端另有 rc=1/9 重試）。
         /// 目的：讓 daemon /health 就緒時 EMC6 卡真的 ready，避免第一條命令 StartMarking 回 rc=1/9。
+        ///
+        /// ⚠ 為何不能只看「IsCardConnect() != 0 一次就放行」（舊行為的坑）：
+        ///   冷開機時乙太網 socket 很快就通（IsCardConnect 立刻回非 0），但 EMC6 卡內部的
+        ///   雷射 / 振鏡控制通道還沒完成初始化。若此時就放行，第一條命令 StartMarking(4) 會回 0
+        ///   （SDK 收下指令、IsMarking 也跑完 → 回報成功），但雷射實際不出光——尤其是 init 順序
+        ///   最後、連線最慢的板（board 4，IP 10.0.0.5）最常中招。砍掉 daemon 重啟後卡已熱身才正常。
+        ///   （見「故障排除完整指南.md」錯誤 4）
+        /// 強化：改為「連續 StableTicks 次都讀到 IsCardConnect != 0」才算某板連上（濾掉剛通不穩的瞬間），
+        ///       且全部板連上後再固定暖機 WarmupMs，給最慢的卡韌體把控制通道帶起來，才回。
         /// </summary>
         private void WaitForCardsConnected(int boardCount, int overallTimeoutMs = 40000)
         {
+            const int PollMs = 200;       // 輪詢間隔
+            const int StableTicks = 5;    // 需連續讀到非 0 的次數（5 × 200ms = 連續穩定 1 秒）才算真的連上
+            const int WarmupMs = 3000;    // 全部板連上後，額外暖機延遲（給最慢的卡韌體完成內部初始化）
+
             var connected = new bool[boardCount];
+            var stableCount = new int[boardCount];  // 各板連續讀到非 0 的累計次數
             var sw = System.Diagnostics.Stopwatch.StartNew();
             while (sw.ElapsedMilliseconds < overallTimeoutMs)
             {
@@ -1954,22 +1968,43 @@ namespace WindowsFormsApp1
                     try { c = m_MMMark[i].IsCardConnect(); } catch { c = 0; }
                     if (c != 0)
                     {
-                        connected[i] = true;
-                        Console.WriteLine($"[Board {i + 1}] 控制卡已連線 ({sw.ElapsedMilliseconds}ms)");
+                        stableCount[i]++;
+                        if (stableCount[i] >= StableTicks)
+                        {
+                            connected[i] = true;
+                            Console.WriteLine($"[Board {i + 1}] 控制卡已連線且穩定 ({sw.ElapsedMilliseconds}ms)");
+                        }
+                        else
+                        {
+                            allDone = false;   // 已通但尚未穩定，繼續確認
+                        }
                     }
                     else
                     {
+                        stableCount[i] = 0;    // 中途掉線 → 穩定計數歸零，重新累計
                         allDone = false;
                     }
                 }
-                if (allDone) return;
+                if (allDone)
+                {
+                    // 全部板都穩定連上，再暖機一段時間才回，確保最慢的卡雷射 / 振鏡通道真的 ready。
+                    Console.WriteLine($"[Daemon] 全部 {boardCount} 塊板已連線，暖機 {WarmupMs}ms 讓卡韌體就緒...");
+                    long warmupEnd = sw.ElapsedMilliseconds + WarmupMs;
+                    while (sw.ElapsedMilliseconds < warmupEnd)
+                    {
+                        Application.DoEvents();
+                        Thread.Sleep(PollMs);
+                    }
+                    Console.WriteLine($"[Daemon] 暖機完成，控制卡就緒 ({sw.ElapsedMilliseconds}ms)");
+                    return;
+                }
                 Application.DoEvents();
-                Thread.Sleep(200);
+                Thread.Sleep(PollMs);
             }
             for (int i = 0; i < boardCount; i++)
             {
                 if (m_bBoardInit[i] && !connected[i])
-                    Console.Error.WriteLine($"[Board {i + 1}] 警告：控制卡逾時未連線（IsCardConnect=0，等了 {overallTimeoutMs}ms），首次打標可能 rc=1/9");
+                    Console.Error.WriteLine($"[Board {i + 1}] 警告：控制卡逾時未穩定連線（IsCardConnect 未連續 {StableTicks} 次非 0，等了 {overallTimeoutMs}ms），首次打標可能 rc=1/9 或不出光");
             }
         }
 
