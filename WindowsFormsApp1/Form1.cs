@@ -429,10 +429,21 @@ namespace WindowsFormsApp1
                     int markMode = spec.PreviewMode > 0 ? 3 : 4;
                     if (spec.PreviewMode > 0)
                         m_MMMark[board].SetPreviewMode(spec.PreviewMode);
+                    // 診斷已確認：冷開機時 board 4 振鏡有完整掃描（StartMarking rc=0、耗時數秒），但雷射不發射
+                    //（重啟後才正常）＝ 雷射致能狀態在該板未設起。故在「每次打標、StartMarking 前」明確致能一次雷射，
+                    // 貼近發射時機（在 init 致能過但可能被後續操作清掉）。EnableLaser 已證實支援(rc=0)、不會彈對話框。
+                    int rcEn = 0;
+                    try { rcEn = m_MMMark[board].EnableLaser(1); }
+                    catch (Exception exEn) { Console.Error.WriteLine($"[Board {board + 1}] EnableLaser 例外：{exEn.Message}"); }
+                    Console.Error.WriteLine($"[Board {board + 1}] >>> EnableLaser(1) rc={rcEn} @cold-diag");
+
                     m_MMMark[board].MarkStandBy();
                     Application.DoEvents();
 
                     int rc = m_MMMark[board].StartMarking(markMode);
+                    // 診斷：把每塊板的 StartMarking 結果寫進 daemon log（marking-daemon.log）。
+                    // 成功時 sbLog 只回前端，不寫檔；這行讓「board 4 到底有沒有進到 StartMarking、rc 多少」可查。
+                    Console.Error.WriteLine($"[Board {board + 1}] >>> StartMarking({markMode}) rc={rc} @cold-diag");
                     if (rc == 6)
                     {
                         // rc=6：該板仍在 marking/previewing。連續打（client 連發、板還沒打完）時很常見。
@@ -569,6 +580,9 @@ namespace WindowsFormsApp1
                                         monitor.Dispose();
                                         try { m_MMMark[capturedBoard].MarkShutdown(); } catch { }
                                         m_bCmdPreviewing[capturedBoard] = false;
+                                        // 診斷：實際打標耗時。真正出光的 mark 會耗時數秒；靜默不出光會「瞬間完成」（數十~數百 ms），
+                                        // 一比對就知道 board 4 是「有下指令但沒真的打」還是「根本沒進到這裡」。
+                                        Console.Error.WriteLine($"[Board {capturedBoard + 1}] >>> mark done @{elapsed}ms ({iMarkLoop} loop(s)) @cold-diag");
                                         sbLog.AppendLine($"[Board {capturedBoard + 1}] mark done @{elapsed}ms ({iMarkLoop} loop(s))");
                                         tcs.SetResult(new DaemonSpecResult { ExitCode = 0, Logs = sbLog.ToString() });
                                         return;
@@ -1084,12 +1098,12 @@ namespace WindowsFormsApp1
                 try
                 {
                     long cardConnect = m_MMMark[i].IsCardConnect();
-                    long headStatus = m_MMMark[i].GetHeadStatus(0);
 
                     string connectStr = cardConnect != 0 ? "已連接" : "未連接";
-                    string headStr = headStatus != 0 ? "正常" : "異常";
 
-                    statusInfo += $"晶片板 {i + 1} (IP: {ipStr})：控制卡 {connectStr}，掃描頭 {headStr}\n";
+                    // ⚠ 不呼叫 GetHeadStatus：這台雷射驅動不支援，會彈出 "Executing unsupported function"
+                    //   強制對話框（在 UI 執行緒上會卡死）。只顯示控制卡連線狀態。
+                    statusInfo += $"晶片板 {i + 1} (IP: {ipStr})：控制卡 {connectStr}\n";
                 }
                 catch (Exception ex)
                 {
@@ -1863,7 +1877,26 @@ namespace WindowsFormsApp1
 
                     Application.DoEvents();
 
+                    // InitialExt 會非同步啟動該板的 EZDrawPlatform 引擎程序（MM27Dx64.exe，每板一個）。
+                    // 冷開機時連續對 4 板呼叫 InitialExt，後面幾板的引擎會來不及啟動（啟動競態）→ 該板沒有引擎、
+                    // 打標時 StartMarking 靜默不出光（正是「最後一塊 board 4 開機第一次打不出、砍 daemon 重啟才好」
+                    // 的真正原因：重啟時系統較閒，4 個引擎才都起得來）。這裡等本板引擎真的出現再繼續，把引擎啟動
+                    // 序列化；逾時未起就重試一次 InitialExt 補救。
+                    int engineBefore = CountMarkingEngines();
                     m_MMMark[i].InitialExt(cfg);
+                    // 逾時取 8s：夠給引擎在冷開機起來，又不致 4 板累加把啟動撐過前端 60s /health 逾時。
+                    const int EngineSpawnTimeoutMs = 8000;
+                    if (engineBefore >= 0 && !WaitForMarkingEngines(engineBefore + 1, EngineSpawnTimeoutMs))
+                    {
+                        Console.Error.WriteLine($"[Board {i + 1}] ⚠ EZDrawPlatform 引擎未在 {EngineSpawnTimeoutMs}ms 內啟動（目前引擎數 {CountMarkingEngines()}，期望 ≥{engineBefore + 1}），重試 InitialExt...");
+                        m_MMMark[i].InitialExt(cfg);
+                        bool up2 = WaitForMarkingEngines(engineBefore + 1, EngineSpawnTimeoutMs);
+                        Console.Error.WriteLine($"[Board {i + 1}] 重試後引擎數={CountMarkingEngines()}（{(up2 ? "已補起" : "仍不足，該板打標可能不出光")}）");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[Board {i + 1}] EZDrawPlatform 引擎已就緒（引擎數={CountMarkingEngines()}）");
+                    }
                     m_MMMark[i].SetDesktopCenter(0, 0);
                     m_MMMark[i].SetDesktopSize(m_WorkspaceSize, m_WorkspaceHeight);
                     m_MMMark[i].SetActiveDB(0);
@@ -1896,6 +1929,37 @@ namespace WindowsFormsApp1
                 System.Diagnostics.Debug.WriteLine($"初始化板 {boardIndex} 失敗：{ex.Message}");
                 return false;
             }
+        }
+
+        // EZDrawPlatform 打標引擎的實際程序名（工作管理員顯示為 "EZDrawPlatform MFC Application"）。
+        // 每塊板 InitialExt 會啟動一個；正常 4 板 = 4 個。冷開機競態會少啟動 → 該板不出光。
+        private const string MarkingEngineProcName = "MM27Dx64";
+
+        /// <summary>
+        /// 目前 EZDrawPlatform 引擎（MM27Dx64.exe）程序數；查詢失敗回 -1（呼叫端據此略過等待，不誤擋初始化）。
+        /// 註：此為全機台計數，會含其他 MarkingMate 實例的引擎，故呼叫端一律用「本板 InitialExt 前後的差值 +1」判定。
+        /// </summary>
+        private int CountMarkingEngines()
+        {
+            try { return System.Diagnostics.Process.GetProcessesByName(MarkingEngineProcName).Length; }
+            catch { return -1; }
+        }
+
+        /// <summary>
+        /// 輪詢等 EZDrawPlatform 引擎數達到 expected（或逾時）。達標回 true。
+        /// </summary>
+        private bool WaitForMarkingEngines(int expected, int timeoutMs)
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            while (sw.ElapsedMilliseconds < timeoutMs)
+            {
+                int n = CountMarkingEngines();
+                if (n < 0) return true;          // 無法查詢程序 → 不阻擋初始化
+                if (n >= expected) return true;
+                Application.DoEvents();
+                Thread.Sleep(100);
+            }
+            return CountMarkingEngines() >= expected;
         }
 
         /// <summary>
