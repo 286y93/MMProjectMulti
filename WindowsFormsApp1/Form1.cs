@@ -2426,19 +2426,33 @@ namespace WindowsFormsApp1
             Application.DoEvents();
             Thread.Sleep(200);
 
+            // 填滿形式
             m_MMEdit[boardIndex].SetFillStyle(rectName, 3);                         // 1 → 3
+            // 外框線形式
             m_MMEdit[boardIndex].SetFrameLineType(rectName, 1);
+            // 填滿圈距
             m_MMEdit[boardIndex].SetFillRoundPitch(rectName, 0.04);
+            // 填滿間距
             m_MMEdit[boardIndex].SetFillPitch(rectName, 0.04);
+            // 填滿次數
             m_MMEdit[boardIndex].SetFillTimes(rectName, 4);                         // 1 → 4
+            // 迴圈型填滿輸出方式的方向
             m_MMEdit[boardIndex].SetFillInsideOut(rectName, 1);                     // 向內
+            // 填滿起始角度
             m_MMEdit[boardIndex].SetFillStartAngle(rectName, 90);
+            // 填滿累進角度
             m_MMEdit[boardIndex].SetFillStepAngle(rectName, 45);
+            // 填滿間距是否平均分配
             m_MMEdit[boardIndex].SetFillAverageDistribution(rectName, 1);
+            // 外框是否開啟
             m_MMEdit[boardIndex].SetFrameSwitch(rectName, 1);
+            // 填滿是否開啟
             m_MMEdit[boardIndex].SetFillSwitch(rectName, 1);
+            // 填滿優先是否開啟
             m_MMEdit[boardIndex].SetFillFirstExt(rectName, 0, 1);                      // 20 → 80
+            // 雕刻次數
             m_MMMark[boardIndex].SetMarkRepeat(rectName, 1);
+            // 條碼點延遲時間
             m_MMEdit[boardIndex].SetBarcodeSpotDelay(rectName, 100);
             // 速度
             m_MMMark[boardIndex].SetSpeed(rectName, p.RectSpeed);
