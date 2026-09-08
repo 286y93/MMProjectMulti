@@ -2366,22 +2366,38 @@ namespace WindowsFormsApp1
             Application.DoEvents();
             Thread.Sleep(200);
 
+            // 條碼是否反相雕刻
             m_MMEdit[boardIndex].SetBarcodeInvert(qrName, 1);                       // 反相（白底反相 QR）
+            // 二維條碼 QR Code 中 EC Level 
             m_MMEdit[boardIndex].Set2DBarcodeQRECLevel(qrName, QR_EC_LEVEL_LOW);    // 容錯 LOW
+            // 二維條碼尺寸的固定方式
             m_MMEdit[boardIndex].Set2DBarcodeFixedType(qrName, 0);
+            // 二維條碼的單元大小
             m_MMEdit[boardIndex].Set2DBarcodeFixedCellSize(qrName, 1, 1);           // 占位，稍後反推
             ApplyQRBorder(boardIndex, qrName, p.Border);                            // 外框單元 + 線段延伸
+            // 條碼雕刻模式 1: 點。2: 整數點。3: 矩形。4: 螺旋線。5: 圓形。
             m_MMEdit[boardIndex].SetBarcodeMarkStyle(qrName, 2);
+            // 二維條碼線形式的順序模式 0: 連續。1: 單隔。
             m_MMEdit[boardIndex].SetBarcodeLineType(qrName, 0);
+            // 條碼點大小
             m_MMEdit[boardIndex].SetBarcodeSpotSize(qrName, 0.04);                  // 0.02 → 0.04
+            // 二維條碼線形式的次數
             m_MMEdit[boardIndex].SetBarcodeLineTimes(qrName, 4);                    // 1 → 4
+            // 填滿的起始角度
             m_MMEdit[boardIndex].SetFillStartAngle(qrName, 0);
+            // 填滿的累進角度
             m_MMEdit[boardIndex].SetFillStepAngle(qrName, 45);                      // 90 → 45
+            // 二維條碼線形式，是否使用雙向填滿
             m_MMEdit[boardIndex].SetBarcodeLineTwoway(qrName, 1);
+            // 設定外框是否開啟
             m_MMEdit[boardIndex].SetFrameSwitch(qrName, 1);
+            // 填滿是否開啟
             m_MMEdit[boardIndex].SetFillSwitch(qrName, 1);
-            m_MMEdit[boardIndex].SetFillFirstExt(qrName, 0, 1);                        // 200 → 80
+            // 目標物件的填滿優先是否開啟
+            m_MMEdit[boardIndex].SetFillFirstExt(qrName, 1, 1);                        // 200 → 80
+            // 雕刻次數
             m_MMMark[boardIndex].SetMarkRepeat(qrName, 1);
+            // 條碼點延遲時間
             m_MMEdit[boardIndex].SetBarcodeSpotDelay(qrName, 1000);
             // 速度
             m_MMMark[boardIndex].SetSpeed(qrName, p.QrSpeed);
@@ -2449,7 +2465,7 @@ namespace WindowsFormsApp1
             // 填滿是否開啟
             m_MMEdit[boardIndex].SetFillSwitch(rectName, 1);
             // 填滿優先是否開啟
-            m_MMEdit[boardIndex].SetFillFirstExt(rectName, 0, 1);                      // 20 → 80
+            m_MMEdit[boardIndex].SetFillFirstExt(rectName, 1, 1);                      // 20 → 80
             // 雕刻次數
             m_MMMark[boardIndex].SetMarkRepeat(rectName, 1);
             // 條碼點延遲時間
