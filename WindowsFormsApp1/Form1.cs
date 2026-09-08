@@ -2453,11 +2453,13 @@ namespace WindowsFormsApp1
             // 填滿次數
             m_MMEdit[boardIndex].SetFillTimes(rectName, 4);                         // 1 → 4
             // 迴圈型填滿輸出方式的方向
+            // 0: 向內，依是否啟用”變動起點”，設定為向內，固定起點或向內，變動起點。 
+            // 1: 向外，依是否啟用”變動起點”，設定為向外，固定起點或向外，變動起點。 
             m_MMEdit[boardIndex].SetFillInsideOut(rectName, 1);                     // 向內
             // 填滿起始角度
-            m_MMEdit[boardIndex].SetFillStartAngle(rectName, 90);
+            m_MMEdit[boardIndex].SetFillStartAngle(rectName, 0);//90 → 0 
             // 填滿累進角度
-            m_MMEdit[boardIndex].SetFillStepAngle(rectName, 45);
+            m_MMEdit[boardIndex].SetFillStepAngle(rectName, 45);// 45 → 90
             // 填滿間距是否平均分配
             m_MMEdit[boardIndex].SetFillAverageDistribution(rectName, 1);
             // 外框是否開啟
