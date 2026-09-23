@@ -625,12 +625,6 @@ namespace WindowsFormsApp1
             return tcs.Task;
         }
 
-        public class DaemonSpecResult
-        {
-            public int ExitCode;
-            public string Logs;
-        }
-
         /// <summary>
         /// 從 UI 讀取工作區參數
         /// </summary>
@@ -1253,13 +1247,6 @@ namespace WindowsFormsApp1
                 dir = dir.Parent;
             }
             return null;
-        }
-
-        // 部署統計：用於 skip-if-same 機制下追蹤實際寫入 / 跳過數量
-        private class DeployStats
-        {
-            public int Written;
-            public int Skipped;
         }
 
         /// <summary>
@@ -2307,25 +2294,9 @@ namespace WindowsFormsApp1
         // ============================================================
         // 白底反相 QR（白底矩形 + 反相 QR 雙圖層）— CLI / daemon 共用
         // 邏輯與 GUI btnQRWhiteBgMark_Click 的「全部」情況一致；
-        // 這裡把可調值抽成 WhiteBgQRParams，其餘製程常數（頻率/脈寬/填滿間距/
-        // 線段遍數等）維持與 GUI 相同的寫死值。若日後調 GUI 白底參數，這裡要同步。
+        // 這裡把可調值抽成 WhiteBgQRParams（定義見 Form1.Models.cs），其餘製程常數
+        // （頻率/脈寬/填滿間距/線段遍數等）維持與 GUI 相同的寫死值。若日後調 GUI 白底參數，這裡要同步。
         // ============================================================
-        private class WhiteBgQRParams
-        {
-            public string Content = "1234567";
-            public double QrWidth = 25.0;    // QR 資料模組區寬 (mm)
-            public double QrHeight = 25.0;   // QR 資料模組區高 (mm)
-            public int Border = 2;           // 外框單元數 (cell)
-            public double QrSpeed = 1200;    // QR 打標速度
-            public double QrPower = 90;      // QR 功率
-            public double QrFreq = 80;       // QR 頻率 (kHz)
-            public double QrPulseWidth = 30; // QR 脈波寬度
-            public double RectSpeed = 800;   // 白底矩形速度
-            public double RectPower = 100;   // 白底矩形功率
-            public double RectFreq = 80;     // 白底矩形頻率 (kHz)
-            public double RectPulseWidth = 250; // 白底矩形脈波寬度
-            public double RectExtra = 0;     // 矩形額外加大量 (mm)
-        }
 
         /// <summary>
         /// 依 CLI 參數組出白底 QR 參數：content 必填，其餘用寫死預設，有明確帶才覆寫。
@@ -3255,23 +3226,8 @@ namespace WindowsFormsApp1
         // ============================================================
         // 命令提示頁籤：隨機產生 5 組指令（含 --wobble-width，正式打標模式）。
         // 使用者可手動編輯 textbox 加入 --preview 切回紅光預覽。
+        // CmdPreviewSpec 定義見 Form1.Models.cs。
         // ============================================================
-
-        private class CmdPreviewSpec
-        {
-            public int BoardIndex;
-            public List<LineSegment> Lines;     // 線段內容（單條或多條）；null = 非線段類
-            public string QRContent;            // QR 內容；null = 非 QR
-            public double QRWidth, QRHeight;
-            public bool QRInvert;               // QR 反相（黑白互換）
-            public int PreviewMode;             // 0=正式打標, 1=outline 預覽, 2=full 預覽
-            public int PreviewTime;             // 預覽模式秒數；PreviewMode=0 時忽略
-            public double? WobbleWidth;         // 線條寬度 mm（雷射加粗），null=不啟動 wobble
-            public double? WobbleSpeed;         // 擺動速度 mm/s，null=用 SDK 預設 5026.55
-            public bool QRWhiteBg;              // 白底反相 QR（--qr-whitebg）
-            public CommandLineArgs Cli;         // 解析後的原始 CLI 參數（白底 QR 用來組 WhiteBgQRParams）
-            public string DisplayText;          // 顯示在 textbox 內的命令字串
-        }
 
         private readonly Random m_CmdRandom = new Random();
 
@@ -7010,40 +6966,6 @@ namespace WindowsFormsApp1
             // }
 
             // Environment.Exit(ExitCode);
-        }
-    }
-
-    /// <summary>
-    /// DXF 線段資料結構
-    /// </summary>
-    public class DXFLine
-    {
-        public double X1 { get; set; }
-        public double Y1 { get; set; }
-        public double X2 { get; set; }
-        public double Y2 { get; set; }
-
-        public double Length
-        {
-            get
-            {
-                double dx = X2 - X1;
-                double dy = Y2 - Y1;
-                return Math.Sqrt(dx * dx + dy * dy);
-            }
-        }
-
-        public DXFLine(double x1, double y1, double x2, double y2)
-        {
-            X1 = x1;
-            Y1 = y1;
-            X2 = x2;
-            Y2 = y2;
-        }
-
-        public override string ToString()
-        {
-            return $"({X1:F2}, {Y1:F2}) -> ({X2:F2}, {Y2:F2}), 長度: {Length:F2}";
         }
     }
 }
