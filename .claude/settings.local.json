@@ -59,7 +59,23 @@
       "Read(//c/Program Files \\\\\\(x86\\\\\\)/MarkingMate//**)",
       "Read(//c/Users/AlexYang_VW/source/repos/MMProject/**)",
       "Bash(ls \"/c/Program Files \\(x86\\)/MarkingMate/\" 2>&1 | head -40)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(grep -nE \"^\\\\s+\\(private|public|protected|internal\\)\\\\b.*\\\\\\)\\\\s*$\" Form1.cs)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(awk 'NR>=3291 && NR<=3420 && /^        private \\(void|bool|int|string|double|List\\)/ {print NR\": \"$0}' Form1.cs)",
+      "Bash(awk 'NR>=3040 && NR<=3960 && /^        \\(private|public|protected|internal|static\\)/ && /\\\\\\(/ {print NR\": \"$0}' Form1.cs)",
+      "Bash(awk 'NR>=3944 && NR<=3990 && /^        \\(private|public|static\\)/ {print NR\": \"$0}' Form1.cs)",
+      "Bash(awk 'NR>=3939 && NR<=4970 && /^        \\(private|public|static|internal\\)/ && /\\\\\\(/ {print NR\": \"$0}' Form1.cs)",
+      "Bash(awk 'NR>=3557 && NR<=3640 && \\(/^        \\(private|public|static|internal\\)/ || /=====|頁籤|Tab/\\) {print NR\": \"$0}' Form1.cs)",
+      "Bash(awk 'NR>=3440 && NR<=3465 && \\(/=====|Tab|頁籤|BR_NAME|private static double PD/\\) {print NR\": \"$0}' Form1.cs)",
+      "Bash(awk 'NR>=3050 && NR<=3720 && /^        \\(private|public|static|internal|const\\)/ && \\(/\\\\\\(/ || /const/\\) {print NR\": \"$0}' Form1.cs)",
+      "Bash(awk 'NR>=3714 && NR<=3770 && \\(/^        \\(private|public|static\\)/ || /DllImport|Form1_FormClosed|=====/\\) {print NR\": \"$0}' Form1.cs)",
+      "Bash(awk 'NR>=3050 && NR<=3056 {print NR\": \"$0}' Form1.cs)",
+      "Bash(private.*BuildRectAloneObject)",
+      "Bash(private.*btnQAStopPreview_Click)",
+      "Bash(CLI Builder 頁籤（方法已移至\" Form1.cs)",
+      "Bash(git push *)"
     ]
   }
 }
