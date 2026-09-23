@@ -1377,6 +1377,13 @@ namespace WindowsFormsApp1
         ///   4. 共用 config\config.ini 部署到 MarkingMate\config.ini
         ///   5. 各 MMx：config_MMx.ini 部署到安裝根目錄；EMC6_MMx\ 遞迴部署（驅動 binary、雷射 cfg、
         ///      cfg 子夾；排除 DevIPAddress.ini）到 Drivers\EMC6_MMx\
+        ///
+        /// ★ 方案 A（獨立部署）：第 3~5 段的「部署來源」是 exe 旁的 Drivers\（ResolveProjectDir/File
+        ///   由 exe 目錄往上找）。若未帶來源（前端只放 exe + DLL），改為印 log 並跳過部署，
+        ///   直接沿用安裝目錄 MarkingMateRoot 現有 cfg（SDK 執行期本來就只讀那裡）——非致命、不阻擋初始化。
+        ///   注意：SDK 無法被指到別的資料夾讀 cfg（InitialExt("/cfg_config_MMx") 是內部配置名，
+        ///   由已註冊 OCX 於安裝目錄解析），故 cfg 仍須事先存在於 MarkingMateRoot。
+        ///   第 1~2 段（連卡關鍵的主表 IP 驗證 / 各板同步）一律執行，安裝目錄真的沒設好仍會 fail。
         /// </summary>
         /// <param name="boardCount">要啟用的雷射頭數（1~4）</param>
         /// <param name="errorInfo">回傳問題明細；空字串代表全部 OK</param>
@@ -1451,7 +1458,10 @@ namespace WindowsFormsApp1
             string destSharedDir = Path.Combine(MarkingMateRoot, SharedDriverDirRelativePath);
             if (srcSharedDir == null)
             {
-                sb.AppendLine($"找不到專案 EMC6 共用目錄：{SharedDriverDirRelativePath}");
+                // 方案 A（獨立部署）：exe 旁未帶 Drivers 來源 → 跳過 cfg/驅動部署，
+                // 直接沿用安裝目錄 MarkingMateRoot 現有設定（SDK 執行期本來就只讀那裡，
+                // 且第 1-2 段的主表 IP 驗證 / 各板同步已完成，連卡不受影響）。非致命，不阻擋初始化。
+                Console.WriteLine($"[Deploy] 未帶 EMC6 共用來源（{SharedDriverDirRelativePath}），跳過 cfg/驅動部署，沿用安裝目錄現有設定。");
             }
             else
             {
@@ -1503,7 +1513,9 @@ namespace WindowsFormsApp1
 
                 if (srcIp == null)
                 {
-                    sb.AppendLine($"[{mmName}] 找不到專案 IP 來源檔：{m_IPConfigRelativePaths[i]}");
+                    // 方案 A（獨立部署）：未帶此板來源 → 跳過本板 cfg/驅動部署，
+                    // 沿用安裝目錄現有設定（非致命，不阻擋初始化）。
+                    Console.WriteLine($"[{mmName}] 未帶專案來源（{m_IPConfigRelativePaths[i]}），跳過部署，沿用安裝目錄現有設定。");
                     continue;
                 }
 
