@@ -489,8 +489,8 @@ namespace WindowsFormsApp1
             return @"MarkingMate Multi-Board 雷射打標系統
 
 使用方式：
-  MarkingMateMulti.exe                  啟動 GUI 模式
-  MarkingMateMulti.exe [選項]           命令列模式
+  MarkingMate.exe                       啟動 GUI 模式
+  MarkingMate.exe [選項]                命令列模式
 
 選項：
   --help, -h, /?                        顯示此說明訊息
@@ -549,40 +549,40 @@ namespace WindowsFormsApp1
 
 範例：
   # 在板 0 上畫一條線並打標
-  MarkingMateMulti.exe --board 0 --line 0,0,50,50 --mark
+  MarkingMate.exe --board 0 --line 0,0,50,50 --mark
 
   # 載入 DXF 並指定雷射參數
-  MarkingMateMulti.exe --board 0 --dxf ""File\test.dxf"" --power 50 --speed 800 --freq 20 --pw 5 --repeat 1 --mark
+  MarkingMate.exe --board 0 --dxf ""File\test.dxf"" --power 50 --speed 800 --freq 20 --pw 5 --repeat 1 --mark
 
   # 在板 1 上畫多條線
-  MarkingMateMulti.exe --board 1 --lines ""0,0,50,50;10,10,40,40"" --mark
+  MarkingMate.exe --board 1 --lines ""0,0,50,50;10,10,40,40"" --mark
 
   # 外框預覽（紅光描外框）
-  MarkingMateMulti.exe --board 0 --dxf ""File\test.dxf"" --mark --preview outline
+  MarkingMate.exe --board 0 --dxf ""File\test.dxf"" --mark --preview outline
 
   # 全路徑預覽（紅光走完整路徑）
-  MarkingMateMulti.exe --board 0 --dxf ""File\test.dxf"" --mark --preview full
+  MarkingMate.exe --board 0 --dxf ""File\test.dxf"" --mark --preview full
 
   # 全路徑預覽並指定預覽速度
-  MarkingMateMulti.exe --board 0 --dxf ""File\test.dxf"" --mark --preview full --preview-speed 500
+  MarkingMate.exe --board 0 --dxf ""File\test.dxf"" --mark --preview full --preview-speed 500
 
   # 指定工作區大小 200mm 載入 DXF
-  MarkingMateMulti.exe --board 0 --workspace 200 --dxf ""File\上翼板-2.dxf"" --mark
+  MarkingMate.exe --board 0 --workspace 200 --dxf ""File\上翼板-2.dxf"" --mark
 
   # 長寬不同（W=200, H=120），長邊 200 / 短邊 120
-  MarkingMateMulti.exe --board 0 --workspace-w 200 --workspace-h 120 --dxf ""File\上翼板-2.dxf"" --mark
+  MarkingMate.exe --board 0 --workspace-w 200 --workspace-h 120 --dxf ""File\上翼板-2.dxf"" --mark
 
   # QR Code 打標
-  MarkingMateMulti.exe --board 0 --qrcode ""Hello World"" --qr-width 10 --qr-height 10 --power 50 --speed 1000 --mark
+  MarkingMate.exe --board 0 --qrcode ""Hello World"" --qr-width 10 --qr-height 10 --power 50 --speed 1000 --mark
 
   # QR Code 指定大小（位置固定為鏡頭中心 0,0）
-  MarkingMateMulti.exe --board 0 --qrcode ""https://example.com"" --qr-width 15 --qr-height 15 --mark
+  MarkingMate.exe --board 0 --qrcode ""https://example.com"" --qr-width 15 --qr-height 15 --mark
 
   # QR Code 反相（黑白互換）
-  MarkingMateMulti.exe --board 0 --qrcode ""INV"" --qr-width 15 --qr-height 15 --qr-invert --mark
+  MarkingMate.exe --board 0 --qrcode ""INV"" --qr-width 15 --qr-height 15 --qr-invert --mark
 
   # 使用自訂配置
-  MarkingMateMulti.exe --board 2 --config /cfg_config_MM3 --line 0,0,100,100
+  MarkingMate.exe --board 2 --config /cfg_config_MM3 --line 0,0,100,100
 
   # Daemon / Client 模式：繞過 SDK multi-process 限制，網頁也能呼叫
   # 步驟 1：先啟動 daemon（背景跑，一次 init 4 板）
@@ -616,8 +616,14 @@ namespace WindowsFormsApp1
   0  - 成功
   1  - 初始化失敗（含 IP 主表未填、部署權限不足等）
   2  - 繪圖失敗
-  3  - 打標失敗
-  4  - 參數錯誤
+  3  - 打標失敗 / daemon 逾時
+  4  - 參數錯誤 / 板未初始化
+  5  - 板忙碌中（daemon）
+  6  - 無法連線到 daemon（client）
+  7  - client 例外
+  9  - 控制卡未連接，請稍後重試（daemon）
+  -2 - 該板已被其他程序使用
+  -3 - daemon 已在執行
 ";
         }
 
