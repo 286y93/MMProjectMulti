@@ -5,9 +5,9 @@ using System.Windows.Forms;
 
 namespace WindowsFormsApp1
 {
-    // 8. AprilTag 頁 + CLI / daemon 共用後端：底部矩形 + 反相 tag36h11 雙圖層（比照 QRCODE_白底）。
-    //   矩形層：蓋住整個 tag（含外圈白邊）+ RectExtra，先打。
-    //   AprilTag 層：反相，打「白格 + 外圈白邊」，黑框與黑色資料格保留矩形底色。
+    // 8. AprilTag 頁 + CLI / daemon 共用後端：底部矩形 + 反相 tagStandard41h12 雙圖層（比照 QRCODE_白底）。
+    //   矩形層：蓋住整個 tag（9×9 格）+ RectExtra，先打。
+    //   AprilTag 層：反相，只打白格（白色偵測框 + 白色資料格），黑格保留矩形底色。
     //   打標目標可選：只打矩形 / 只打 AprilTag / 矩形 + AprilTag。
     public partial class Form1
     {
@@ -116,19 +116,19 @@ namespace WindowsFormsApp1
                 m_MMMark[boardIndex].SetPulseWidth(AT_RECT_NAME, p.RectPulseWidth);
             }
 
-            // ---- ② AprilTag 層（反相：打白格 + 外圈白邊）----
+            // ---- ② AprilTag 層（反相：只打白格）----
             if (p.MarkTag)
             {
-                int n = AprilTag36h11.TotalWidth;
-                double cell = p.Size / AprilTag36h11.WidthAtBorder;
+                int n = AprilTagFamily.TotalWidth;
+                double cell = p.Size / AprilTagFamily.WidthAtBorder;
                 double halfCells = n / 2.0;
 
-                bool[,] black = AprilTag36h11.GetBlackCells(p.TagId);
+                bool[,] black = AprilTagFamily.GetBlackCells(p.TagId);
                 var white = new bool[n, n];
                 for (int r = 0; r < n; r++)
                     for (int c = 0; c < n; c++)
                         white[r, c] = !black[r, c];
-                var rects = AprilTag36h11.MergeRects(white);
+                var rects = AprilTagFamily.MergeRects(white);
 
                 for (int i = 0; i < rects.Count; i++)
                 {
@@ -161,7 +161,7 @@ namespace WindowsFormsApp1
                     m_MMMark[boardIndex].SetFrequency(name, p.TagFreq);
                     m_MMMark[boardIndex].SetPulseWidth(name, p.TagPulseWidth);
                 }
-                Console.Error.WriteLine($"[Board {boardIndex + 1}] AprilTag 36h11 id={p.TagId} size={p.Size}mm cell={cell:F4}mm tagRects={rects.Count}（反相：白格）");
+                Console.Error.WriteLine($"[Board {boardIndex + 1}] AprilTag 41h12 id={p.TagId} size={p.Size}mm cell={cell:F4}mm tagRects={rects.Count}（反相：白格）");
             }
 
             m_MMMark[boardIndex].Redraw();
@@ -326,7 +326,7 @@ namespace WindowsFormsApp1
             {
                 if (!double.TryParse(txtATRectExtra.Text.Trim(), out double extra) || extra < 0) extra = 0;
                 var p = new AprilTagParams { Size = size, RectExtra = extra };
-                lblATInfo.Text = $"每格 {size / AprilTag36h11.WidthAtBorder:F3} mm，含白邊 {p.TagTotalWidth:F2} mm，矩形 {p.RectWidth:F2} mm";
+                lblATInfo.Text = $"每格 {size / AprilTagFamily.WidthAtBorder:F3} mm，tag 總寬 {p.TagTotalWidth:F2} mm，矩形 {p.RectWidth:F2} mm";
             }
             else
             {
@@ -337,18 +337,18 @@ namespace WindowsFormsApp1
         /// <summary>預覽成品外觀（標準 AprilTag 黑白圖樣）。</summary>
         private void pnlATPreview_Paint(object sender, PaintEventArgs e)
         {
-            int n = AprilTag36h11.TotalWidth;
+            int n = AprilTagFamily.TotalWidth;
             int cellPx = Math.Min(pnlATPreview.Width, pnlATPreview.Height) / n;
             int ox = (pnlATPreview.Width - cellPx * n) / 2;
             int oy = (pnlATPreview.Height - cellPx * n) / 2;
 
-            bool[,] black = AprilTag36h11.GetBlackCells((int)numATId.Value);
+            bool[,] black = AprilTagFamily.GetBlackCells((int)numATId.Value);
             e.Graphics.Clear(Color.White);
             for (int r = 0; r < n; r++)
                 for (int c = 0; c < n; c++)
                     if (black[r, c])
                         e.Graphics.FillRectangle(Brushes.Black, ox + c * cellPx, oy + r * cellPx, cellPx, cellPx);
-            // 白邊外框輔助線
+            // tag 外框輔助線
             e.Graphics.DrawRectangle(Pens.LightGray, ox, oy, cellPx * n - 1, cellPx * n - 1);
         }
     }

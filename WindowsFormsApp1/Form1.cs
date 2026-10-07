@@ -408,7 +408,7 @@ namespace WindowsFormsApp1
                             tcs.SetResult(new DaemonSpecResult { ExitCode = 2, Logs = sbLog.ToString() + $"[Board {board + 1}] AprilTag 建立失敗" });
                             return;
                         }
-                        sbLog.AppendLine($"[Board {board + 1}] added AprilTag 36h11 #{tagParams.TagId} size={tagParams.Size}mm target={spec.TagTarget}");
+                        sbLog.AppendLine($"[Board {board + 1}] added AprilTag 41h12 #{tagParams.TagId} size={tagParams.Size}mm target={spec.TagTarget}");
                     }
                     else if (spec.QRWhiteBg)
                     {

@@ -54,9 +54,9 @@ namespace WindowsFormsApp1
         public double? RectSpeed { get; private set; }
         public double? RectFreq { get; private set; }
         public double? RectPulseWidth { get; private set; }
-        // AprilTag（tag36h11，底部矩形 + 反相 tag 雙圖層）。矩形層雷射參數共用 --rect-*
+        // AprilTag（tagStandard41h12，底部矩形 + 反相 tag 雙圖層）。矩形層雷射參數共用 --rect-*
         public int? AprilTagId { get; private set; }        // null = 非 AprilTag
-        public double TagSize { get; private set; }         // 黑框外緣邊長 mm
+        public double TagSize { get; private set; }         // 白色偵測框外緣邊長 mm
         public string TagTarget { get; private set; }       // rect / tag / all
         public double TagRectExtra { get; private set; }    // 矩形額外加大量 mm
         // AprilTag 層雷射參數：未帶 --tag-power/--tag-speed 時 fallback 到通用 --power/--speed
@@ -613,13 +613,13 @@ namespace WindowsFormsApp1
   --rect-speed <mm/s>                   白底 QR 之白底矩形速度（預設 800）
   --rect-freq <kHz>                     白底 QR 之白底矩形頻率（預設 80）
   --rect-pw <val>, --rect-pulse-width   白底 QR 之白底矩形脈波寬度（預設 250）
-  --apriltag <id>                       AprilTag 編號（tag36h11，0-586）；底部矩形 + 反相 tag 雙圖層，
+  --apriltag <id>                       AprilTag 編號（tagStandard41h12，0-2114）；底部矩形 + 反相 tag 雙圖層，
                                           tag 中心固定於 (0,0)
-  --tag-size <mm>                       AprilTag 大小 = 黑框外緣邊長 (預設: 20)；每格 = 大小/8，
-                                          含白邊總寬 = 大小 × 1.25
+  --tag-size <mm>                       AprilTag 大小 = 白色偵測框外緣邊長 (預設: 20)；每格 = 大小/5，
+                                          tag 總寬 = 大小 × 1.8
   --tag-target <rect|tag|all>           打標目標：rect=只打矩形、tag=只打 AprilTag、all=矩形+AprilTag
                                           （先打矩形）(預設: all)
-  --tag-rect-extra <mm>                 矩形額外加大量（矩形邊長 = 含白邊總寬 + 此值，預設 0）
+  --tag-rect-extra <mm>                 矩形額外加大量（矩形邊長 = tag 總寬 + 此值，預設 0）
   --tag-power <0-100>                   AprilTag 層功率 %（不帶時 fallback 到 --power，再無則預設 90）
   --tag-speed <mm/s>                    AprilTag 層速度（不帶時 fallback 到 --speed，再無則預設 1200）
   --tag-freq <kHz>                      AprilTag 層頻率（預設 80）
@@ -760,9 +760,9 @@ namespace WindowsFormsApp1
             errorMessage = null;
             if (!AprilTagId.HasValue) return true;
 
-            if (AprilTagId.Value < 0 || AprilTagId.Value >= AprilTag36h11.Count)
+            if (AprilTagId.Value < 0 || AprilTagId.Value >= AprilTagFamily.Count)
             {
-                errorMessage = $"--apriltag 編號必須在 0-{AprilTag36h11.Count - 1} 之間";
+                errorMessage = $"--apriltag 編號必須在 0-{AprilTagFamily.Count - 1} 之間";
                 return false;
             }
             if (TagSize <= 0)

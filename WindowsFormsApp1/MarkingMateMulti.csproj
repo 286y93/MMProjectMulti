@@ -123,7 +123,7 @@
     <Compile Include="Form1.AprilTag.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
-    <Compile Include="AprilTag36h11.cs" />
+    <Compile Include="AprilTagFamily.cs" />
     <Compile Include="DXFLine.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

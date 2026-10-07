@@ -5036,7 +5036,7 @@ namespace WindowsFormsApp1
             this.lblATFamily.Location = new System.Drawing.Point(15, 24);
             this.lblATFamily.Name = "lblATFamily";
             this.lblATFamily.TabIndex = 4;
-            this.lblATFamily.Text = "Tag Family：tag36h11";
+            this.lblATFamily.Text = "Tag Family：tagStandard41h12";
             // 
             // lblATId
             // 
@@ -5044,13 +5044,13 @@ namespace WindowsFormsApp1
             this.lblATId.Location = new System.Drawing.Point(15, 52);
             this.lblATId.Name = "lblATId";
             this.lblATId.TabIndex = 5;
-            this.lblATId.Text = "Tag 編號 (0-586)：";
+            this.lblATId.Text = "Tag 編號 (0-2114)：";
             // 
             // numATId
             // 
             this.numATId.Location = new System.Drawing.Point(150, 49);
             this.numATId.Maximum = new decimal(new int[] {
-            586,
+            2114,
             0,
             0,
             0});
@@ -5100,7 +5100,7 @@ namespace WindowsFormsApp1
             this.lblATInfo.Location = new System.Drawing.Point(15, 142);
             this.lblATInfo.Name = "lblATInfo";
             this.lblATInfo.TabIndex = 11;
-            this.lblATInfo.Text = "每格 2.500 mm，含白邊 25.00 mm，矩形 25.00 mm";
+            this.lblATInfo.Text = "每格 4.000 mm，tag 總寬 36.00 mm，矩形 36.00 mm";
             // 
             // groupBoxATTag
             // 
@@ -5318,7 +5318,7 @@ namespace WindowsFormsApp1
             this.lblATNote.Name = "lblATNote";
             this.lblATNote.Size = new System.Drawing.Size(330, 80);
             this.lblATNote.TabIndex = 35;
-            this.lblATNote.Text = "上圖為成品外觀。\r\n大小 = 黑框外緣邊長，tag 中心位於 (0,0)。\r\n矩形層蓋住整個 tag（含外圈白邊）+ 加大量，先打。\r\nAprilTag 層為反相：打白格與外圈白邊，\r\n黑框與黑色資料格保留矩形底色。";
+            this.lblATNote.Text = "上圖為成品外觀（9×9 格）。\r\n大小 = 白色偵測框外緣邊長，tag 中心位於 (0,0)。\r\n矩形層蓋住整個 tag + 加大量，先打。\r\nAprilTag 層為反相：只打白格，\r\n黑格保留矩形底色。";
             // 
             // btnATPreview
             // 

@@ -64,15 +64,15 @@ SDK 不允許多個程序同時初始化 OCX。要讓多塊板並行動作，請
 | QR 資料層 | `--qr-power` `--qr-speed` `--qr-freq` `--qr-pw` | 90 / 1200 / 80 / 30（power、speed 未帶時沿用 `--power`、`--speed`） |
 | 白底矩形層 | `--rect-power` `--rect-speed` `--rect-freq` `--rect-pw` | 100 / 800 / 80 / 250 |
 
-### AprilTag（tag36h11）
-底部矩形 + 反相 AprilTag 雙圖層，tag 中心固定於 (0,0)。矩形蓋住整個 tag（含外圈白邊）先打；AprilTag 層為反相，打白格與外圈白邊，黑框與黑色資料格保留矩形底色。GUI 對應「8. AprilTag」頁籤。
+### AprilTag（tagStandard41h12）
+底部矩形 + 反相 AprilTag 雙圖層，tag 中心固定於 (0,0)。tag 為 9×9 格，中間是白色偵測框、外面一圈黑框，最外圈也是資料格。矩形蓋住整個 tag 先打；AprilTag 層為反相，只打白格，黑格保留矩形底色。GUI 對應「8. AprilTag」頁籤。
 
 | 參數 | 說明 | 預設 |
 |------|------|------|
-| `--apriltag <id>` | Tag 編號（0-586） | |
-| `--tag-size <mm>` | 黑框外緣邊長；每格 = 大小/8，含白邊總寬 = 大小 × 1.25 | `20` |
+| `--apriltag <id>` | Tag 編號（0-2114） | |
+| `--tag-size <mm>` | 白色偵測框外緣邊長（AprilTag 慣例）；每格 = 大小/5，tag 總寬 = 大小 × 1.8 | `20` |
 | `--tag-target <rect\|tag\|all>` | `rect` 只打矩形、`tag` 只打 AprilTag、`all` 矩形 + AprilTag | `all` |
-| `--tag-rect-extra <mm>` | 矩形額外加大量（矩形邊長 = 含白邊總寬 + 此值） | `0` |
+| `--tag-rect-extra <mm>` | 矩形額外加大量（矩形邊長 = tag 總寬 + 此值） | `0` |
 | `--tag-power` `--tag-speed` `--tag-freq` `--tag-pw` | AprilTag 層雷射參數（power、speed 未帶時沿用 `--power`、`--speed`） | 90 / 1200 / 80 / 30 |
 | `--rect-power` `--rect-speed` `--rect-freq` `--rect-pw` | 矩形層雷射參數（與白底 QR 共用） | 100 / 800 / 80 / 250 |
 
