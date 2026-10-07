@@ -1,4 +1,4 @@
-﻿namespace WindowsFormsApp1
+namespace WindowsFormsApp1
 {
     partial class Form1
     {
@@ -448,6 +448,30 @@
             this.btnATMark = new System.Windows.Forms.Button();
             this.btnATStop = new System.Windows.Forms.Button();
             this.txtATStatus = new System.Windows.Forms.TextBox();
+            this.lblATRectExtra = new System.Windows.Forms.Label();
+            this.txtATRectExtra = new System.Windows.Forms.TextBox();
+            this.groupBoxATTag = new System.Windows.Forms.GroupBox();
+            this.lblATTagPower = new System.Windows.Forms.Label();
+            this.txtATTagPower = new System.Windows.Forms.TextBox();
+            this.lblATTagSpeed = new System.Windows.Forms.Label();
+            this.txtATTagSpeed = new System.Windows.Forms.TextBox();
+            this.lblATTagFreq = new System.Windows.Forms.Label();
+            this.txtATTagFreq = new System.Windows.Forms.TextBox();
+            this.lblATTagPW = new System.Windows.Forms.Label();
+            this.txtATTagPW = new System.Windows.Forms.TextBox();
+            this.groupBoxATRect = new System.Windows.Forms.GroupBox();
+            this.lblATRectPower = new System.Windows.Forms.Label();
+            this.txtATRectPower = new System.Windows.Forms.TextBox();
+            this.lblATRectSpeed = new System.Windows.Forms.Label();
+            this.txtATRectSpeed = new System.Windows.Forms.TextBox();
+            this.lblATRectFreq = new System.Windows.Forms.Label();
+            this.txtATRectFreq = new System.Windows.Forms.TextBox();
+            this.lblATRectPW = new System.Windows.Forms.Label();
+            this.txtATRectPW = new System.Windows.Forms.TextBox();
+            this.lblATTarget = new System.Windows.Forms.Label();
+            this.rdoATMarkRect = new System.Windows.Forms.RadioButton();
+            this.rdoATMarkTag = new System.Windows.Forms.RadioButton();
+            this.rdoATMarkAll = new System.Windows.Forms.RadioButton();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
@@ -482,6 +506,8 @@
             this.tabPageCmd.SuspendLayout();
             this.tabPageAprilTag.SuspendLayout();
             this.groupBoxAprilTag.SuspendLayout();
+            this.groupBoxATTag.SuspendLayout();
+            this.groupBoxATRect.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numATId)).BeginInit();
             this.SuspendLayout();
             // 
@@ -4941,11 +4967,18 @@
             this.txtParallelResult.TabIndex = 19;
             //
             // tabPageAprilTag
-            //
+            // 
             this.tabPageAprilTag.Controls.Add(this.lblBoardAT);
             this.tabPageAprilTag.Controls.Add(this.comboBoardAT);
             this.tabPageAprilTag.Controls.Add(this.groupBoxAprilTag);
+            this.tabPageAprilTag.Controls.Add(this.groupBoxATTag);
+            this.tabPageAprilTag.Controls.Add(this.groupBoxATRect);
+            this.tabPageAprilTag.Controls.Add(this.lblATTarget);
+            this.tabPageAprilTag.Controls.Add(this.rdoATMarkRect);
+            this.tabPageAprilTag.Controls.Add(this.rdoATMarkTag);
+            this.tabPageAprilTag.Controls.Add(this.rdoATMarkAll);
             this.tabPageAprilTag.Controls.Add(this.pnlATPreview);
+            this.tabPageAprilTag.Controls.Add(this.lblATNote);
             this.tabPageAprilTag.Controls.Add(this.btnATPreview);
             this.tabPageAprilTag.Controls.Add(this.btnATMark);
             this.tabPageAprilTag.Controls.Add(this.btnATStop);
@@ -4957,18 +4990,17 @@
             this.tabPageAprilTag.TabIndex = 10;
             this.tabPageAprilTag.Text = "8. AprilTag";
             this.tabPageAprilTag.UseVisualStyleBackColor = true;
-            //
+            // 
             // lblBoardAT
-            //
+            // 
             this.lblBoardAT.AutoSize = true;
             this.lblBoardAT.Location = new System.Drawing.Point(15, 14);
             this.lblBoardAT.Name = "lblBoardAT";
-            this.lblBoardAT.Size = new System.Drawing.Size(53, 12);
-            this.lblBoardAT.TabIndex = 0;
+            this.lblBoardAT.TabIndex = 1;
             this.lblBoardAT.Text = "選擇板：";
-            //
+            // 
             // comboBoardAT
-            //
+            // 
             this.comboBoardAT.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.comboBoardAT.FormattingEnabled = true;
             this.comboBoardAT.Items.AddRange(new object[] {
@@ -4979,45 +5011,44 @@
             this.comboBoardAT.Location = new System.Drawing.Point(72, 11);
             this.comboBoardAT.Name = "comboBoardAT";
             this.comboBoardAT.Size = new System.Drawing.Size(118, 20);
-            this.comboBoardAT.TabIndex = 1;
-            //
+            this.comboBoardAT.TabIndex = 2;
+            // 
             // groupBoxAprilTag
-            //
+            // 
             this.groupBoxAprilTag.Controls.Add(this.lblATFamily);
             this.groupBoxAprilTag.Controls.Add(this.lblATId);
             this.groupBoxAprilTag.Controls.Add(this.numATId);
             this.groupBoxAprilTag.Controls.Add(this.lblATSize);
             this.groupBoxAprilTag.Controls.Add(this.txtATSize);
+            this.groupBoxAprilTag.Controls.Add(this.lblATRectExtra);
+            this.groupBoxAprilTag.Controls.Add(this.txtATRectExtra);
             this.groupBoxAprilTag.Controls.Add(this.lblATInfo);
-            this.groupBoxAprilTag.Controls.Add(this.lblATNote);
             this.groupBoxAprilTag.Location = new System.Drawing.Point(15, 42);
             this.groupBoxAprilTag.Name = "groupBoxAprilTag";
-            this.groupBoxAprilTag.Size = new System.Drawing.Size(360, 200);
-            this.groupBoxAprilTag.TabIndex = 2;
+            this.groupBoxAprilTag.Size = new System.Drawing.Size(360, 170);
+            this.groupBoxAprilTag.TabIndex = 3;
             this.groupBoxAprilTag.TabStop = false;
             this.groupBoxAprilTag.Text = "AprilTag 參數";
-            //
+            // 
             // lblATFamily
-            //
+            // 
             this.lblATFamily.AutoSize = true;
-            this.lblATFamily.Location = new System.Drawing.Point(15, 26);
+            this.lblATFamily.Location = new System.Drawing.Point(15, 24);
             this.lblATFamily.Name = "lblATFamily";
-            this.lblATFamily.Size = new System.Drawing.Size(120, 12);
-            this.lblATFamily.TabIndex = 0;
+            this.lblATFamily.TabIndex = 4;
             this.lblATFamily.Text = "Tag Family：tag36h11";
-            //
+            // 
             // lblATId
-            //
+            // 
             this.lblATId.AutoSize = true;
-            this.lblATId.Location = new System.Drawing.Point(15, 56);
+            this.lblATId.Location = new System.Drawing.Point(15, 52);
             this.lblATId.Name = "lblATId";
-            this.lblATId.Size = new System.Drawing.Size(113, 12);
-            this.lblATId.TabIndex = 1;
+            this.lblATId.TabIndex = 5;
             this.lblATId.Text = "Tag 編號 (0-586)：";
-            //
+            // 
             // numATId
-            //
-            this.numATId.Location = new System.Drawing.Point(150, 53);
+            // 
+            this.numATId.Location = new System.Drawing.Point(150, 49);
             this.numATId.Maximum = new decimal(new int[] {
             586,
             0,
@@ -5025,93 +5056,307 @@
             0});
             this.numATId.Name = "numATId";
             this.numATId.Size = new System.Drawing.Size(100, 22);
-            this.numATId.TabIndex = 2;
+            this.numATId.TabIndex = 6;
             this.numATId.ValueChanged += new System.EventHandler(this.AprilTagInputs_Changed);
-            //
+            // 
             // lblATSize
-            //
+            // 
             this.lblATSize.AutoSize = true;
-            this.lblATSize.Location = new System.Drawing.Point(15, 88);
+            this.lblATSize.Location = new System.Drawing.Point(15, 82);
             this.lblATSize.Name = "lblATSize";
-            this.lblATSize.Size = new System.Drawing.Size(77, 12);
-            this.lblATSize.TabIndex = 3;
+            this.lblATSize.TabIndex = 7;
             this.lblATSize.Text = "大小 (mm)：";
-            //
+            // 
             // txtATSize
-            //
-            this.txtATSize.Location = new System.Drawing.Point(150, 85);
+            // 
+            this.txtATSize.Location = new System.Drawing.Point(150, 79);
             this.txtATSize.Name = "txtATSize";
             this.txtATSize.Size = new System.Drawing.Size(100, 22);
-            this.txtATSize.TabIndex = 4;
+            this.txtATSize.TabIndex = 8;
             this.txtATSize.Text = "20";
             this.txtATSize.TextChanged += new System.EventHandler(this.AprilTagInputs_Changed);
-            //
+            // 
+            // lblATRectExtra
+            // 
+            this.lblATRectExtra.AutoSize = true;
+            this.lblATRectExtra.Location = new System.Drawing.Point(15, 112);
+            this.lblATRectExtra.Name = "lblATRectExtra";
+            this.lblATRectExtra.TabIndex = 9;
+            this.lblATRectExtra.Text = "矩形加大量 (mm)：";
+            // 
+            // txtATRectExtra
+            // 
+            this.txtATRectExtra.Location = new System.Drawing.Point(150, 109);
+            this.txtATRectExtra.Name = "txtATRectExtra";
+            this.txtATRectExtra.Size = new System.Drawing.Size(100, 22);
+            this.txtATRectExtra.TabIndex = 10;
+            this.txtATRectExtra.Text = "0";
+            this.txtATRectExtra.TextChanged += new System.EventHandler(this.AprilTagInputs_Changed);
+            // 
             // lblATInfo
-            //
+            // 
             this.lblATInfo.AutoSize = true;
             this.lblATInfo.ForeColor = System.Drawing.Color.DimGray;
-            this.lblATInfo.Location = new System.Drawing.Point(15, 116);
+            this.lblATInfo.Location = new System.Drawing.Point(15, 142);
             this.lblATInfo.Name = "lblATInfo";
-            this.lblATInfo.Size = new System.Drawing.Size(200, 12);
-            this.lblATInfo.TabIndex = 5;
-            this.lblATInfo.Text = "每格 2.500 mm，含白邊總寬 25.00 mm";
-            //
-            // lblATNote
-            //
-            this.lblATNote.ForeColor = System.Drawing.Color.DimGray;
-            this.lblATNote.Location = new System.Drawing.Point(15, 140);
-            this.lblATNote.Name = "lblATNote";
-            this.lblATNote.Size = new System.Drawing.Size(330, 52);
-            this.lblATNote.TabIndex = 6;
-            this.lblATNote.Text = "大小 = 黑框外緣邊長，tag 中心位於 (0,0)。\r\n外圍 1 格白邊不打標，需保持空白。\r\n雷射參數沿用「5. 雷射功率」頁設定。";
-            //
+            this.lblATInfo.TabIndex = 11;
+            this.lblATInfo.Text = "每格 2.500 mm，含白邊 25.00 mm，矩形 25.00 mm";
+            // 
+            // groupBoxATTag
+            // 
+            this.groupBoxATTag.Controls.Add(this.lblATTagPower);
+            this.groupBoxATTag.Controls.Add(this.txtATTagPower);
+            this.groupBoxATTag.Controls.Add(this.lblATTagSpeed);
+            this.groupBoxATTag.Controls.Add(this.txtATTagSpeed);
+            this.groupBoxATTag.Controls.Add(this.lblATTagFreq);
+            this.groupBoxATTag.Controls.Add(this.txtATTagFreq);
+            this.groupBoxATTag.Controls.Add(this.lblATTagPW);
+            this.groupBoxATTag.Controls.Add(this.txtATTagPW);
+            this.groupBoxATTag.Location = new System.Drawing.Point(15, 220);
+            this.groupBoxATTag.Name = "groupBoxATTag";
+            this.groupBoxATTag.Size = new System.Drawing.Size(175, 140);
+            this.groupBoxATTag.TabIndex = 12;
+            this.groupBoxATTag.TabStop = false;
+            this.groupBoxATTag.Text = "AprilTag 層（反相）";
+            // 
+            // lblATTagPower
+            // 
+            this.lblATTagPower.AutoSize = true;
+            this.lblATTagPower.Location = new System.Drawing.Point(12, 27);
+            this.lblATTagPower.Name = "lblATTagPower";
+            this.lblATTagPower.TabIndex = 13;
+            this.lblATTagPower.Text = "功率 (%)：";
+            // 
+            // txtATTagPower
+            // 
+            this.txtATTagPower.Location = new System.Drawing.Point(85, 24);
+            this.txtATTagPower.Name = "txtATTagPower";
+            this.txtATTagPower.Size = new System.Drawing.Size(75, 22);
+            this.txtATTagPower.TabIndex = 14;
+            this.txtATTagPower.Text = "90";
+            // 
+            // lblATTagSpeed
+            // 
+            this.lblATTagSpeed.AutoSize = true;
+            this.lblATTagSpeed.Location = new System.Drawing.Point(12, 55);
+            this.lblATTagSpeed.Name = "lblATTagSpeed";
+            this.lblATTagSpeed.TabIndex = 15;
+            this.lblATTagSpeed.Text = "速度：";
+            // 
+            // txtATTagSpeed
+            // 
+            this.txtATTagSpeed.Location = new System.Drawing.Point(85, 52);
+            this.txtATTagSpeed.Name = "txtATTagSpeed";
+            this.txtATTagSpeed.Size = new System.Drawing.Size(75, 22);
+            this.txtATTagSpeed.TabIndex = 16;
+            this.txtATTagSpeed.Text = "1200";
+            // 
+            // lblATTagFreq
+            // 
+            this.lblATTagFreq.AutoSize = true;
+            this.lblATTagFreq.Location = new System.Drawing.Point(12, 83);
+            this.lblATTagFreq.Name = "lblATTagFreq";
+            this.lblATTagFreq.TabIndex = 17;
+            this.lblATTagFreq.Text = "頻率 (kHz)：";
+            // 
+            // txtATTagFreq
+            // 
+            this.txtATTagFreq.Location = new System.Drawing.Point(85, 80);
+            this.txtATTagFreq.Name = "txtATTagFreq";
+            this.txtATTagFreq.Size = new System.Drawing.Size(75, 22);
+            this.txtATTagFreq.TabIndex = 18;
+            this.txtATTagFreq.Text = "80";
+            // 
+            // lblATTagPW
+            // 
+            this.lblATTagPW.AutoSize = true;
+            this.lblATTagPW.Location = new System.Drawing.Point(12, 111);
+            this.lblATTagPW.Name = "lblATTagPW";
+            this.lblATTagPW.TabIndex = 19;
+            this.lblATTagPW.Text = "脈寬：";
+            // 
+            // txtATTagPW
+            // 
+            this.txtATTagPW.Location = new System.Drawing.Point(85, 108);
+            this.txtATTagPW.Name = "txtATTagPW";
+            this.txtATTagPW.Size = new System.Drawing.Size(75, 22);
+            this.txtATTagPW.TabIndex = 20;
+            this.txtATTagPW.Text = "30";
+            // 
+            // groupBoxATRect
+            // 
+            this.groupBoxATRect.Controls.Add(this.lblATRectPower);
+            this.groupBoxATRect.Controls.Add(this.txtATRectPower);
+            this.groupBoxATRect.Controls.Add(this.lblATRectSpeed);
+            this.groupBoxATRect.Controls.Add(this.txtATRectSpeed);
+            this.groupBoxATRect.Controls.Add(this.lblATRectFreq);
+            this.groupBoxATRect.Controls.Add(this.txtATRectFreq);
+            this.groupBoxATRect.Controls.Add(this.lblATRectPW);
+            this.groupBoxATRect.Controls.Add(this.txtATRectPW);
+            this.groupBoxATRect.Location = new System.Drawing.Point(200, 220);
+            this.groupBoxATRect.Name = "groupBoxATRect";
+            this.groupBoxATRect.Size = new System.Drawing.Size(175, 140);
+            this.groupBoxATRect.TabIndex = 21;
+            this.groupBoxATRect.TabStop = false;
+            this.groupBoxATRect.Text = "矩形層";
+            // 
+            // lblATRectPower
+            // 
+            this.lblATRectPower.AutoSize = true;
+            this.lblATRectPower.Location = new System.Drawing.Point(12, 27);
+            this.lblATRectPower.Name = "lblATRectPower";
+            this.lblATRectPower.TabIndex = 22;
+            this.lblATRectPower.Text = "功率 (%)：";
+            // 
+            // txtATRectPower
+            // 
+            this.txtATRectPower.Location = new System.Drawing.Point(85, 24);
+            this.txtATRectPower.Name = "txtATRectPower";
+            this.txtATRectPower.Size = new System.Drawing.Size(75, 22);
+            this.txtATRectPower.TabIndex = 23;
+            this.txtATRectPower.Text = "100";
+            // 
+            // lblATRectSpeed
+            // 
+            this.lblATRectSpeed.AutoSize = true;
+            this.lblATRectSpeed.Location = new System.Drawing.Point(12, 55);
+            this.lblATRectSpeed.Name = "lblATRectSpeed";
+            this.lblATRectSpeed.TabIndex = 24;
+            this.lblATRectSpeed.Text = "速度：";
+            // 
+            // txtATRectSpeed
+            // 
+            this.txtATRectSpeed.Location = new System.Drawing.Point(85, 52);
+            this.txtATRectSpeed.Name = "txtATRectSpeed";
+            this.txtATRectSpeed.Size = new System.Drawing.Size(75, 22);
+            this.txtATRectSpeed.TabIndex = 25;
+            this.txtATRectSpeed.Text = "800";
+            // 
+            // lblATRectFreq
+            // 
+            this.lblATRectFreq.AutoSize = true;
+            this.lblATRectFreq.Location = new System.Drawing.Point(12, 83);
+            this.lblATRectFreq.Name = "lblATRectFreq";
+            this.lblATRectFreq.TabIndex = 26;
+            this.lblATRectFreq.Text = "頻率 (kHz)：";
+            // 
+            // txtATRectFreq
+            // 
+            this.txtATRectFreq.Location = new System.Drawing.Point(85, 80);
+            this.txtATRectFreq.Name = "txtATRectFreq";
+            this.txtATRectFreq.Size = new System.Drawing.Size(75, 22);
+            this.txtATRectFreq.TabIndex = 27;
+            this.txtATRectFreq.Text = "80";
+            // 
+            // lblATRectPW
+            // 
+            this.lblATRectPW.AutoSize = true;
+            this.lblATRectPW.Location = new System.Drawing.Point(12, 111);
+            this.lblATRectPW.Name = "lblATRectPW";
+            this.lblATRectPW.TabIndex = 28;
+            this.lblATRectPW.Text = "脈寬：";
+            // 
+            // txtATRectPW
+            // 
+            this.txtATRectPW.Location = new System.Drawing.Point(85, 108);
+            this.txtATRectPW.Name = "txtATRectPW";
+            this.txtATRectPW.Size = new System.Drawing.Size(75, 22);
+            this.txtATRectPW.TabIndex = 29;
+            this.txtATRectPW.Text = "250";
+            // 
+            // lblATTarget
+            // 
+            this.lblATTarget.AutoSize = true;
+            this.lblATTarget.Location = new System.Drawing.Point(15, 374);
+            this.lblATTarget.Name = "lblATTarget";
+            this.lblATTarget.TabIndex = 30;
+            this.lblATTarget.Text = "打標目標：";
+            // 
+            // rdoATMarkRect
+            // 
+            this.rdoATMarkRect.AutoSize = true;
+            this.rdoATMarkRect.Location = new System.Drawing.Point(85, 372);
+            this.rdoATMarkRect.Name = "rdoATMarkRect";
+            this.rdoATMarkRect.TabIndex = 31;
+            this.rdoATMarkRect.Text = "1. 只打矩形";
+            this.rdoATMarkRect.UseVisualStyleBackColor = true;
+            // 
+            // rdoATMarkTag
+            // 
+            this.rdoATMarkTag.AutoSize = true;
+            this.rdoATMarkTag.Location = new System.Drawing.Point(185, 372);
+            this.rdoATMarkTag.Name = "rdoATMarkTag";
+            this.rdoATMarkTag.TabIndex = 32;
+            this.rdoATMarkTag.Text = "2. 只打 AprilTag";
+            this.rdoATMarkTag.UseVisualStyleBackColor = true;
+            // 
+            // rdoATMarkAll
+            // 
+            this.rdoATMarkAll.AutoSize = true;
+            this.rdoATMarkAll.Checked = true;
+            this.rdoATMarkAll.TabStop = true;
+            this.rdoATMarkAll.Location = new System.Drawing.Point(310, 372);
+            this.rdoATMarkAll.Name = "rdoATMarkAll";
+            this.rdoATMarkAll.TabIndex = 33;
+            this.rdoATMarkAll.Text = "3. 矩形 + AprilTag";
+            this.rdoATMarkAll.UseVisualStyleBackColor = true;
+            // 
             // pnlATPreview
-            //
+            // 
             this.pnlATPreview.BackColor = System.Drawing.Color.White;
             this.pnlATPreview.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.pnlATPreview.Location = new System.Drawing.Point(395, 42);
             this.pnlATPreview.Name = "pnlATPreview";
             this.pnlATPreview.Size = new System.Drawing.Size(200, 200);
-            this.pnlATPreview.TabIndex = 3;
+            this.pnlATPreview.TabIndex = 34;
             this.pnlATPreview.Paint += new System.Windows.Forms.PaintEventHandler(this.pnlATPreview_Paint);
-            //
+            // 
+            // lblATNote
+            // 
+            this.lblATNote.ForeColor = System.Drawing.Color.DimGray;
+            this.lblATNote.Location = new System.Drawing.Point(395, 250);
+            this.lblATNote.Name = "lblATNote";
+            this.lblATNote.Size = new System.Drawing.Size(330, 80);
+            this.lblATNote.TabIndex = 35;
+            this.lblATNote.Text = "上圖為成品外觀。\r\n大小 = 黑框外緣邊長，tag 中心位於 (0,0)。\r\n矩形層蓋住整個 tag（含外圈白邊）+ 加大量，先打。\r\nAprilTag 層為反相：打白格與外圈白邊，\r\n黑框與黑色資料格保留矩形底色。";
+            // 
             // btnATPreview
-            //
-            this.btnATPreview.Location = new System.Drawing.Point(15, 255);
+            // 
+            this.btnATPreview.Location = new System.Drawing.Point(15, 402);
             this.btnATPreview.Name = "btnATPreview";
             this.btnATPreview.Size = new System.Drawing.Size(110, 30);
-            this.btnATPreview.TabIndex = 4;
+            this.btnATPreview.TabIndex = 36;
             this.btnATPreview.Text = "紅光預覽";
             this.btnATPreview.UseVisualStyleBackColor = true;
             this.btnATPreview.Click += new System.EventHandler(this.btnATPreview_Click);
-            //
+            // 
             // btnATMark
-            //
-            this.btnATMark.Location = new System.Drawing.Point(135, 255);
+            // 
+            this.btnATMark.Location = new System.Drawing.Point(135, 402);
             this.btnATMark.Name = "btnATMark";
             this.btnATMark.Size = new System.Drawing.Size(110, 30);
-            this.btnATMark.TabIndex = 5;
+            this.btnATMark.TabIndex = 37;
             this.btnATMark.Text = "雷射打標";
             this.btnATMark.UseVisualStyleBackColor = true;
             this.btnATMark.Click += new System.EventHandler(this.btnATMark_Click);
-            //
+            // 
             // btnATStop
-            //
-            this.btnATStop.Location = new System.Drawing.Point(255, 255);
+            // 
+            this.btnATStop.Location = new System.Drawing.Point(255, 402);
             this.btnATStop.Name = "btnATStop";
             this.btnATStop.Size = new System.Drawing.Size(110, 30);
-            this.btnATStop.TabIndex = 6;
+            this.btnATStop.TabIndex = 38;
             this.btnATStop.Text = "停止";
             this.btnATStop.UseVisualStyleBackColor = true;
             this.btnATStop.Click += new System.EventHandler(this.btnATStop_Click);
-            //
+            // 
             // txtATStatus
-            //
-            this.txtATStatus.Location = new System.Drawing.Point(15, 298);
+            // 
+            this.txtATStatus.Location = new System.Drawing.Point(15, 444);
             this.txtATStatus.Name = "txtATStatus";
             this.txtATStatus.ReadOnly = true;
             this.txtATStatus.Size = new System.Drawing.Size(580, 22);
-            this.txtATStatus.TabIndex = 7;
+            this.txtATStatus.TabIndex = 39;
             //
             // Form1
             //
@@ -5186,6 +5431,10 @@
             ((System.ComponentModel.ISupportInitialize)(this.numATId)).EndInit();
             this.groupBoxAprilTag.ResumeLayout(false);
             this.groupBoxAprilTag.PerformLayout();
+            this.groupBoxATTag.ResumeLayout(false);
+            this.groupBoxATTag.PerformLayout();
+            this.groupBoxATRect.ResumeLayout(false);
+            this.groupBoxATRect.PerformLayout();
             this.tabPageAprilTag.ResumeLayout(false);
             this.tabPageAprilTag.PerformLayout();
             this.ResumeLayout(false);
@@ -5507,6 +5756,30 @@
         private System.Windows.Forms.Button btnATMark;
         private System.Windows.Forms.Button btnATStop;
         private System.Windows.Forms.TextBox txtATStatus;
+        private System.Windows.Forms.Label lblATRectExtra;
+        private System.Windows.Forms.TextBox txtATRectExtra;
+        private System.Windows.Forms.GroupBox groupBoxATTag;
+        private System.Windows.Forms.Label lblATTagPower;
+        private System.Windows.Forms.TextBox txtATTagPower;
+        private System.Windows.Forms.Label lblATTagSpeed;
+        private System.Windows.Forms.TextBox txtATTagSpeed;
+        private System.Windows.Forms.Label lblATTagFreq;
+        private System.Windows.Forms.TextBox txtATTagFreq;
+        private System.Windows.Forms.Label lblATTagPW;
+        private System.Windows.Forms.TextBox txtATTagPW;
+        private System.Windows.Forms.GroupBox groupBoxATRect;
+        private System.Windows.Forms.Label lblATRectPower;
+        private System.Windows.Forms.TextBox txtATRectPower;
+        private System.Windows.Forms.Label lblATRectSpeed;
+        private System.Windows.Forms.TextBox txtATRectSpeed;
+        private System.Windows.Forms.Label lblATRectFreq;
+        private System.Windows.Forms.TextBox txtATRectFreq;
+        private System.Windows.Forms.Label lblATRectPW;
+        private System.Windows.Forms.TextBox txtATRectPW;
+        private System.Windows.Forms.Label lblATTarget;
+        private System.Windows.Forms.RadioButton rdoATMarkRect;
+        private System.Windows.Forms.RadioButton rdoATMarkTag;
+        private System.Windows.Forms.RadioButton rdoATMarkAll;
         private System.Windows.Forms.Label lblCmdHeader;
         private System.Windows.Forms.Label lblBoardCmd;
         private System.Windows.Forms.ComboBox comboBoardCmd;

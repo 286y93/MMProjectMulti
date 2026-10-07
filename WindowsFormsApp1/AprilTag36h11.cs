@@ -153,11 +153,12 @@ namespace WindowsFormsApp1
         }
 
         /// <summary>
-        /// 把黑格貪婪合併成矩形（先往右、再往下延伸），減少物件數與拼接縫。
+        /// 把 cells 為 true 的格子貪婪合併成矩形（先往右、再往下延伸），減少物件數與拼接縫。
         /// 回傳 (row, col, rows, cols)，單位為格。
         /// </summary>
-        public static List<(int Row, int Col, int Rows, int Cols)> MergeBlackRects(bool[,] black)
+        public static List<(int Row, int Col, int Rows, int Cols)> MergeRects(bool[,] cells)
         {
+            bool[,] black = cells;
             int n = black.GetLength(0);
             var used = new bool[n, n];
             var rects = new List<(int, int, int, int)>();

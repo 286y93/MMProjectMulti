@@ -38,6 +38,30 @@ namespace WindowsFormsApp1
             public double RectExtra = 0;     // 矩形額外加大量 (mm)
         }
 
+        // AprilTag（底部矩形 + 反相 tag36h11 雙圖層）可調參數。
+        // 其餘製程常數（填滿間距 / 次數等）維持寫死於 BuildAprilTagLayers。
+        private class AprilTagParams
+        {
+            public int TagId = 0;
+            public double Size = 20.0;          // 黑框外緣邊長 (mm)，每格 = Size / 8
+            public bool MarkRect = true;        // 打底部矩形
+            public bool MarkTag = true;         // 打 AprilTag（反相：打白格 + 外圈白邊）
+            public double RectExtra = 0;        // 矩形額外加大量 (mm)，矩形邊長 = 含白邊總寬 + RectExtra
+            public double TagSpeed = 1200;      // AprilTag 層速度
+            public double TagPower = 90;        // AprilTag 層功率
+            public double TagFreq = 80;         // AprilTag 層頻率 (kHz)
+            public double TagPulseWidth = 30;   // AprilTag 層脈波寬度
+            public double RectSpeed = 800;      // 矩形層速度
+            public double RectPower = 100;      // 矩形層功率
+            public double RectFreq = 80;        // 矩形層頻率 (kHz)
+            public double RectPulseWidth = 250; // 矩形層脈波寬度
+
+            /// <summary>含外圈白邊的 tag 總寬 (mm) = Size × 10/8。</summary>
+            public double TagTotalWidth => Size * AprilTag36h11.TotalWidth / AprilTag36h11.WidthAtBorder;
+            /// <summary>底部矩形邊長 (mm)。</summary>
+            public double RectWidth => TagTotalWidth + RectExtra;
+        }
+
         // 命令提示頁籤：單筆指令規格（隨機產生 / 解析既有命令列共用）
         private class CmdPreviewSpec
         {

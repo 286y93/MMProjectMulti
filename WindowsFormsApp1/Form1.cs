@@ -335,9 +335,28 @@ namespace WindowsFormsApp1
 
                     if (spec.Lines == null || spec.Lines.Count == 0)
                     {
-                        if (string.IsNullOrEmpty(spec.QRContent))
+                        if (string.IsNullOrEmpty(spec.QRContent) && !spec.AprilTagId.HasValue)
                         {
-                            tcs.SetResult(new DaemonSpecResult { ExitCode = 4, Logs = "no content (need --line / --lines / --qrcode)" });
+                            tcs.SetResult(new DaemonSpecResult { ExitCode = 4, Logs = "no content (need --line / --lines / --qrcode / --apriltag)" });
+                            return;
+                        }
+                    }
+
+                    // AprilTag：參數 / 工作區檢查（不合法回 exitCode 4，不動板子）
+                    bool isAprilTag = (spec.Lines == null || spec.Lines.Count == 0) && spec.AprilTagId.HasValue;
+                    AprilTagParams tagParams = null;
+                    if (isAprilTag)
+                    {
+                        string tagErr;
+                        if (!spec.ValidateAprilTag(out tagErr))
+                        {
+                            tcs.SetResult(new DaemonSpecResult { ExitCode = 4, Logs = tagErr });
+                            return;
+                        }
+                        tagParams = MakeAprilTagParams(spec);
+                        if (!AprilTagFitsWorkspace(tagParams, m_WorkspaceSize, m_WorkspaceHeight, out tagErr))
+                        {
+                            tcs.SetResult(new DaemonSpecResult { ExitCode = 4, Logs = tagErr });
                             return;
                         }
                     }
@@ -350,7 +369,7 @@ namespace WindowsFormsApp1
                     //   - 非 QR + spec 有明確 --workspace-w/h → 以 spec 為準（line/DXF 需要）
                     //   - 其餘（QR、或沒帶 workspace 參數） → 沿用 UI 讀進來的 m_WorkspaceSize/Height
                     //   QR 物件位置固定 (0,0) 且不做工作範圍平移，這裡 SetDesktopSize 的值對 QR 無實際影響。
-                    bool isQR = !string.IsNullOrEmpty(spec.QRContent);
+                    bool isQR = !string.IsNullOrEmpty(spec.QRContent) || isAprilTag;
                     double effectiveW = (!isQR && spec.WorkspaceWidthExplicit) ? spec.WorkspaceSize : m_WorkspaceSize;
                     double effectiveH = (!isQR && spec.WorkspaceHeightExplicit) ? spec.WorkspaceHeight : m_WorkspaceHeight;
 
@@ -380,6 +399,16 @@ namespace WindowsFormsApp1
                             m_MMEdit[board].AddLine(x1, y1, x2, y2, "", "");
                         }
                         sbLog.AppendLine($"[Board {board + 1}] added {spec.Lines.Count} line(s) (W={effectiveW},H={effectiveH})");
+                    }
+                    else if (isAprilTag)
+                    {
+                        // AprilTag：底部矩形 + 反相 tag 雙圖層，內含各物件雷射參數，故下方跳過 ApplyLaserParamsAuto。
+                        if (!BuildAprilTagLayers(board, tagParams))
+                        {
+                            tcs.SetResult(new DaemonSpecResult { ExitCode = 2, Logs = sbLog.ToString() + $"[Board {board + 1}] AprilTag 建立失敗" });
+                            return;
+                        }
+                        sbLog.AppendLine($"[Board {board + 1}] added AprilTag 36h11 #{tagParams.TagId} size={tagParams.Size}mm target={spec.TagTarget}");
                     }
                     else if (spec.QRWhiteBg)
                     {
@@ -415,7 +444,7 @@ namespace WindowsFormsApp1
 
                     // 2. 套用雷射參數（若有指定）— 用臨時換 m_AutoModeArgs 的小 hack 重用既有 method。
                     //    白底 QR 已在 BuildWhiteBgQR 內對各物件個別設好參數，這裡必須跳過，否則會被覆寫。
-                    if (!spec.QRWhiteBg && (spec.Power.HasValue || spec.Speed.HasValue || spec.Frequency.HasValue
+                    if (!spec.QRWhiteBg && !isAprilTag && (spec.Power.HasValue || spec.Speed.HasValue || spec.Frequency.HasValue
                         || spec.PulseWidth.HasValue || spec.MarkRepeat.HasValue || spec.WobbleWidth.HasValue))
                     {
                         var savedArgs = m_AutoModeArgs;
@@ -499,7 +528,7 @@ namespace WindowsFormsApp1
                     // 而被砍在半途（QR 只打了上半、下半空白）。上限拉到 570 秒（< 外層 10 分鐘），
                     // 與動態估算的 MaxMs 一致。其物件參數在 BuildWhiteBgQR 內設定，不走這裡估算。
                     int markTimeoutMs;
-                    if (spec.QRWhiteBg)
+                    if (spec.QRWhiteBg || isAprilTag)
                     {
                         markTimeoutMs = 570000;
                     }
@@ -1708,6 +1737,32 @@ namespace WindowsFormsApp1
                     System.Diagnostics.Debug.WriteLine($"已繪製 {m_AutoModeArgs.Lines.Count} 條線段");
                     hasContent = true;
                 }
+                else if (m_AutoModeArgs.AprilTagId.HasValue)
+                {
+                    string tagErr;
+                    AprilTagParams tagParams = null;
+                    bool tagValid = m_AutoModeArgs.ValidateAprilTag(out tagErr);
+                    if (tagValid)
+                    {
+                        tagParams = MakeAprilTagParams(m_AutoModeArgs);
+                        tagValid = AprilTagFitsWorkspace(tagParams, m_WorkspaceSize, m_WorkspaceHeight, out tagErr);
+                    }
+                    if (!tagValid)
+                    {
+                        Console.Error.WriteLine($"Error: {tagErr}");
+                        ExitCode = 4;
+                        this.Close();
+                        return;
+                    }
+                    if (!BuildAprilTagLayers(m_AutoModeArgs.BoardIndex, tagParams))
+                    {
+                        Console.Error.WriteLine("Error: Failed to draw AprilTag.");
+                        ExitCode = 2;
+                        this.Close();
+                        return;
+                    }
+                    hasContent = true;
+                }
                 else if (!string.IsNullOrEmpty(m_AutoModeArgs.QRContent))
                 {
                     bool qrOk;
@@ -1734,8 +1789,8 @@ namespace WindowsFormsApp1
                 }
 
                 // 步驟 2.5: 套用雷射參數（如有指定）。
-                // 白底 QR 已在 BuildWhiteBgQR 內對各物件個別設好參數，這裡跳過以免覆寫。
-                if (hasContent && !m_AutoModeArgs.QRWhiteBg && (m_AutoModeArgs.Power.HasValue || m_AutoModeArgs.Speed.HasValue ||
+                // 白底 QR / AprilTag 已在建構時對各物件個別設好參數，這裡跳過以免覆寫。
+                if (hasContent && !m_AutoModeArgs.QRWhiteBg && !m_AutoModeArgs.AprilTagId.HasValue && (m_AutoModeArgs.Power.HasValue || m_AutoModeArgs.Speed.HasValue ||
                     m_AutoModeArgs.Frequency.HasValue || m_AutoModeArgs.PulseWidth.HasValue ||
                     m_AutoModeArgs.MarkRepeat.HasValue || m_AutoModeArgs.WobbleWidth.HasValue))
                 {

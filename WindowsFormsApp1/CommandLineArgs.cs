@@ -54,6 +54,16 @@ namespace WindowsFormsApp1
         public double? RectSpeed { get; private set; }
         public double? RectFreq { get; private set; }
         public double? RectPulseWidth { get; private set; }
+        // AprilTag（tag36h11，底部矩形 + 反相 tag 雙圖層）。矩形層雷射參數共用 --rect-*
+        public int? AprilTagId { get; private set; }        // null = 非 AprilTag
+        public double TagSize { get; private set; }         // 黑框外緣邊長 mm
+        public string TagTarget { get; private set; }       // rect / tag / all
+        public double TagRectExtra { get; private set; }    // 矩形額外加大量 mm
+        // AprilTag 層雷射參數：未帶 --tag-power/--tag-speed 時 fallback 到通用 --power/--speed
+        public double? TagPower { get; private set; }
+        public double? TagSpeed { get; private set; }
+        public double? TagFreq { get; private set; }
+        public double? TagPulseWidth { get; private set; }
         // 預覽模式：0=不預覽, 1=外框預覽, 2=全路徑預覽
         public int PreviewMode { get; private set; }
         public double? PreviewSpeed { get; private set; }
@@ -105,6 +115,14 @@ namespace WindowsFormsApp1
             RectSpeed = null;
             RectFreq = null;
             RectPulseWidth = null;
+            AprilTagId = null;
+            TagSize = 20.0;
+            TagTarget = "all";
+            TagRectExtra = 0;
+            TagPower = null;
+            TagSpeed = null;
+            TagFreq = null;
+            TagPulseWidth = null;
             PreviewMode = 0;
             PreviewSpeed = null;
             PreviewTime = 15;
@@ -446,6 +464,72 @@ namespace WindowsFormsApp1
                         i++;
                     }
                 }
+                // ---- AprilTag ----
+                else if (argLower == "--apriltag")
+                {
+                    if (i + 1 < args.Length && int.TryParse(args[i + 1], out int tagId))
+                    {
+                        result.AprilTagId = tagId;
+                        i++;
+                        result.IsAutoMode = true;
+                    }
+                }
+                else if (argLower == "--tag-size")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double v))
+                    {
+                        result.TagSize = v;
+                        i++;
+                    }
+                }
+                else if (argLower == "--tag-target")
+                {
+                    if (i + 1 < args.Length)
+                    {
+                        result.TagTarget = args[i + 1].ToLower();
+                        i++;
+                    }
+                }
+                else if (argLower == "--tag-rect-extra")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double v))
+                    {
+                        result.TagRectExtra = v;
+                        i++;
+                    }
+                }
+                else if (argLower == "--tag-power")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double v))
+                    {
+                        result.TagPower = v;
+                        i++;
+                    }
+                }
+                else if (argLower == "--tag-speed")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double v))
+                    {
+                        result.TagSpeed = v;
+                        i++;
+                    }
+                }
+                else if (argLower == "--tag-freq")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double v))
+                    {
+                        result.TagFreq = v;
+                        i++;
+                    }
+                }
+                else if (argLower == "--tag-pw" || argLower == "--tag-pulse-width")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double v))
+                    {
+                        result.TagPulseWidth = v;
+                        i++;
+                    }
+                }
                 else if (argLower == "--mark" || argLower == "-m")
                 {
                     result.AutoMark = true;
@@ -529,6 +613,18 @@ namespace WindowsFormsApp1
   --rect-speed <mm/s>                   白底 QR 之白底矩形速度（預設 800）
   --rect-freq <kHz>                     白底 QR 之白底矩形頻率（預設 80）
   --rect-pw <val>, --rect-pulse-width   白底 QR 之白底矩形脈波寬度（預設 250）
+  --apriltag <id>                       AprilTag 編號（tag36h11，0-586）；底部矩形 + 反相 tag 雙圖層，
+                                          tag 中心固定於 (0,0)
+  --tag-size <mm>                       AprilTag 大小 = 黑框外緣邊長 (預設: 20)；每格 = 大小/8，
+                                          含白邊總寬 = 大小 × 1.25
+  --tag-target <rect|tag|all>           打標目標：rect=只打矩形、tag=只打 AprilTag、all=矩形+AprilTag
+                                          （先打矩形）(預設: all)
+  --tag-rect-extra <mm>                 矩形額外加大量（矩形邊長 = 含白邊總寬 + 此值，預設 0）
+  --tag-power <0-100>                   AprilTag 層功率 %（不帶時 fallback 到 --power，再無則預設 90）
+  --tag-speed <mm/s>                    AprilTag 層速度（不帶時 fallback 到 --speed，再無則預設 1200）
+  --tag-freq <kHz>                      AprilTag 層頻率（預設 80）
+  --tag-pw <val>, --tag-pulse-width     AprilTag 層脈波寬度（預設 30）
+                                        矩形層雷射參數共用 --rect-power/--rect-speed/--rect-freq/--rect-pw
   --mark, -m                            自動執行打標
   --preview <outline|full>               紅光預覽模式（不打雷射，需搭配 --mark）
                                           outline = 外框預覽, full = 全路徑預覽 (預設: full)
@@ -580,6 +676,13 @@ namespace WindowsFormsApp1
 
   # QR Code 反相（黑白互換）
   MarkingMate.exe --board 0 --qrcode ""INV"" --qr-width 15 --qr-height 15 --qr-invert --mark
+
+  # AprilTag 5 號、大小 20mm，矩形 + AprilTag
+  MarkingMate.exe --board 0 --apriltag 5 --tag-size 20 --mark
+
+  # 只打矩形 / 只打 AprilTag
+  MarkingMate.exe --board 0 --apriltag 5 --tag-size 20 --tag-target rect --mark
+  MarkingMate.exe --board 0 --apriltag 5 --tag-size 20 --tag-target tag --mark
 
   # 使用自訂配置
   MarkingMate.exe --board 2 --config /cfg_config_MM3 --line 0,0,100,100
@@ -639,13 +742,44 @@ namespace WindowsFormsApp1
                 return false;
             }
 
-            if (Lines.Count == 0 && string.IsNullOrEmpty(DxfPath) && string.IsNullOrEmpty(QRContent) && AutoMark)
+            if (Lines.Count == 0 && string.IsNullOrEmpty(DxfPath) && string.IsNullOrEmpty(QRContent)
+                && !AprilTagId.HasValue && AutoMark)
             {
-                errorMessage = "自動打標模式至少需要一條線段、DXF 檔案或 QR Code 內容";
+                errorMessage = "自動打標模式至少需要一條線段、DXF 檔案、QR Code 內容或 AprilTag";
                 return false;
             }
 
+            return ValidateAprilTag(out errorMessage);
+        }
+
+        /// <summary>
+        /// 驗證 AprilTag 參數（未帶 --apriltag 時直接通過）。
+        /// </summary>
+        public bool ValidateAprilTag(out string errorMessage)
+        {
             errorMessage = null;
+            if (!AprilTagId.HasValue) return true;
+
+            if (AprilTagId.Value < 0 || AprilTagId.Value >= AprilTag36h11.Count)
+            {
+                errorMessage = $"--apriltag 編號必須在 0-{AprilTag36h11.Count - 1} 之間";
+                return false;
+            }
+            if (TagSize <= 0)
+            {
+                errorMessage = "--tag-size 必須大於 0";
+                return false;
+            }
+            if (TagRectExtra < 0)
+            {
+                errorMessage = "--tag-rect-extra 不可為負數";
+                return false;
+            }
+            if (TagTarget != "rect" && TagTarget != "tag" && TagTarget != "all")
+            {
+                errorMessage = "--tag-target 必須是 rect、tag 或 all";
+                return false;
+            }
             return true;
         }
     }
