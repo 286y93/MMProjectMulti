@@ -433,9 +433,27 @@ namespace WindowsFormsApp1
                     //（重啟後才正常）＝ 雷射致能狀態在該板未設起。故在「每次打標、StartMarking 前」明確致能一次雷射，
                     // 貼近發射時機（在 init 致能過但可能被後續操作清掉）。EnableLaser 已證實支援(rc=0)、不會彈對話框。
                     int rcEn = 0;
+                    string enErr = null;
                     try { rcEn = m_MMMark[board].EnableLaser(1); }
-                    catch (Exception exEn) { Console.Error.WriteLine($"[Board {board + 1}] EnableLaser 例外：{exEn.Message}"); }
+                    catch (Exception exEn)
+                    {
+                        rcEn = -1;
+                        enErr = exEn.Message;
+                        Console.Error.WriteLine($"[Board {board + 1}] EnableLaser 例外：{exEn.Message}");
+                    }
                     Console.Error.WriteLine($"[Board {board + 1}] >>> EnableLaser(1) rc={rcEn} @cold-diag");
+                    // 致能失敗時 StartMarking 仍會回 0（振鏡照掃但不出光），若照常打標前端會收到假成功。
+                    // 故正式打標（mode 4）致能失敗即中止並回 exitCode 10；紅光預覽（mode 3）不出雷射，不受影響。
+                    if (rcEn != 0 && markMode == 4)
+                    {
+                        tcs.SetResult(new DaemonSpecResult
+                        {
+                            ExitCode = 10,
+                            Logs = sbLog.ToString() + $"[Board {board + 1}] EnableLaser(1) failed (rc={rcEn}" +
+                                   (enErr != null ? $", {enErr}" : "") + ")，雷射致能失敗，未打標"
+                        });
+                        return;
+                    }
 
                     m_MMMark[board].MarkStandBy();
                     Application.DoEvents();

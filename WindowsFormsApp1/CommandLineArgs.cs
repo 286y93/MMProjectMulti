@@ -622,6 +622,7 @@ namespace WindowsFormsApp1
   6  - 無法連線到 daemon（client）
   7  - client 例外
   9  - 控制卡未連接，請稍後重試（daemon）
+  10 - 雷射致能失敗，未打標（daemon）
   -2 - 該板已被其他程序使用
   -3 - daemon 已在執行
 ";
