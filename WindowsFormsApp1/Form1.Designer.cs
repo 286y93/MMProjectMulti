@@ -432,6 +432,22 @@
             this.lblCmdHint = new System.Windows.Forms.Label();
             this.btnParallelTest = new System.Windows.Forms.Button();
             this.txtParallelResult = new System.Windows.Forms.TextBox();
+            this.tabPageAprilTag = new System.Windows.Forms.TabPage();
+            this.lblBoardAT = new System.Windows.Forms.Label();
+            this.comboBoardAT = new System.Windows.Forms.ComboBox();
+            this.groupBoxAprilTag = new System.Windows.Forms.GroupBox();
+            this.lblATFamily = new System.Windows.Forms.Label();
+            this.lblATId = new System.Windows.Forms.Label();
+            this.numATId = new System.Windows.Forms.NumericUpDown();
+            this.lblATSize = new System.Windows.Forms.Label();
+            this.txtATSize = new System.Windows.Forms.TextBox();
+            this.lblATInfo = new System.Windows.Forms.Label();
+            this.lblATNote = new System.Windows.Forms.Label();
+            this.pnlATPreview = new System.Windows.Forms.Panel();
+            this.btnATPreview = new System.Windows.Forms.Button();
+            this.btnATMark = new System.Windows.Forms.Button();
+            this.btnATStop = new System.Windows.Forms.Button();
+            this.txtATStatus = new System.Windows.Forms.TextBox();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
@@ -464,6 +480,9 @@
             this.grpCLIBuilder.SuspendLayout();
             this.grpCLIQRCode.SuspendLayout();
             this.tabPageCmd.SuspendLayout();
+            this.tabPageAprilTag.SuspendLayout();
+            this.groupBoxAprilTag.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numATId)).BeginInit();
             this.SuspendLayout();
             // 
             // timerMark
@@ -564,6 +583,7 @@
             this.tabControl1.Controls.Add(this.tabPageQRCode2);
             this.tabControl1.Controls.Add(this.tabPageCLIBuilder);
             this.tabControl1.Controls.Add(this.tabPageCmd);
+            this.tabControl1.Controls.Add(this.tabPageAprilTag);
             this.tabControl1.Location = new System.Drawing.Point(6, 6);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
@@ -4919,9 +4939,182 @@
             this.txtParallelResult.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.txtParallelResult.Size = new System.Drawing.Size(522, 117);
             this.txtParallelResult.TabIndex = 19;
-            // 
+            //
+            // tabPageAprilTag
+            //
+            this.tabPageAprilTag.Controls.Add(this.lblBoardAT);
+            this.tabPageAprilTag.Controls.Add(this.comboBoardAT);
+            this.tabPageAprilTag.Controls.Add(this.groupBoxAprilTag);
+            this.tabPageAprilTag.Controls.Add(this.pnlATPreview);
+            this.tabPageAprilTag.Controls.Add(this.btnATPreview);
+            this.tabPageAprilTag.Controls.Add(this.btnATMark);
+            this.tabPageAprilTag.Controls.Add(this.btnATStop);
+            this.tabPageAprilTag.Controls.Add(this.txtATStatus);
+            this.tabPageAprilTag.Location = new System.Drawing.Point(4, 22);
+            this.tabPageAprilTag.Name = "tabPageAprilTag";
+            this.tabPageAprilTag.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
+            this.tabPageAprilTag.Size = new System.Drawing.Size(1197, 566);
+            this.tabPageAprilTag.TabIndex = 10;
+            this.tabPageAprilTag.Text = "8. AprilTag";
+            this.tabPageAprilTag.UseVisualStyleBackColor = true;
+            //
+            // lblBoardAT
+            //
+            this.lblBoardAT.AutoSize = true;
+            this.lblBoardAT.Location = new System.Drawing.Point(15, 14);
+            this.lblBoardAT.Name = "lblBoardAT";
+            this.lblBoardAT.Size = new System.Drawing.Size(53, 12);
+            this.lblBoardAT.TabIndex = 0;
+            this.lblBoardAT.Text = "選擇板：";
+            //
+            // comboBoardAT
+            //
+            this.comboBoardAT.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboBoardAT.FormattingEnabled = true;
+            this.comboBoardAT.Items.AddRange(new object[] {
+            "晶片板 1",
+            "晶片板 2",
+            "晶片板 3",
+            "晶片板 4"});
+            this.comboBoardAT.Location = new System.Drawing.Point(72, 11);
+            this.comboBoardAT.Name = "comboBoardAT";
+            this.comboBoardAT.Size = new System.Drawing.Size(118, 20);
+            this.comboBoardAT.TabIndex = 1;
+            //
+            // groupBoxAprilTag
+            //
+            this.groupBoxAprilTag.Controls.Add(this.lblATFamily);
+            this.groupBoxAprilTag.Controls.Add(this.lblATId);
+            this.groupBoxAprilTag.Controls.Add(this.numATId);
+            this.groupBoxAprilTag.Controls.Add(this.lblATSize);
+            this.groupBoxAprilTag.Controls.Add(this.txtATSize);
+            this.groupBoxAprilTag.Controls.Add(this.lblATInfo);
+            this.groupBoxAprilTag.Controls.Add(this.lblATNote);
+            this.groupBoxAprilTag.Location = new System.Drawing.Point(15, 42);
+            this.groupBoxAprilTag.Name = "groupBoxAprilTag";
+            this.groupBoxAprilTag.Size = new System.Drawing.Size(360, 200);
+            this.groupBoxAprilTag.TabIndex = 2;
+            this.groupBoxAprilTag.TabStop = false;
+            this.groupBoxAprilTag.Text = "AprilTag 參數";
+            //
+            // lblATFamily
+            //
+            this.lblATFamily.AutoSize = true;
+            this.lblATFamily.Location = new System.Drawing.Point(15, 26);
+            this.lblATFamily.Name = "lblATFamily";
+            this.lblATFamily.Size = new System.Drawing.Size(120, 12);
+            this.lblATFamily.TabIndex = 0;
+            this.lblATFamily.Text = "Tag Family：tag36h11";
+            //
+            // lblATId
+            //
+            this.lblATId.AutoSize = true;
+            this.lblATId.Location = new System.Drawing.Point(15, 56);
+            this.lblATId.Name = "lblATId";
+            this.lblATId.Size = new System.Drawing.Size(113, 12);
+            this.lblATId.TabIndex = 1;
+            this.lblATId.Text = "Tag 編號 (0-586)：";
+            //
+            // numATId
+            //
+            this.numATId.Location = new System.Drawing.Point(150, 53);
+            this.numATId.Maximum = new decimal(new int[] {
+            586,
+            0,
+            0,
+            0});
+            this.numATId.Name = "numATId";
+            this.numATId.Size = new System.Drawing.Size(100, 22);
+            this.numATId.TabIndex = 2;
+            this.numATId.ValueChanged += new System.EventHandler(this.AprilTagInputs_Changed);
+            //
+            // lblATSize
+            //
+            this.lblATSize.AutoSize = true;
+            this.lblATSize.Location = new System.Drawing.Point(15, 88);
+            this.lblATSize.Name = "lblATSize";
+            this.lblATSize.Size = new System.Drawing.Size(77, 12);
+            this.lblATSize.TabIndex = 3;
+            this.lblATSize.Text = "大小 (mm)：";
+            //
+            // txtATSize
+            //
+            this.txtATSize.Location = new System.Drawing.Point(150, 85);
+            this.txtATSize.Name = "txtATSize";
+            this.txtATSize.Size = new System.Drawing.Size(100, 22);
+            this.txtATSize.TabIndex = 4;
+            this.txtATSize.Text = "20";
+            this.txtATSize.TextChanged += new System.EventHandler(this.AprilTagInputs_Changed);
+            //
+            // lblATInfo
+            //
+            this.lblATInfo.AutoSize = true;
+            this.lblATInfo.ForeColor = System.Drawing.Color.DimGray;
+            this.lblATInfo.Location = new System.Drawing.Point(15, 116);
+            this.lblATInfo.Name = "lblATInfo";
+            this.lblATInfo.Size = new System.Drawing.Size(200, 12);
+            this.lblATInfo.TabIndex = 5;
+            this.lblATInfo.Text = "每格 2.500 mm，含白邊總寬 25.00 mm";
+            //
+            // lblATNote
+            //
+            this.lblATNote.ForeColor = System.Drawing.Color.DimGray;
+            this.lblATNote.Location = new System.Drawing.Point(15, 140);
+            this.lblATNote.Name = "lblATNote";
+            this.lblATNote.Size = new System.Drawing.Size(330, 52);
+            this.lblATNote.TabIndex = 6;
+            this.lblATNote.Text = "大小 = 黑框外緣邊長，tag 中心位於 (0,0)。\r\n外圍 1 格白邊不打標，需保持空白。\r\n雷射參數沿用「5. 雷射功率」頁設定。";
+            //
+            // pnlATPreview
+            //
+            this.pnlATPreview.BackColor = System.Drawing.Color.White;
+            this.pnlATPreview.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pnlATPreview.Location = new System.Drawing.Point(395, 42);
+            this.pnlATPreview.Name = "pnlATPreview";
+            this.pnlATPreview.Size = new System.Drawing.Size(200, 200);
+            this.pnlATPreview.TabIndex = 3;
+            this.pnlATPreview.Paint += new System.Windows.Forms.PaintEventHandler(this.pnlATPreview_Paint);
+            //
+            // btnATPreview
+            //
+            this.btnATPreview.Location = new System.Drawing.Point(15, 255);
+            this.btnATPreview.Name = "btnATPreview";
+            this.btnATPreview.Size = new System.Drawing.Size(110, 30);
+            this.btnATPreview.TabIndex = 4;
+            this.btnATPreview.Text = "紅光預覽";
+            this.btnATPreview.UseVisualStyleBackColor = true;
+            this.btnATPreview.Click += new System.EventHandler(this.btnATPreview_Click);
+            //
+            // btnATMark
+            //
+            this.btnATMark.Location = new System.Drawing.Point(135, 255);
+            this.btnATMark.Name = "btnATMark";
+            this.btnATMark.Size = new System.Drawing.Size(110, 30);
+            this.btnATMark.TabIndex = 5;
+            this.btnATMark.Text = "雷射打標";
+            this.btnATMark.UseVisualStyleBackColor = true;
+            this.btnATMark.Click += new System.EventHandler(this.btnATMark_Click);
+            //
+            // btnATStop
+            //
+            this.btnATStop.Location = new System.Drawing.Point(255, 255);
+            this.btnATStop.Name = "btnATStop";
+            this.btnATStop.Size = new System.Drawing.Size(110, 30);
+            this.btnATStop.TabIndex = 6;
+            this.btnATStop.Text = "停止";
+            this.btnATStop.UseVisualStyleBackColor = true;
+            this.btnATStop.Click += new System.EventHandler(this.btnATStop_Click);
+            //
+            // txtATStatus
+            //
+            this.txtATStatus.Location = new System.Drawing.Point(15, 298);
+            this.txtATStatus.Name = "txtATStatus";
+            this.txtATStatus.ReadOnly = true;
+            this.txtATStatus.Size = new System.Drawing.Size(580, 22);
+            this.txtATStatus.TabIndex = 7;
+            //
             // Form1
-            // 
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(771, 784);
@@ -4990,6 +5183,11 @@
             this.grpCLIQRCode.PerformLayout();
             this.tabPageCmd.ResumeLayout(false);
             this.tabPageCmd.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numATId)).EndInit();
+            this.groupBoxAprilTag.ResumeLayout(false);
+            this.groupBoxAprilTag.PerformLayout();
+            this.tabPageAprilTag.ResumeLayout(false);
+            this.tabPageAprilTag.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -5293,6 +5491,22 @@
         private System.Windows.Forms.Button btnCLIStopPreview;
         // === 命令提示 tab 控件 ===
         private System.Windows.Forms.TabPage tabPageCmd;
+        private System.Windows.Forms.TabPage tabPageAprilTag;
+        private System.Windows.Forms.Label lblBoardAT;
+        private System.Windows.Forms.ComboBox comboBoardAT;
+        private System.Windows.Forms.GroupBox groupBoxAprilTag;
+        private System.Windows.Forms.Label lblATFamily;
+        private System.Windows.Forms.Label lblATId;
+        private System.Windows.Forms.NumericUpDown numATId;
+        private System.Windows.Forms.Label lblATSize;
+        private System.Windows.Forms.TextBox txtATSize;
+        private System.Windows.Forms.Label lblATInfo;
+        private System.Windows.Forms.Label lblATNote;
+        private System.Windows.Forms.Panel pnlATPreview;
+        private System.Windows.Forms.Button btnATPreview;
+        private System.Windows.Forms.Button btnATMark;
+        private System.Windows.Forms.Button btnATStop;
+        private System.Windows.Forms.TextBox txtATStatus;
         private System.Windows.Forms.Label lblCmdHeader;
         private System.Windows.Forms.Label lblBoardCmd;
         private System.Windows.Forms.ComboBox comboBoardCmd;

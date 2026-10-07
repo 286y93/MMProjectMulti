@@ -114,6 +114,7 @@ namespace WindowsFormsApp1
             comboBoardQR.SelectedIndex = 0;
             comboBoardQR2.SelectedIndex = 0;
             comboBoardCmd.SelectedIndex = 0;
+            comboBoardAT.SelectedIndex = 0;
             // txtPulseWidth 預設值 5 (在 Designer 中設定)
             m_IsAutoMode = false;
 
@@ -1081,6 +1082,9 @@ namespace WindowsFormsApp1
                 btnQRWhiteBgMark.Enabled = true;
                 btnQRWhiteBgPreview.Enabled = true;
                 btnCLIExecuteMark.Enabled = true;
+                // AprilTag 頁籤按鈕
+                btnATMark.Enabled = true;
+                btnATPreview.Enabled = true;
 
                 MessageBox.Show($"晶片板 {boardIndex + 1} 完成！", "完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
@@ -2876,6 +2880,9 @@ namespace WindowsFormsApp1
             btnCmd4.Enabled = true;
             btnCmd5.Enabled = true;
             btnCmdRegen.Enabled = true;
+            // AprilTag 頁籤
+            btnATPreview.Enabled = true;
+            btnATMark.Enabled = true;
             // 命令預覽會臨時調整 timerPreview.Interval，恢復成預設 15 秒
             timerPreview.Interval = 15000;
         }
