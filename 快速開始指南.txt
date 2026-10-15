@@ -5,7 +5,7 @@
 【第一步：編譯專案】
 ────────────────────────────────────────────────────────────
 1. 使用 Visual Studio 開啟專案：
-   C:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\WindowsFormsApp1\WindowsFormsApp1.sln
+   C:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\GuanDaLaserApp\GuanDaLaserApp.sln
 
 2. 在 Visual Studio 中：
    - 選擇平台：x64（非常重要！）
@@ -17,9 +17,9 @@
 【第二步：執行應用程式】
 ────────────────────────────────────────────────────────────
 1. 執行檔位置：
-   bin\x64\Release\WindowsFormsApp1.exe
+   bin\x64\Release\MarkingMate.exe
    或
-   bin\x64\Debug\WindowsFormsApp1.exe
+   bin\x64\Debug\MarkingMate.exe
 
 2. 雙擊執行程式
 

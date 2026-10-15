@@ -1,6 +1,6 @@
 
-$dllPath = "C:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\WindowsFormsApp1\bin\Debug\MMMarkx641Lib.dll"
-$axDllPath = "C:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\WindowsFormsApp1\bin\Debug\AxMMMark_x64_1.dll"
+$dllPath = "C:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\GuanDaLaserApp\bin\Debug\MMMarkx641Lib.dll"
+$axDllPath = "C:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\GuanDaLaserApp\bin\Debug\AxMMMark_x64_1.dll"
 
 Write-Host "Inspecting: $dllPath"
 try {

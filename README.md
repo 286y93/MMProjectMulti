@@ -8,7 +8,7 @@
 - 建置平台必須為 **x64**，輸出檔為 `MarkingMate.exe`
 
 ```bash
-MSBuild WindowsFormsApp1\MarkingMateMulti.csproj /p:Configuration=Debug /p:Platform=x64
+MSBuild GuanDaLaserApp\MarkingMateMulti.csproj /p:Configuration=Debug /p:Platform=x64
 ```
 
 ## 執行模式
@@ -147,7 +147,7 @@ Daemon 僅監聽本機，HTTP 端點：
 | `-3` | daemon 已在執行 |
 
 ## 雷射頭 IP 設定
-IP 主表：`WindowsFormsApp1\Drivers\EMC6\DevIPAddress.ini`，`DEV0`~`DEV3` 依序對應 MM1~MM4。
+IP 主表：`GuanDaLaserApp\Drivers\EMC6\DevIPAddress.ini`，`DEV0`~`DEV3` 依序對應 MM1~MM4。
 
 初始化時會自動：
 1. 驗證主表已填入所需板的 IP，缺值即中止
@@ -158,7 +158,7 @@ IP 只能在 GUI「1. 連接設定」頁編輯並儲存。
 
 ## 專案結構
 ```
-WindowsFormsApp1/
+GuanDaLaserApp/
 ├── Program.cs               # 進入點、模式判斷、client 模式
 ├── CommandLineArgs.cs       # 參數解析
 ├── MarkingMateDaemon.cs     # daemon HTTP 服務
@@ -170,4 +170,4 @@ WindowsFormsApp1/
 ```
 
 ## 疑難排解
-詳見 [故障排除完整指南.md](WindowsFormsApp1/故障排除完整指南.md)。
+詳見 [故障排除完整指南.md](GuanDaLaserApp/故障排除完整指南.md)。

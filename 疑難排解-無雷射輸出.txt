@@ -46,7 +46,7 @@
 
 解決方案：
 1. 使用 GUI 模式測試相同的線段：
-   - 開啟 WindowsFormsApp1.exe（不帶參數）
+   - 開啟 MarkingMate.exe（不帶參數）
    - 點擊「初始化」
    - 輸入相同座標：X1=0, Y1=0, X2=10, Y2=10
    - 點擊「繪製線段」
@@ -76,10 +76,10 @@
 測試更明顯的線段：
 
 # 測試較長的線段（50mm）
-WindowsFormsApp1.exe --board 0 --line 0,0,50,50 --mark
+MarkingMate.exe --board 0 --line 0,0,50,50 --mark
 
 # 測試多條線段形成方框
-WindowsFormsApp1.exe --board 0 --lines "-20,-20,20,-20;20,-20,20,20;20,20,-20,20;-20,20,-20,-20" --mark
+MarkingMate.exe --board 0 --lines "-20,-20,20,-20;20,-20,20,20;20,20,-20,20;-20,20,-20,-20" --mark
 
 原因 4：工作區設定問題
 ------------------------------------------
@@ -100,7 +100,7 @@ WindowsFormsApp1.exe --board 0 --lines "-20,-20,20,-20;20,-20,20,20;20,20,-20,20
 
 測試建議：
 # 畫一個十字定位
-WindowsFormsApp1.exe --board 0 --lines "-25,0,25,0;0,-25,0,25" --mark
+MarkingMate.exe --board 0 --lines "-25,0,25,0;0,-25,0,25" --mark
 
 原因 5：控制卡或掃描頭問題
 ------------------------------------------
@@ -145,7 +145,7 @@ WindowsFormsApp1.exe --board 0 --lines "-25,0,25,0;0,-25,0,25" --mark
 ------------------------------------------
 確認基本功能正常：
 
-1. 執行 WindowsFormsApp1.exe（不帶參數）
+1. 執行 MarkingMate.exe（不帶參數）
 2. 點擊「初始化」
 3. 輸入座標：X1=0, Y1=0, X2=50, Y2=50
 4. 點擊「繪製線段」（應該能在預覽視窗看到線段）
@@ -160,7 +160,7 @@ WindowsFormsApp1.exe --board 0 --lines "-25,0,25,0;0,-25,0,25" --mark
 ------------------------------------------
 執行：
 cd bin\x64\Debug
-WindowsFormsApp1.exe --board 0 --line 0,0,50,50
+MarkingMate.exe --board 0 --line 0,0,50,50
 
 預期結果：
 - Exit Code = 0（成功）
@@ -169,7 +169,7 @@ WindowsFormsApp1.exe --board 0 --line 0,0,50,50
 步驟 4: 測試命令列模式（繪圖+打標）
 ------------------------------------------
 執行：
-WindowsFormsApp1.exe --board 0 --line 0,0,50,50 --mark
+MarkingMate.exe --board 0 --line 0,0,50,50 --mark
 
 觀察：
 - Exit Code = ? （記錄下來）
@@ -184,7 +184,7 @@ WindowsFormsApp1.exe --board 0 --line 0,0,50,50 --mark
 2. 執行 DebugView（以管理員身分）
 
 3. 在 DebugView 運行的狀態下，執行命令列測試：
-   WindowsFormsApp1.exe --board 0 --line 0,0,50,50 --mark
+   MarkingMate.exe --board 0 --line 0,0,50,50 --mark
 
 4. 觀察 DebugView 中的輸出，應該會看到：
    - "已繪製線段：(0, 0) -> (50, 50)"
@@ -197,16 +197,16 @@ WindowsFormsApp1.exe --board 0 --line 0,0,50,50 --mark
 步驟 6: 測試不同長度的線段
 ------------------------------------------
 # 測試 1: 極短線段（可能不明顯）
-WindowsFormsApp1.exe --board 0 --line 0,0,5,5 --mark
+MarkingMate.exe --board 0 --line 0,0,5,5 --mark
 
 # 測試 2: 中等線段
-WindowsFormsApp1.exe --board 0 --line 0,0,25,25 --mark
+MarkingMate.exe --board 0 --line 0,0,25,25 --mark
 
 # 測試 3: 較長線段
-WindowsFormsApp1.exe --board 0 --line -40,-40,40,40 --mark
+MarkingMate.exe --board 0 --line -40,-40,40,40 --mark
 
 # 測試 4: 方框（多線段）
-WindowsFormsApp1.exe --board 0 --lines "-20,-20,20,-20;20,-20,20,20;20,20,-20,20;-20,20,-20,-20" --mark
+MarkingMate.exe --board 0 --lines "-20,-20,20,-20;20,-20,20,20;20,20,-20,20;-20,20,-20,-20" --mark
 
 步驟 7: 比對 GUI 和命令列的時間差異
 ------------------------------------------

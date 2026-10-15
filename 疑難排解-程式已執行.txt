@@ -32,7 +32,7 @@ MarkingMate SDK 使用全域鎖，確保同一時間只有一個程式實例。
 ------------------------------------------
 1. 按 Ctrl+Shift+Esc 開啟工作管理員
 2. 切換到「詳細資料」標籤
-3. 找到所有 WindowsFormsApp1.exe
+3. 找到所有 MarkingMate.exe
 4. 右鍵 → 結束工作
 5. 等待 5-10 秒
 6. 重新啟動程式
@@ -40,7 +40,7 @@ MarkingMate SDK 使用全域鎖，確保同一時間只有一個程式實例。
 方案 3：使用命令列清理
 ------------------------------------------
 開啟命令提示字元，執行：
-taskkill /F /IM WindowsFormsApp1.exe
+taskkill /F /IM MarkingMate.exe
 timeout /t 5
 (然後重新啟動程式)
 
@@ -65,7 +65,7 @@ timeout /t 5
 "程式已經在執行中！
 如果看不到視窗，請：
 1. 開啟工作管理員 (Ctrl+Shift+Esc)
-2. 結束所有 WindowsFormsApp1.exe
+2. 結束所有 MarkingMate.exe
 3. 等待 5 秒後重新啟動"
 
 ===========================================
@@ -109,10 +109,10 @@ Visual Studio 偵錯時的特別注意
 方法 1：工作管理員
 1. Ctrl+Shift+Esc
 2. 詳細資料 → 排序「名稱」
-3. 尋找 WindowsFormsApp1.exe
+3. 尋找 MarkingMate.exe
 
 方法 2：命令列
-tasklist | find "WindowsFormsApp1"
+tasklist | find "GuanDaLaserApp"
 
 如果有輸出 → 進程還在執行
 如果沒輸出 → 進程已結束
@@ -136,7 +136,7 @@ tasklist | find "WindowsFormsApp1"
 
 解決：
 - 檢查工作管理員
-- 結束所有 WindowsFormsApp1.exe
+- 結束所有 MarkingMate.exe
 - 只用 GUI 模式測試初始化
 
 ===========================================
@@ -155,7 +155,7 @@ tasklist | find "WindowsFormsApp1"
 
 3. 執行測試
    □ 不要用 F5（偵錯模式）
-   □ 直接執行 bin\x64\Debug\WindowsFormsApp1.exe
+   □ 直接執行 bin\x64\Debug\MarkingMate.exe
    □ 或按 Ctrl+F5（不偵錯執行）
 
 4. 初始化測試
@@ -173,7 +173,7 @@ KillAllInstances.bat 使用說明
 ===========================================
 
 功能：
-- 強制結束所有 WindowsFormsApp1.exe
+- 強制結束所有 MarkingMate.exe
 - 等待清理完成
 - 提示可以重新啟動
 

@@ -1,5 +1,5 @@
 Write-Host "Reading DXF file..."
-$dxfFiles = Get-ChildItem "c:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\WindowsFormsApp1\File\*.dxf"
+$dxfFiles = Get-ChildItem "c:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\GuanDaLaserApp\File\*.dxf"
 
 if ($dxfFiles.Count -eq 0) {
     Write-Error "No DXF file found!"

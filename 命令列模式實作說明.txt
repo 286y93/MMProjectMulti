@@ -9,18 +9,18 @@ MarkingMateMulti 命令列模式實作說明
 一、新增的檔案
 ===========================================
 
-1. WindowsFormsApp1\CommandLineArgs.cs
+1. GuanDaLaserApp\CommandLineArgs.cs
    - 命令列參數解析器
    - 包含 CommandLineArgs 類別
    - 包含 LineSegment 類別（線段資料結構）
    - 提供參數驗證和說明文字
 
-2. WindowsFormsApp1\Build.bat
+2. GuanDaLaserApp\Build.bat
    - 自動建置批次檔
    - 自動偵測 Visual Studio 安裝路徑
    - 呼叫 MSBuild 編譯專案
 
-3. WindowsFormsApp1\CommandLineExamples.bat
+3. GuanDaLaserApp\CommandLineExamples.bat
    - 命令列模式範例批次檔
    - 包含 5 個使用範例
    - 可直接執行測試
@@ -37,7 +37,7 @@ MarkingMateMulti 命令列模式實作說明
 二、修改的檔案
 ===========================================
 
-1. WindowsFormsApp1\Program.cs
+1. GuanDaLaserApp\Program.cs
    變更內容：
    - Main() 方法簽章改為 Main(string[] args)
    - Main() 回傳類型改為 int（用於結束代碼）
@@ -71,7 +71,7 @@ MarkingMateMulti 命令列模式實作說明
    }
    ```
 
-2. WindowsFormsApp1\Form1.cs
+2. GuanDaLaserApp\Form1.cs
    變更內容：
    - 新增 m_AutoModeArgs 成員（儲存命令列參數）
    - 新增 m_IsAutoMode 成員（標記是否為自動模式）
@@ -115,7 +115,7 @@ MarkingMateMulti 命令列模式實作說明
    }
    ```
 
-3. WindowsFormsApp1\MarkingMateMulti.csproj
+3. GuanDaLaserApp\MarkingMateMulti.csproj
    變更內容：
    - 在 <ItemGroup> 中新增 CommandLineArgs.cs 編譯項目
 

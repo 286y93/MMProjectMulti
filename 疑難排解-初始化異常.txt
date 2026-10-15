@@ -184,8 +184,8 @@ private System.Windows.Forms.Label lblDXFInfo;
 private System.Windows.Forms.Button btnBrowseDXF;
 
 檢查 3：Form1.cs 中的 DXFLine 類別
-確認在 namespace WindowsFormsApp1 內，但在 Form1 類別外：
-namespace WindowsFormsApp1
+確認在 namespace GuanDaLaserApp 內，但在 Form1 類別外：
+namespace GuanDaLaserApp
 {
     public partial class Form1 : Form
     {

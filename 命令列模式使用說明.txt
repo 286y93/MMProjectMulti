@@ -6,7 +6,7 @@ MarkingMate Multi-Board 命令列模式使用說明
 更新日期：2026-07-17
 
 主要變動 (v2.0 → v3.0)：
-  - exe 名稱由 WindowsFormsApp1.exe 改為 MarkingMate.exe
+  - exe 名稱由 MarkingMate.exe 改為 MarkingMate.exe
   - 新增 Daemon / Client 模式（多板並行的正確做法）
   - 新增 QR Code 打標（含 QRCODE_白底 反相雙圖層）
   - 新增 DXF 檔案載入、Wobble 線寬、紅光預覽
@@ -303,7 +303,7 @@ print(f"打標成功" if rc == 0 else f"失敗 exitCode={rc}")
 ===========================================
 
 IP 主表位置：
-    WindowsFormsApp1\Drivers\EMC6\DevIPAddress.ini
+    GuanDaLaserApp\Drivers\EMC6\DevIPAddress.ini
     DEV0 → MM1 / CARD0
     DEV1 → MM2 / CARD1
     DEV2 → MM3 / CARD2
@@ -424,7 +424,7 @@ Mutex 命名（同時只能一個實例）：
     - Client 模式：不持 Mutex（因為不 init SDK）
 
 檔案位置：
-    exe：           MarkingMate.exe (原 WindowsFormsApp1 專案，OutputName)
+    exe：           MarkingMate.exe (原 GuanDaLaserApp 專案，OutputName)
     序號 counter：  exe 同目錄 counter.txt / counter_whitebg.txt
     QRCode 素材：   exe 同目錄 QRCodePara\
     Config：        C:\Program Files (x86)\MarkingMate\ 底下

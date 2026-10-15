@@ -1,5 +1,5 @@
 Write-Host "Reading DXF file..."
-$dxfPath = "c:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\WindowsFormsApp1\File\上翼板-2.dxf"
+$dxfPath = "c:\Users\AlexYang_VW\source\repos\MMProject\MMProjectMulti\GuanDaLaserApp\File\上翼板-2.dxf"
 $content = Get-Content $dxfPath
 
 $points = @()
