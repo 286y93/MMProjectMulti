@@ -182,7 +182,7 @@ namespace WindowsFormsApp1
             // 自動模式（包含 daemon）：最小化但不隱藏（OCX 需要 Window Handle）
             if (m_IsAutoMode)
             {
-                //this.WindowState = FormWindowState.Minimized;
+                this.WindowState = FormWindowState.Minimized;
                 this.ShowInTaskbar = false;
                 this.Text = Text + "自動模式-停用除錯功能";
                 tabControl1.Enabled = false;
