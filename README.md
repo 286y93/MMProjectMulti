@@ -87,6 +87,7 @@ SDK 不允許多個程序同時初始化 OCX。要讓多塊板並行動作，請
 | `--client` | 以 client 模式送出命令 |
 | `--port <N>` | daemon port，預設 `19527` |
 | `--shutdown` | 搭配 `--client`，關閉 daemon |
+| `--stop` | 停止出光（僅 daemon）：搭配 `--board N` 只停該板，不帶則停全部板；停止後不需重新初始化 |
 
 ### 範例
 ```bash
@@ -119,6 +120,8 @@ MarkingMate.exe --board 0 --apriltag 5 --tag-size 20 --tag-target tag --mark
 start "" MarkingMate.exe --daemon
 MarkingMate.exe --client --board 0 --line 0,0,50,50 --mark
 MarkingMate.exe --client --board 1 --qrcode "TEST" --mark
+MarkingMate.exe --client --stop --board 0
+MarkingMate.exe --client --stop
 MarkingMate.exe --client --shutdown
 ```
 
@@ -127,8 +130,11 @@ Daemon 僅監聽本機，HTTP 端點：
 | 端點 | 方法 | 說明 |
 |------|------|------|
 | `/cmd` | POST | body 為命令字串（同 CLI 參數），回傳 `{"exitCode":N,"logs":"..."}` |
+| `/stop` | POST | 停止出光；`?board=N` 只停該板，不帶則停全部板。被中斷的 `/cmd` 回 `exitCode 11` |
 | `/health` | GET | 健康檢查 |
 | `/shutdown` | POST | 關閉 daemon |
+
+> 前端收到 `exitCode 11` 時不可自動重送，並應停止送出佇列中的下一條命令（`/stop` 只停「目前這一條」）。
 
 ### 結束代碼
 | 代碼 | 說明 |
@@ -143,6 +149,7 @@ Daemon 僅監聽本機，HTTP 端點：
 | `7` | client 例外 |
 | `9` | 控制卡未連接，請稍後重試（daemon） |
 | `10` | 雷射致能失敗，未打標（daemon） |
+| `11` | 已被 `--stop` / `POST /stop` 中斷（daemon） |
 | `-2` | 該板已被其他程序使用 |
 | `-3` | daemon 已在執行 |
 

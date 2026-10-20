@@ -91,6 +91,10 @@ namespace GuanDaLaserApp
                         HandleCmd(ctx);
                         return;
 
+                    case "/stop":
+                        HandleStop(ctx);
+                        return;
+
                     default:
                         WriteText(ctx, 404, $"Not Found: {path}");
                         return;
@@ -144,6 +148,50 @@ namespace GuanDaLaserApp
             catch (AggregateException aex)
             {
                 result = new Form1.DaemonSpecResult { ExitCode = 1, Logs = $"task exception: {aex.InnerException?.Message ?? aex.Message}" };
+            }
+
+            WriteJson(ctx, 200, result);
+        }
+
+        /// <summary>
+        /// 停止出光：POST /stop[?board=N]，不帶 board 表示停全部板。
+        /// 不經過 /cmd（板忙碌時 /cmd 會回 5，停止命令會被擋下）。
+        /// 被中斷的那條 /cmd 會收到 exitCode 11。
+        /// </summary>
+        private void HandleStop(HttpListenerContext ctx)
+        {
+            if (!string.Equals(ctx.Request.HttpMethod, "POST", StringComparison.OrdinalIgnoreCase))
+            {
+                WriteText(ctx, 405, "Method Not Allowed (use POST)");
+                return;
+            }
+
+            int? board = null;
+            string boardStr = ctx.Request.QueryString["board"];
+            if (!string.IsNullOrEmpty(boardStr))
+            {
+                if (!int.TryParse(boardStr, out int b) || b < 0 || b > 3)
+                {
+                    WriteJson(ctx, 400, new Form1.DaemonSpecResult { ExitCode = 4, Logs = $"invalid board: {boardStr}（需 0-3）" });
+                    return;
+                }
+                board = b;
+            }
+
+            Form1.DaemonSpecResult result;
+            try
+            {
+                var task = m_Form.RunDaemonStop(board);
+                if (!task.Wait(TimeSpan.FromSeconds(15)))
+                {
+                    WriteJson(ctx, 504, new Form1.DaemonSpecResult { ExitCode = 3, Logs = "stop timeout (>15s)" });
+                    return;
+                }
+                result = task.Result;
+            }
+            catch (Exception ex)
+            {
+                result = new Form1.DaemonSpecResult { ExitCode = 1, Logs = $"stop failed: {ex.InnerException?.Message ?? ex.Message}" };
             }
 
             WriteJson(ctx, 200, result);

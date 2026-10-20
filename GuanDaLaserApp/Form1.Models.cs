@@ -12,6 +12,18 @@ namespace GuanDaLaserApp
             public string Logs;
         }
 
+        // Daemon 每塊板「目前這條命令」的紀錄，供 /stop 找到並中斷它。
+        // 是否仍在執行以 Tcs.Task.IsCompleted 判斷，結束路徑不必逐一清除。
+        private class DaemonJob
+        {
+            public System.Threading.Tasks.TaskCompletionSource<DaemonSpecResult> Tcs;
+            public System.Text.StringBuilder Log;
+            public System.Windows.Forms.Timer Monitor;     // StartMarking 成功後才有值
+            public System.Diagnostics.Stopwatch Sw;
+            public bool Started;                           // false = 仍在建立內容階段（尚未 StartMarking）
+            public bool StopRequested;                     // /stop 已要求中斷；各 StartMarking 前都要檢查
+        }
+
         // 部署統計：用於 skip-if-same 機制下追蹤實際寫入 / 跳過數量
         private class DeployStats
         {

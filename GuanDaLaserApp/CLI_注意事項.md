@@ -216,7 +216,25 @@ CORS 注意事項：
 - 若網頁是 HTTPS（`https://...`），瀏覽器會擋 HTTP localhost 呼叫（mixed content）。網頁本身要走 HTTP 才能 call
 - Daemon 只 bind `127.0.0.1`，網段其他機器無法存取
 
-#### B-5. 停止 daemon
+#### B-5. 停止出光（不關 daemon）
+
+```cmd
+:: 只停板 0
+MarkingMate.exe --client --stop --board 0
+
+:: 停全部板（不帶 --board）
+MarkingMate.exe --client --stop
+
+:: 或直接 curl
+curl -X POST "http://localhost:19527/stop?board=0"
+```
+
+- 被中斷的那條 `/cmd` 會回 `exitCode 11`；`/stop` 本身回 `exitCode 0` 與各板處理結果。
+- 停止後**不需重新初始化**，可直接送下一條命令（內部做 `StopMarking` + `MarkShutdown`，與逾時收尾相同）。
+- `/stop` 只停「目前這一條」：前端或批次腳本收到 11 時**不可自動重送**，並要自行停止送佇列中的下一條。
+- 沒有 daemon 時 `--stop` 直接回 ExitCode 6，不會 init OCX（單機模式 A 的打標無法從外部停止）。
+
+#### B-6. 停止 daemon
 
 ```cmd
 :: 經由 client
@@ -242,6 +260,7 @@ curl -X POST http://localhost:19527/shutdown
 |---|---|---|---|
 | `/` 或 `/health` | GET | – | `text/plain` `MarkingMate daemon OK` |
 | `/cmd` | POST | CLI args 字串（text/plain），例如 `--board 1 --line 0,0,50,50 --mark` | `application/json` `{"exitCode":N,"logs":"..."}` |
+| `/stop` | POST | –（query `?board=N`，不帶則停全部板） | `application/json` `{"exitCode":N,"logs":"..."}`；被中斷的 `/cmd` 回 `exitCode 11` |
 | `/shutdown` | POST | – | `text/plain` + 立即關閉 daemon |
 
 CORS preflight (`OPTIONS`) 已支援。
@@ -527,7 +546,7 @@ console.log(results);
 - [CommandLineArgs.cs](CommandLineArgs.cs) — 參數解析、`GetHelpText`、`--daemon` / `--client` / `--port` 旗標
 - [Program.cs](Program.cs) — Mutex、`AttachConsole`、Client 模式 HTTP 呼叫、模式分派
 - [Form1.cs](Form1.cs) — `ExecuteAutoMode`（模式 A）、`StartDaemonMode`、`InitializeBoardAuto`、`RunDaemonSpec`、`BuildWhiteBgQR`（QR 白底共用後端）、`ExecuteCLIArgs`（tab 7 CLI 編輯器共用執行流程）
-- [MarkingMateDaemon.cs](MarkingMateDaemon.cs) — HttpListener 主體、`/health` `/cmd` `/shutdown` 三個 endpoint
+- [MarkingMateDaemon.cs](MarkingMateDaemon.cs) — HttpListener 主體、`/health` `/cmd` `/stop` `/shutdown` 四個 endpoint
 - [CheckMMSetup.ps1](CheckMMSetup.ps1) — 設定體檢腳本
 - [故障排除完整指南.md](故障排除完整指南.md) — GUI 模式與 OCX 註冊故障排除
 - [../命令列模式使用說明.txt](../命令列模式使用說明.txt) — 給非工程師的入門說明（v3.0）

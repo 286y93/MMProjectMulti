@@ -25,6 +25,7 @@ namespace GuanDaLaserApp
         // 命令頁籤的 per-board 狀態 — 允許多板同時跑各自的紅光預覽
         private bool[] m_bCmdPreviewing = new bool[4];
         private System.Windows.Forms.Timer[] m_TimerCmdPreview = new System.Windows.Forms.Timer[4];
+        private DaemonJob[] m_DaemonJobs = new DaemonJob[4];   // daemon 各板目前命令（/stop 用）
 
         // Daemon mode
         private MarkingMateDaemon m_Daemon;
@@ -219,7 +220,7 @@ namespace GuanDaLaserApp
                 m_Daemon = new MarkingMateDaemon(this, m_AutoModeArgs.DaemonPort);
                 m_Daemon.Start();
                 Console.WriteLine($"[Daemon] 就緒，listening on http://localhost:{m_AutoModeArgs.DaemonPort}/");
-                Console.WriteLine("[Daemon] Endpoints: POST /cmd, POST /shutdown, GET /health");
+                Console.WriteLine("[Daemon] Endpoints: POST /cmd, POST /stop[?board=N], POST /shutdown, GET /health");
             }
             catch (Exception ex)
             {
@@ -300,22 +301,26 @@ namespace GuanDaLaserApp
                     try { spec = CommandLineArgs.Parse(argv); }
                     catch (Exception parseEx)
                     {
-                        tcs.SetResult(new DaemonSpecResult { ExitCode = 4, Logs = $"parse failed: {parseEx.Message}" });
+                        tcs.TrySetResult(new DaemonSpecResult { ExitCode = 4, Logs = $"parse failed: {parseEx.Message}" });
                         return;
                     }
 
                     board = spec.BoardIndex;
                     if (board < 0 || board >= m_bBoardInit.Length || !m_bBoardInit[board])
                     {
-                        tcs.SetResult(new DaemonSpecResult { ExitCode = 4, Logs = $"board {board + 1} not initialized" });
+                        tcs.TrySetResult(new DaemonSpecResult { ExitCode = 4, Logs = $"board {board + 1} not initialized" });
                         return;
                     }
 
                     if (IsBoardBusy(board))
                     {
-                        tcs.SetResult(new DaemonSpecResult { ExitCode = 5, Logs = $"board {board + 1} busy" });
+                        tcs.TrySetResult(new DaemonSpecResult { ExitCode = 5, Logs = $"board {board + 1} busy" });
                         return;
                     }
+
+                    // 登記為該板目前命令，讓 /stop 能找到（含建立內容階段）
+                    var job = new DaemonJob { Tcs = tcs, Log = sbLog };
+                    m_DaemonJobs[board] = job;
 
                     // 卡未連接就不建內容 / 不打標，直接回報讓 client 稍後重試（等卡連上）。
                     // 針對「最後初始化、連線最慢的板（如 board 4）」：即使 daemon 啟動的
@@ -325,7 +330,7 @@ namespace GuanDaLaserApp
                     try { cardConn = m_MMMark[board].IsCardConnect(); } catch { cardConn = 0; }
                     if (cardConn == 0)
                     {
-                        tcs.SetResult(new DaemonSpecResult
+                        tcs.TrySetResult(new DaemonSpecResult
                         {
                             ExitCode = 9,
                             Logs = $"[Board {board + 1}] control card not connected（卡未連接），請稍後重試"
@@ -337,7 +342,7 @@ namespace GuanDaLaserApp
                     {
                         if (string.IsNullOrEmpty(spec.QRContent) && !spec.AprilTagId.HasValue)
                         {
-                            tcs.SetResult(new DaemonSpecResult { ExitCode = 4, Logs = "no content (need --line / --lines / --qrcode / --apriltag)" });
+                            tcs.TrySetResult(new DaemonSpecResult { ExitCode = 4, Logs = "no content (need --line / --lines / --qrcode / --apriltag)" });
                             return;
                         }
                     }
@@ -350,13 +355,13 @@ namespace GuanDaLaserApp
                         string tagErr;
                         if (!spec.ValidateAprilTag(out tagErr))
                         {
-                            tcs.SetResult(new DaemonSpecResult { ExitCode = 4, Logs = tagErr });
+                            tcs.TrySetResult(new DaemonSpecResult { ExitCode = 4, Logs = tagErr });
                             return;
                         }
                         tagParams = MakeAprilTagParams(spec);
                         if (!AprilTagFitsWorkspace(tagParams, m_WorkspaceSize, m_WorkspaceHeight, out tagErr))
                         {
-                            tcs.SetResult(new DaemonSpecResult { ExitCode = 4, Logs = tagErr });
+                            tcs.TrySetResult(new DaemonSpecResult { ExitCode = 4, Logs = tagErr });
                             return;
                         }
                     }
@@ -405,7 +410,7 @@ namespace GuanDaLaserApp
                         // AprilTag：底部矩形 + 反相 tag 雙圖層，內含各物件雷射參數，故下方跳過 ApplyLaserParamsAuto。
                         if (!BuildAprilTagLayers(board, tagParams))
                         {
-                            tcs.SetResult(new DaemonSpecResult { ExitCode = 2, Logs = sbLog.ToString() + $"[Board {board + 1}] AprilTag 建立失敗" });
+                            tcs.TrySetResult(new DaemonSpecResult { ExitCode = 2, Logs = sbLog.ToString() + $"[Board {board + 1}] AprilTag 建立失敗" });
                             return;
                         }
                         sbLog.AppendLine($"[Board {board + 1}] added AprilTag 41h12 #{tagParams.TagId} size={tagParams.Size}mm target={spec.TagTarget}");
@@ -416,7 +421,7 @@ namespace GuanDaLaserApp
                         // 內含各物件雷射參數設定，故下方跳過 ApplyLaserParamsAuto 以免覆寫。
                         if (!BuildWhiteBgQR(board, MakeWhiteBgParams(spec)))
                         {
-                            tcs.SetResult(new DaemonSpecResult { ExitCode = 2, Logs = sbLog.ToString() + $"[Board {board + 1}] 白底 QR 建立失敗" });
+                            tcs.TrySetResult(new DaemonSpecResult { ExitCode = 2, Logs = sbLog.ToString() + $"[Board {board + 1}] 白底 QR 建立失敗" });
                             return;
                         }
                         sbLog.AppendLine($"[Board {board + 1}] added white-bg QR \"{spec.QRContent}\"");
@@ -456,6 +461,13 @@ namespace GuanDaLaserApp
                     }
 
                     // 3. 啟動 marking
+                    // 建立內容期間（DoEvents 內）可能已收到 /stop：此時不出光，直接回已停止
+                    if (job.StopRequested)
+                    {
+                        tcs.TrySetResult(new DaemonSpecResult { ExitCode = 11, Logs = sbLog.ToString() + $"[Board {board + 1}] stopped before StartMarking" });
+                        return;
+                    }
+
                     int markMode = spec.PreviewMode > 0 ? 3 : 4;
                     if (spec.PreviewMode > 0)
                         m_MMMark[board].SetPreviewMode(spec.PreviewMode);
@@ -476,7 +488,7 @@ namespace GuanDaLaserApp
                     // 故正式打標（mode 4）致能失敗即中止並回 exitCode 10；紅光預覽（mode 3）不出雷射，不受影響。
                     if (rcEn != 0 && markMode == 4)
                     {
-                        tcs.SetResult(new DaemonSpecResult
+                        tcs.TrySetResult(new DaemonSpecResult
                         {
                             ExitCode = 10,
                             Logs = sbLog.ToString() + $"[Board {board + 1}] EnableLaser(1) failed (rc={rcEn}" +
@@ -488,6 +500,12 @@ namespace GuanDaLaserApp
                     m_MMMark[board].MarkStandBy();
                     Application.DoEvents();
 
+                    if (job.StopRequested)
+                    {
+                        tcs.TrySetResult(new DaemonSpecResult { ExitCode = 11, Logs = sbLog.ToString() + $"[Board {board + 1}] stopped before StartMarking" });
+                        return;
+                    }
+
                     int rc = m_MMMark[board].StartMarking(markMode);
                     // 診斷：把每塊板的 StartMarking 結果寫進 daemon log（marking-daemon.log）。
                     // 成功時 sbLog 只回前端，不寫檔；這行讓「board 4 到底有沒有進到 StartMarking、rc 多少」可查。
@@ -498,7 +516,7 @@ namespace GuanDaLaserApp
                         // ⚠ 絕不能 StopMarking 去中止「正在跑的前一條工作」——那會把線段打到一半砍掉、
                         //   且在 UI 執行緒上 Stop/Sleep 會拖累其他板的完成監控，造成整體卡住。
                         //   正確做法：回報「板忙碌」讓 client 稍後重送，完全不動正在跑的工作。
-                        tcs.SetResult(new DaemonSpecResult
+                        tcs.TrySetResult(new DaemonSpecResult
                         {
                             ExitCode = 5,
                             Logs = sbLog.ToString() + $"[Board {board + 1}] busy (StartMarking returned 6，前一條尚未打完，請稍後重送)"
@@ -507,7 +525,7 @@ namespace GuanDaLaserApp
                     }
                     if (rc != 0)
                     {
-                        tcs.SetResult(new DaemonSpecResult
+                        tcs.TrySetResult(new DaemonSpecResult
                         {
                             ExitCode = 3,
                             Logs = sbLog.ToString() + $"[Board {board + 1}] StartMarking({markMode}) returned {rc}"
@@ -548,8 +566,13 @@ namespace GuanDaLaserApp
                     System.Windows.Forms.Timer monitor = new System.Windows.Forms.Timer { Interval = 100 };
                     int capturedBoard = board;
                     int capturedMode = markMode;
+                    job.Monitor = monitor;
+                    job.Sw = sw;
+                    job.Started = true;
                     monitor.Tick += (mts, mte) =>
                     {
+                        // 已被 /stop 中斷（收尾與回應由 StopDaemonBoards 處理）
+                        if (job.StopRequested) return;
                         try
                         {
                             long elapsed = sw.ElapsedMilliseconds;
@@ -565,7 +588,7 @@ namespace GuanDaLaserApp
                                     try { m_MMMark[capturedBoard].MarkShutdown(); } catch { }
                                     m_bCmdPreviewing[capturedBoard] = false;
                                     sbLog.AppendLine($"[Board {capturedBoard + 1}] preview done @{elapsed}ms");
-                                    tcs.SetResult(new DaemonSpecResult { ExitCode = 0, Logs = sbLog.ToString() });
+                                    tcs.TrySetResult(new DaemonSpecResult { ExitCode = 0, Logs = sbLog.ToString() });
                                     return;
                                 }
                                 long sinceRestart = elapsed - lastRestartMs;
@@ -575,6 +598,7 @@ namespace GuanDaLaserApp
                                 {
                                     m_MMMark[capturedBoard].MarkStandBy();
                                     Application.DoEvents();
+                                    if (job.StopRequested) return;   // DoEvents 期間收到 /stop：不可重啟預覽
                                     m_MMMark[capturedBoard].StartMarking(3);
                                     lastRestartMs = elapsed;
                                 }
@@ -600,6 +624,7 @@ namespace GuanDaLaserApp
                                             {
                                                 m_MMMark[capturedBoard].MarkStandBy();
                                                 Application.DoEvents();
+                                                if (job.StopRequested) return;   // DoEvents 期間收到 /stop：不可重跑下一輪
                                                 int rcLoop = m_MMMark[capturedBoard].StartMarking(4);
                                                 passStartMs = sw.ElapsedMilliseconds;
                                                 if (rcLoop != 0)
@@ -609,7 +634,7 @@ namespace GuanDaLaserApp
                                                     try { m_MMMark[capturedBoard].MarkShutdown(); } catch { }
                                                     m_bCmdPreviewing[capturedBoard] = false;
                                                     sbLog.AppendLine($"[Board {capturedBoard + 1}] loop {passesDone + 1}/{iMarkLoop} StartMarking(4) returned {rcLoop} @{elapsed}ms");
-                                                    tcs.SetResult(new DaemonSpecResult { ExitCode = 3, Logs = sbLog.ToString() });
+                                                    tcs.TrySetResult(new DaemonSpecResult { ExitCode = 3, Logs = sbLog.ToString() });
                                                     return;
                                                 }
                                                 sbLog.AppendLine($"[Board {capturedBoard + 1}] loop {passesDone}/{iMarkLoop} done @{elapsed}ms, next loop started");
@@ -619,7 +644,7 @@ namespace GuanDaLaserApp
                                                 monitor.Stop();
                                                 try { monitor.Dispose(); } catch { }
                                                 m_bCmdPreviewing[capturedBoard] = false;
-                                                tcs.SetResult(new DaemonSpecResult { ExitCode = 1, Logs = sbLog.ToString() + $"loop restart exception: {exLoop.Message}" });
+                                                tcs.TrySetResult(new DaemonSpecResult { ExitCode = 1, Logs = sbLog.ToString() + $"loop restart exception: {exLoop.Message}" });
                                             }
                                             return;
                                         }
@@ -632,7 +657,7 @@ namespace GuanDaLaserApp
                                         // 一比對就知道 board 4 是「有下指令但沒真的打」還是「根本沒進到這裡」。
                                         Console.Error.WriteLine($"[Board {capturedBoard + 1}] >>> mark done @{elapsed}ms ({iMarkLoop} loop(s)) @cold-diag");
                                         sbLog.AppendLine($"[Board {capturedBoard + 1}] mark done @{elapsed}ms ({iMarkLoop} loop(s))");
-                                        tcs.SetResult(new DaemonSpecResult { ExitCode = 0, Logs = sbLog.ToString() });
+                                        tcs.TrySetResult(new DaemonSpecResult { ExitCode = 0, Logs = sbLog.ToString() });
                                         return;
                                     }
                                 }
@@ -648,7 +673,7 @@ namespace GuanDaLaserApp
                                     try { m_MMMark[capturedBoard].MarkShutdown(); } catch { }
                                     m_bCmdPreviewing[capturedBoard] = false;
                                     sbLog.AppendLine($"[Board {capturedBoard + 1}] mark timeout @{elapsed}ms");
-                                    tcs.SetResult(new DaemonSpecResult { ExitCode = 3, Logs = sbLog.ToString() });
+                                    tcs.TrySetResult(new DaemonSpecResult { ExitCode = 3, Logs = sbLog.ToString() });
                                 }
                             }
                         }
@@ -657,7 +682,7 @@ namespace GuanDaLaserApp
                             monitor.Stop();
                             try { monitor.Dispose(); } catch { }
                             m_bCmdPreviewing[capturedBoard] = false;
-                            tcs.SetResult(new DaemonSpecResult { ExitCode = 1, Logs = sbLog.ToString() + $"monitor exception: {ex.Message}" });
+                            tcs.TrySetResult(new DaemonSpecResult { ExitCode = 1, Logs = sbLog.ToString() + $"monitor exception: {ex.Message}" });
                         }
                     };
                     monitor.Start();
@@ -666,11 +691,96 @@ namespace GuanDaLaserApp
                 {
                     if (board >= 0 && board < m_bCmdPreviewing.Length)
                         m_bCmdPreviewing[board] = false;
-                    tcs.SetResult(new DaemonSpecResult { ExitCode = 1, Logs = sbLog.ToString() + $"exception: {ex.Message}" });
+                    tcs.TrySetResult(new DaemonSpecResult { ExitCode = 1, Logs = sbLog.ToString() + $"exception: {ex.Message}" });
                 }
             }));
 
             return tcs.Task;
+        }
+
+        /// <summary>
+        /// Daemon /stop 進入點：切到 UI thread 停止指定板（board=null 表示全部已初始化的板）。
+        /// </summary>
+        public System.Threading.Tasks.Task<DaemonSpecResult> RunDaemonStop(int? board)
+        {
+            var tcs = new System.Threading.Tasks.TaskCompletionSource<DaemonSpecResult>();
+            this.BeginInvoke((Action)(() =>
+            {
+                try { tcs.TrySetResult(StopDaemonBoards(board)); }
+                catch (Exception ex)
+                {
+                    tcs.TrySetResult(new DaemonSpecResult { ExitCode = 1, Logs = $"stop exception: {ex.Message}" });
+                }
+            }));
+            return tcs.Task;
+        }
+
+        /// <summary>
+        /// 停止出光（必須在 UI thread 呼叫）。每塊板的順序：
+        ///   1. 標記 job.StopRequested（monitor 與各 StartMarking 前都會檢查，避免停了又自動重新出光）
+        ///   2. 若該板仍在建立內容階段 → 只設旗標，不碰 SDK（避免在 ResetFile / AddLine 途中 MarkShutdown），
+        ///      由 RunDaemonSpec 在 StartMarking 前自行中止並回 11
+        ///   3. 否則：停 monitor → 停命令提示頁 Timer → StopMarking → MarkShutdown → 清忙碌旗標 → 原命令回 11
+        /// 不重新初始化：StopMarking + MarkShutdown 後下一條命令可直接打（與逾時 / 預覽結束路徑相同）。
+        /// </summary>
+        private DaemonSpecResult StopDaemonBoards(int? board)
+        {
+            if (board.HasValue && (board.Value < 0 || board.Value >= m_bBoardInit.Length || !m_bBoardInit[board.Value]))
+                return new DaemonSpecResult { ExitCode = 4, Logs = $"board {board.Value + 1} not initialized" };
+
+            var sb = new StringBuilder();
+            int from = board ?? 0;
+            int to = board ?? (m_bBoardInit.Length - 1);
+            for (int b = from; b <= to; b++)
+            {
+                if (!m_bBoardInit[b] || m_MMMark[b] == null) continue;
+
+                var job = m_DaemonJobs[b];
+                bool active = job != null && !job.Tcs.Task.IsCompleted;
+                if (active)
+                {
+                    job.StopRequested = true;
+                    if (!job.Started)
+                    {
+                        sb.AppendLine($"[Board {b + 1}] stop requested during build (will not start marking)");
+                        continue;
+                    }
+                    try { job.Monitor?.Stop(); job.Monitor?.Dispose(); } catch { }
+                }
+
+                // 命令提示頁籤的預覽 Timer 若還在跑，之後到期會 StopMarking 砍掉下一條新工作，必須一起停
+                try { m_TimerCmdPreview[b]?.Stop(); } catch { }
+
+                try { m_MMMark[b].StopMarking(); } catch (Exception ex) { sb.AppendLine($"[Board {b + 1}] StopMarking 失敗：{ex.Message}"); }
+                // MarkShutdown 清掉「still marking/previewing」殘留，否則下一條 StartMarking 會回 6
+                try { m_MMMark[b].MarkShutdown(); } catch { }
+                m_bCmdPreviewing[b] = false;
+
+                // GUI 紅光預覽若在這塊板上，一併收掉，避免 IsBoardBusy 持續為 true 到 timerPreview 到期
+                if (m_bPreviewing && m_iPreviewBoard == b)
+                {
+                    timerPreview.Stop();
+                    m_bPreviewing = false;
+                    m_iPreviewBoard = -1;
+                    ResetPreviewButtonsAfterStop();
+                }
+
+                if (active)
+                {
+                    long ms = job.Sw?.ElapsedMilliseconds ?? 0;
+                    job.Log.AppendLine($"[Board {b + 1}] stopped by /stop @{ms}ms");
+                    job.Tcs.TrySetResult(new DaemonSpecResult { ExitCode = 11, Logs = job.Log.ToString() });
+                    sb.AppendLine($"[Board {b + 1}] stopped (interrupted job @{ms}ms)");
+                }
+                else
+                {
+                    sb.AppendLine($"[Board {b + 1}] stopped (no daemon job)");
+                }
+                Console.Error.WriteLine($"[Board {b + 1}] >>> /stop handled");
+            }
+
+            if (sb.Length == 0) sb.AppendLine("no initialized board");
+            return new DaemonSpecResult { ExitCode = 0, Logs = sb.ToString() };
         }
 
         /// <summary>

@@ -75,6 +75,10 @@ namespace GuanDaLaserApp
         public bool DaemonMode { get; private set; }
         public bool ClientMode { get; private set; }
         public int DaemonPort { get; private set; }
+        // 停止出光（僅 daemon 模式有效，經 client 轉送到 /stop）
+        public bool Stop { get; private set; }
+        // 是否明確帶了 --board（--stop 未帶時代表停全部板，需與「--board 0」區分）
+        public bool BoardExplicit { get; private set; }
 
         // 是否使用者明確指定了 --config（影響後續是否要依 --board 自動推導預設值）
         private bool m_ConfigPathExplicit = false;
@@ -167,6 +171,7 @@ namespace GuanDaLaserApp
                     if (i + 1 < args.Length && int.TryParse(args[i + 1], out int board))
                     {
                         result.BoardIndex = board;
+                        result.BoardExplicit = true;
                         i++;
                         result.IsAutoMode = true;
                     }
@@ -545,6 +550,11 @@ namespace GuanDaLaserApp
                     result.ClientMode = true;
                     result.IsAutoMode = true;
                 }
+                else if (argLower == "--stop")
+                {
+                    result.Stop = true;
+                    result.IsAutoMode = true;
+                }
                 else if (argLower == "--port")
                 {
                     if (i + 1 < args.Length && int.TryParse(args[i + 1], out int p) && p > 0 && p < 65536)
@@ -636,6 +646,9 @@ namespace GuanDaLaserApp
   --client                              Thin client：把後續命令字串 POST 到 daemon，
                                         收到 ExitCode 後結束。不直接動 SDK。
   --port <N>                            Daemon 監聽 port（預設 19527）；client 連接 port。
+  --stop                                停止出光（僅 daemon 模式）：搭配 --board N 只停該板，
+                                        不帶 --board 則停全部板。被中斷的那條命令回 ExitCode 11。
+                                        停止後不需重新初始化，可直接送下一條命令。
 
 並行模式：
   SDK 不支援多個 process 同時 init OCX。要讓多塊板平行動作的正確做法是
@@ -699,6 +712,11 @@ namespace GuanDaLaserApp
   #     headers: { 'Content-Type': 'text/plain' },
   #     body: '--board 2 --line -20,-20,20,20 --mark --preview full'
   #   }).then(r => r.json()).then(r => console.log(r.exitCode, r.logs))
+  # 停止出光（daemon 模式）：只停板 0 / 停全部板
+  MarkingMate.exe --client --stop --board 0
+  MarkingMate.exe --client --stop
+  # 網頁端：fetch('http://localhost:19527/stop?board=0', { method: 'POST' })
+  #   （不帶 ?board 停全部板；前端收到 ExitCode 11 不可自動重送，並應停止送佇列中的下一條）
   # 停止 daemon：
   MarkingMate.exe --client --shutdown
   # 或直接：  curl -X POST http://localhost:19527/shutdown
@@ -726,6 +744,7 @@ namespace GuanDaLaserApp
   7  - client 例外
   9  - 控制卡未連接，請稍後重試（daemon）
   10 - 雷射致能失敗，未打標（daemon）
+  11 - 已被 --stop / POST /stop 中斷（daemon）
   -2 - 該板已被其他程序使用
   -3 - daemon 已在執行
 ";

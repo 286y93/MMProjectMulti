@@ -67,6 +67,15 @@ namespace GuanDaLaserApp
                 }
             }
 
+            // --stop 只對 daemon 有效。沒有 daemon 時不可往下走去 init OCX；
+            // 單機 CLI 的打標由另一個 process 持有 OCX，無法從外部停止。
+            if (cmdArgs.Stop && !cmdArgs.DaemonMode && !cmdArgs.ShowHelp)
+            {
+                AttachConsole(ATTACH_PARENT_PROCESS);
+                Console.Error.WriteLine("Error: --stop 僅適用 daemon 模式，目前沒有 daemon 在運行。");
+                return 6;
+            }
+
             // 各模式使用不同 Mutex name 避免互鎖
             string mutexName;
             if (cmdArgs.DaemonMode)
@@ -145,6 +154,8 @@ namespace GuanDaLaserApp
             AttachConsole(ATTACH_PARENT_PROCESS);
 
             bool shutdown = false;
+            bool stop = false;
+            string stopBoard = null;
             var passthrough = new List<string>();
             for (int i = 0; i < args.Length; i++)
             {
@@ -152,10 +163,19 @@ namespace GuanDaLaserApp
                 if (a == "--client") continue;
                 if (a == "--port") { if (i + 1 < args.Length) i++; continue; }
                 if (a == "--shutdown") { shutdown = true; continue; }
+                if (a == "--stop") { stop = true; continue; }
+                if ((a == "--board" || a == "-b") && i + 1 < args.Length) stopBoard = args[i + 1];
                 passthrough.Add(args[i]);
             }
 
-            string url = $"http://localhost:{port}/" + (shutdown ? "shutdown" : "cmd");
+            string url;
+            if (shutdown)
+                url = $"http://localhost:{port}/shutdown";
+            else if (stop)
+                url = $"http://localhost:{port}/stop" + (stopBoard != null ? "?board=" + Uri.EscapeDataString(stopBoard) : "");
+            else
+                url = $"http://localhost:{port}/cmd";
+            bool noBody = shutdown || stop;
             string body = string.Join(" ", passthrough.Select(QuoteIfNeeded));
 
             try
@@ -163,9 +183,10 @@ namespace GuanDaLaserApp
                 var req = (HttpWebRequest)WebRequest.Create(url);
                 req.Method = "POST";
                 req.ContentType = "text/plain; charset=utf-8";
-                req.Timeout = 10 * 60 * 1000; // 10 分鐘上限（與 daemon task.Wait 一致；清晰版多輪重複打標較久）
+                // 10 分鐘上限（與 daemon task.Wait 一致；清晰版多輪重複打標較久）；停止命令應立即回應，用短逾時
+                req.Timeout = stop ? 30 * 1000 : 10 * 60 * 1000;
 
-                if (!shutdown)
+                if (!noBody)
                 {
                     byte[] bodyBytes = Encoding.UTF8.GetBytes(body);
                     req.ContentLength = bodyBytes.Length;
