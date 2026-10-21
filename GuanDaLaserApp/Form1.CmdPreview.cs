@@ -273,14 +273,10 @@ namespace GuanDaLaserApp
                     double wobWidth = spec.WobbleWidth.Value;
                     int wobbleFreq = (int)(wobSpeed / (Math.PI * wobWidth));
 
-                    m_MMMark[board].SelectAllObjects();
-                    long objCount = m_MMMark[board].SelectGetCount();
-                    System.Diagnostics.Debug.WriteLine($"[Cmd] Board {board + 1} wobble apply: objCount={objCount}");
-                    for (int i = 0; i < objCount; i++)
+                    List<string> objNames = GetAllObjectNames(board);
+                    System.Diagnostics.Debug.WriteLine($"[Cmd] Board {board + 1} wobble apply: objCount={objNames.Count}");
+                    foreach (string objName in objNames)
                     {
-                        string objName = "";
-                        m_MMMark[board].SelectEnum(i, ref objName);
-                        if (string.IsNullOrEmpty(objName)) continue;
                         m_MMMark[board].SetWobble(objName, wobWidth, wobbleFreq);
                         m_MMMark[board].SetWobbleSwitch(objName, 1);
                     }

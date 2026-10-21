@@ -2756,18 +2756,12 @@ namespace GuanDaLaserApp
                 // 預覽模式下套用預覽速度
                 if (previewMode > 0 && m_AutoModeArgs.PreviewSpeed.HasValue)
                 {
-                    m_MMMark[boardIndex].SelectAllObjects();
-                    long objCount = m_MMMark[boardIndex].SelectGetCount();
-                    for (int i = 0; i < objCount; i++)
+                    List<string> objNames = GetAllObjectNames(boardIndex);
+                    foreach (string objName in objNames)
                     {
-                        string objName = "";
-                        m_MMMark[boardIndex].SelectEnum(i, ref objName);
-                        if (!string.IsNullOrEmpty(objName))
-                        {
-                            m_MMMark[boardIndex].SetSpeed(objName, m_AutoModeArgs.PreviewSpeed.Value);
-                        }
+                        m_MMMark[boardIndex].SetSpeed(objName, m_AutoModeArgs.PreviewSpeed.Value);
                     }
-                    Console.WriteLine($"Preview speed set to {m_AutoModeArgs.PreviewSpeed.Value} mm/s for {objCount} objects.");
+                    Console.WriteLine($"Preview speed set to {m_AutoModeArgs.PreviewSpeed.Value} mm/s for {objNames.Count} objects.");
                 }
 
                 if (previewMode > 0)
@@ -2870,6 +2864,37 @@ namespace GuanDaLaserApp
         }
 
         /// <summary>
+        /// 列舉該板目前所有物件名稱（會先 SelectAllObjects）。
+        /// SDK 的 SelectEnum 索引實測從 1 開始：SelectEnum(0) 回空字串，物件名稱落在 1..objCount。
+        /// 原本 for (i = 0; i &lt; objCount) 會漏掉最後一個物件，只有一個物件時更是全部漏掉
+        /// （該物件改用預設筆參數出光）。這裡查 0..objCount（含兩端）並去除空值與重複，
+        /// 不論 SDK 實際從 0 或 1 起算都能取得全部物件。
+        /// </summary>
+        private List<string> GetAllObjectNames(int boardIndex)
+        {
+            var names = new List<string>();
+            var seen = new HashSet<string>();
+            m_MMMark[boardIndex].SelectAllObjects();
+            long objCount = m_MMMark[boardIndex].SelectGetCount();
+            for (int i = 0; i <= objCount; i++)
+            {
+                string objName = "";
+                try
+                {
+                    m_MMMark[boardIndex].SelectEnum(i, ref objName);
+                }
+                catch (Exception)
+                {
+                    // 超出範圍的索引可能拋例外，視為無此物件
+                    continue;
+                }
+                if (!string.IsNullOrEmpty(objName) && seen.Add(objName))
+                    names.Add(objName);
+            }
+            return names;
+        }
+
+        /// <summary>
         /// 自動模式：套用雷射參數到所有物件
         /// </summary>
         private void ApplyLaserParamsAuto(int boardIndex, bool applyRepeat = true)
@@ -2885,14 +2910,9 @@ namespace GuanDaLaserApp
                     return;
                 }
 
-                for (int i = 0; i < objCount; i++)
+                List<string> objNames = GetAllObjectNames(boardIndex);
+                foreach (string objName in objNames)
                 {
-                    string objName = "";
-                    m_MMMark[boardIndex].SelectEnum(i, ref objName);
-
-                    if (string.IsNullOrEmpty(objName))
-                        continue;
-
                     if (m_AutoModeArgs.Power.HasValue)
                         m_MMMark[boardIndex].SetPower(objName, m_AutoModeArgs.Power.Value);
 
@@ -2940,7 +2960,7 @@ namespace GuanDaLaserApp
                 // 套用參數後 Redraw，確保標記引擎載入新設定
                 m_MMMark[boardIndex].Redraw();
 
-                Console.WriteLine($"[Board {boardIndex + 1}] Laser params applied to {objCount} objects." +
+                Console.WriteLine($"[Board {boardIndex + 1}] Laser params applied to {objNames.Count}/{objCount} objects." +
                     $" Power={m_AutoModeArgs.Power?.ToString() ?? "default"}" +
                     $" Speed={m_AutoModeArgs.Speed?.ToString() ?? "default"}" +
                     $" Freq={m_AutoModeArgs.Frequency?.ToString() ?? "default"}" +

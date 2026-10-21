@@ -93,14 +93,8 @@ namespace GuanDaLaserApp
                 if (objCount == 0)
                     return true; // 沒有物件，不算失敗
 
-                for (int i = 0; i < objCount; i++)
+                foreach (string objName in GetAllObjectNames(boardIndex))
                 {
-                    string objName = "";
-                    m_MMMark[boardIndex].SelectEnum(i, ref objName);
-
-                    if (string.IsNullOrEmpty(objName))
-                        continue;
-
                     m_MMMark[boardIndex].SetPower(objName, power);
                     m_MMMark[boardIndex].SetSpeed(objName, speed);
                     m_MMMark[boardIndex].SetFrequency(objName, frequency);
@@ -208,14 +202,8 @@ namespace GuanDaLaserApp
                 sb.AppendLine(new string('-', 40));
 
                 int successCount = 0;
-                for (int i = 0; i < objCount; i++)
+                foreach (string objName in GetAllObjectNames(boardIndex))
                 {
-                    string objName = "";
-                    m_MMMark[boardIndex].SelectEnum(i, ref objName);
-
-                    if (string.IsNullOrEmpty(objName))
-                        continue;
-
                     long r1 = m_MMMark[boardIndex].SetPower(objName, power);
                     long r2 = m_MMMark[boardIndex].SetSpeed(objName, speed);
                     long r3 = m_MMMark[boardIndex].SetFrequency(objName, frequency);
@@ -291,14 +279,9 @@ namespace GuanDaLaserApp
                 sb.AppendLine(new string('-', 40));
 
                 // 讀取每個物件的參數
-                for (int i = 0; i < objCount; i++)
+                bool isFirst = true;
+                foreach (string objName in GetAllObjectNames(boardIndex))
                 {
-                    string objName = "";
-                    m_MMMark[boardIndex].SelectEnum(i, ref objName);
-
-                    if (string.IsNullOrEmpty(objName))
-                        continue;
-
                     double p = m_MMMark[boardIndex].GetPower(objName);
                     double s = m_MMMark[boardIndex].GetSpeed(objName);
                     double f = m_MMMark[boardIndex].GetFrequency(objName);
@@ -320,8 +303,9 @@ namespace GuanDaLaserApp
                     sb.AppendLine();
 
                     // 以第一個物件的值回填到 UI
-                    if (i == 0)
+                    if (isFirst)
                     {
+                        isFirst = false;
                         numPower.Value = (decimal)Math.Max(0, Math.Min(100, p));
                         txtSpeed.Text = s.ToString("F1");
                         txtFrequency.Text = f.ToString("F1");
