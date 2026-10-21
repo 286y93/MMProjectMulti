@@ -208,6 +208,10 @@ namespace GuanDaLaserApp
                     return;
                 }
                 Console.WriteLine($"[Daemon] 啟動中，依主 IP 表偵測到 {daemonBoardCount} 塊已設定的晶片板，開始初始化...");
+                // 上一個 daemon 若被強制結束（taskkill /F、工作管理員），OnFormClosed 不會執行，
+                // 它的 MM27Dx64 引擎會變成孤兒並佔住 EMC6 卡；且 init 以「引擎數 +1」判定本板引擎已起，
+                // 孤兒會讓每塊板都等到逾時 → daemon 啟動逾時。init 前先清掉。
+                KillStaleMarkingEnginesBeforeInit();
                 // target 設為最後一塊（其 config 用預設），InitializeBoardAuto 內會再依偵測數 init board 0~N-1。
                 if (!InitializeBoardAuto(daemonBoardCount - 1, m_ConfigPaths[daemonBoardCount - 1]))
                 {
@@ -239,6 +243,44 @@ namespace GuanDaLaserApp
             // 害下一次 init 撞 "Please initial MMMark_1 OCX first!"（過去以為要重開機才能恢復）。
             CleanupMM27Dx64OnExit();
             base.OnFormClosed(e);
+        }
+
+        /// <summary>
+        /// Daemon init 前清理殘留（孤兒）的 MM27Dx64 引擎，並等它們真的結束、釋放 EMC6 卡。
+        /// 僅在「沒有其他 MarkingMate 實例」時才殺，避免並行的其他實例正在使用它們。
+        /// </summary>
+        private static void KillStaleMarkingEnginesBeforeInit()
+        {
+            const int EngineExitTimeoutMs = 3000;
+            try
+            {
+                var processes = System.Diagnostics.Process.GetProcessesByName(MarkingEngineProcName);
+                if (processes.Length == 0) return;
+                if (HasOtherMarkingMateInstance())
+                {
+                    Console.Error.WriteLine($"[Daemon] 偵測到 {processes.Length} 個殘留 {MarkingEngineProcName}，但有其他 MarkingMate 實例執行中，不清理");
+                    return;
+                }
+
+                Console.Error.WriteLine($"[Daemon] 偵測到 {processes.Length} 個殘留 {MarkingEngineProcName}（前一個 daemon 未正常結束），清理後再初始化");
+                foreach (var proc in processes)
+                {
+                    try
+                    {
+                        proc.Kill();
+                        proc.WaitForExit(EngineExitTimeoutMs);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.Error.WriteLine($"[Daemon] 結束殘留 {MarkingEngineProcName} 失敗 (PID {proc.Id})：{ex.Message}");
+                    }
+                }
+                Console.WriteLine($"[Daemon] 殘留引擎清理完成（目前引擎數={System.Diagnostics.Process.GetProcessesByName(MarkingEngineProcName).Length}）");
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[Daemon] 清理殘留引擎例外：{ex.Message}");
+            }
         }
 
         /// <summary>
