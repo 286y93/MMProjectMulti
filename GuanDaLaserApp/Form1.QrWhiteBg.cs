@@ -704,7 +704,7 @@ namespace GuanDaLaserApp
                     m_MMEdit[boardIndex].SetBarcodeSpotSize(qrName, 0.04);     // 0.02 → 0.04
                     m_MMEdit[boardIndex].SetBarcodeLineTimes(qrName, 4);       // 1 → 4
                     m_MMEdit[boardIndex].SetFillStartAngle(qrName, 0);
-                    m_MMEdit[boardIndex].SetFillStepAngle(qrName, 90);         // 90 → 45
+                    m_MMEdit[boardIndex].SetFillStepAngle(qrName, 45);         // 90 → 45
                     m_MMEdit[boardIndex].SetBarcodeLineTwoway(qrName, 1);
                     m_MMEdit[boardIndex].SetFrameSwitch(qrName, 1);
                     m_MMEdit[boardIndex].SetFillSwitch(qrName, 1);

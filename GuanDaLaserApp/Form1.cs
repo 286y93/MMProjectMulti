@@ -2719,7 +2719,7 @@ namespace GuanDaLaserApp
             // 填滿起始角度
             m_MMEdit[boardIndex].SetFillStartAngle(rectName, 0);//90 → 0 
             // 填滿累進角度
-            m_MMEdit[boardIndex].SetFillStepAngle(rectName, 45);// 45 → 90
+            m_MMEdit[boardIndex].SetFillStepAngle(rectName, 90);// 45 → 90
             // 填滿間距是否平均分配
             m_MMEdit[boardIndex].SetFillAverageDistribution(rectName, 1);
             // 外框是否開啟
