@@ -4,7 +4,9 @@
 > GUI 模式請見 [故障排除完整指南.md](故障排除完整指南.md)。
 > 完整命令列使用手冊請見 [命令列模式使用說明.txt](../命令列模式使用說明.txt)。
 >
-> **最後同步日期：2026-08-07**（`--qr-whitebg` 兩圖層雷射參數改為可用 `--qr-*` / `--rect-*` CLI 覆寫；exe `WhiteBgQRParams` 預設：QR 25×25/border 2/power 90/speed 1200/freq 80/pw 30、矩形 power 100/speed 800/freq 80/pw 250）
+> **最後同步日期：2026-10-22**（`--qr-whitebg` 新增 `--qr-size-mode <module|outer>`，`outer` 可依含外框的實際長寬建立；QR 尺寸參數不合法回 exitCode 4，見 9a）
+>
+> 2026-08-07：`--qr-whitebg` 兩圖層雷射參數改為可用 `--qr-*` / `--rect-*` CLI 覆寫；exe `WhiteBgQRParams` 預設：QR 25×25/border 2/power 90/speed 1200/freq 80/pw 30、矩形 power 100/speed 800/freq 80/pw 250
 
 ---
 
@@ -409,6 +411,14 @@ cmd> MarkingMate.exe --board 0 --line 0,0,50,50 --mark
      - `outer`：長寬 = 含外框的實際總長寬，`cell = 長寬 / (modules + 2 × border)`；建立後讀回 `GetWidth/GetHeight`，誤差 > 0.005mm 時等比修正 cell 一次。白底矩形同尺寸（+ RectExtra，CLI 固定 0）。
      - `modules = 17 + 4 × version`，version 由 SDK 依內容決定。log 的 `WhiteBg QR ver=… cell=… rendered=…` 可確認實際尺寸；cell < 0.2mm 會印 `Warning`（不中止）。
      - 範例：`--client --board 0 --qrcode "1234567" --qr-whitebg --qr-width 30 --qr-height 30 --qr-size-mode outer --mark`
+   - **QR 尺寸參數錯誤一律回 exitCode 4**（`ValidateQR`，建立內容前檢查、不動板子；命令提示 / CLI 編輯器頁籤則跳 MessageBox）：
+
+     | 情況 | 錯誤訊息 |
+     |---|---|
+     | `--qr-width` ≤ 0 | `--qr-width 必須大於 0` |
+     | `--qr-height` ≤ 0 | `--qr-height 必須大於 0` |
+     | `--qr-size-mode` 不是 `module` / `outer` | `--qr-size-mode 必須是 module 或 outer` |
+     | `--qr-size-mode outer` 未搭配 `--qr-whitebg` | `--qr-size-mode outer 目前僅支援 --qr-whitebg` |
    - **CLI 仍無法覆寫的寫死參數**：矩形 FillStyle/FillTimes/InsideOut/StartAngle/StepAngle、QR SpotSize/LineTimes/StepAngle。若需調整需改 `Form1.cs`（`BuildWhiteBgQR` 或 `WhiteBgQRParams`）並重編。
    - 白底模式會**跳過** `ApplyLaserParamsAuto`，避免覆寫各圖層已個別設好的雷射參數。
    - 適用 daemon、模式 A、GUI「命令提示」頁籤（tab 8）與「CLI 編輯器」頁籤（tab 7 的 QRCODE 區塊），四條路徑共用 `BuildWhiteBgQR` 後端。
