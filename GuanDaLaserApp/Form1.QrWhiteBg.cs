@@ -704,7 +704,7 @@ namespace GuanDaLaserApp
                     m_MMEdit[boardIndex].SetBarcodeSpotSize(qrName, 0.04);     // 0.02 → 0.04
                     m_MMEdit[boardIndex].SetBarcodeLineTimes(qrName, 4);       // 1 → 4
                     m_MMEdit[boardIndex].SetFillStartAngle(qrName, 0);
-                    m_MMEdit[boardIndex].SetFillStepAngle(qrName, 45);         // 90 → 45
+                    m_MMEdit[boardIndex].SetFillStepAngle(qrName, 90);         // 90 → 45
                     m_MMEdit[boardIndex].SetBarcodeLineTwoway(qrName, 1);
                     m_MMEdit[boardIndex].SetFrameSwitch(qrName, 1);
                     m_MMEdit[boardIndex].SetFillSwitch(qrName, 1);
@@ -758,17 +758,42 @@ namespace GuanDaLaserApp
                     Thread.Sleep(200);
 
                     // 5) 矩形屬性 + 雷射參數
+                    // 填滿方式                
                     m_MMEdit[boardIndex].SetFillStyle(rectName, 3);             // 1 → 3
+                    // 外框模式
+                    // 0: 外框實線。
+                    // 1: 外框短虛線。
+                    // 2: 外框點虛線。
                     m_MMEdit[boardIndex].SetFrameLineType(rectName, 1);
+                    // 填滿的圈距
                     m_MMEdit[boardIndex].SetFillRoundPitch(rectName, 0.04);
+                    // 填滿的間距
                     m_MMEdit[boardIndex].SetFillPitch(rectName, 0.04);
+                    // 填滿的次數
                     m_MMEdit[boardIndex].SetFillTimes(rectName, 4);             // 1 → 4
+                    // 迴圈型填滿輸出方式
+                    // 0: 向內，依是否啟用”變動起點”，設定為向內，固定起點或向內，變動起點。
+                    // 1: 向外，依是否啟用”變動起點”，設定為向外，固定起點或向外，變動起點。
                     m_MMEdit[boardIndex].SetFillInsideOut(rectName, 1);         // 向內
+                    // 填滿的起始角度
                     m_MMEdit[boardIndex].SetFillStartAngle(rectName, 90);
-                    m_MMEdit[boardIndex].SetFillStepAngle(rectName, 45);
+                    // 填滿的累進角度
+                    m_MMEdit[boardIndex].SetFillStepAngle(rectName, 90);
+                    // 填滿間距是否平均分配
+                    // 0: 非平均分配模式
+                    // 1: 平均分配模式
                     m_MMEdit[boardIndex].SetFillAverageDistribution(rectName, 1);
+                    // 外框是否開啟
+                    // 1︰開啟。
+                    // 0︰關閉。
                     m_MMEdit[boardIndex].SetFrameSwitch(rectName, 1);
+                    // 填滿是否開啟
+                    // 1︰開啟。
+                    // 0︰關閉。
                     m_MMEdit[boardIndex].SetFillSwitch(rectName, 1);
+                    // 目標物件的填滿優先是否開啟
+                    // 1︰開啟。
+                    // 0︰關閉。
                     m_MMEdit[boardIndex].SetFillFirstExt(rectName, 0, 1);
                     m_MMMark[boardIndex].SetSpeed(rectName, rectSpeed);
                     m_MMMark[boardIndex].SetPower(rectName, rectPower);
