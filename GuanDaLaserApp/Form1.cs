@@ -100,6 +100,12 @@ namespace GuanDaLaserApp
         // 0 = 不延伸（等同現行行為）。線段填滿的模組邊緣若有未打滿的縫，調大這個值。
         private const double QR_LINE_EXTEND = 0.0;
 
+        // 白底 QR outer 模式：實際渲染尺寸與目標差超過此值 (mm) 時，等比修正 cellSize 一次
+        private const double QR_OUTER_TOLERANCE = 0.005;
+
+        // QR 單元 (cell) 小於此值 (mm) 時 log 警告（不中止），提醒可能雕刻 / 讀取失敗
+        private const double QR_MIN_CELL_WARN = 0.2;
+
         // GUI 模式建構子
         public Form1()
         {
@@ -404,6 +410,16 @@ namespace GuanDaLaserApp
                         if (!AprilTagFitsWorkspace(tagParams, m_WorkspaceSize, m_WorkspaceHeight, out tagErr))
                         {
                             tcs.TrySetResult(new DaemonSpecResult { ExitCode = 4, Logs = tagErr });
+                            return;
+                        }
+                    }
+                    else if (spec.Lines == null || spec.Lines.Count == 0)
+                    {
+                        // QR：尺寸參數檢查（不合法回 exitCode 4，不動板子）
+                        string qrErr;
+                        if (!spec.ValidateQR(out qrErr))
+                        {
+                            tcs.TrySetResult(new DaemonSpecResult { ExitCode = 4, Logs = qrErr });
                             return;
                         }
                     }
@@ -1917,6 +1933,14 @@ namespace GuanDaLaserApp
                 }
                 else if (!string.IsNullOrEmpty(m_AutoModeArgs.QRContent))
                 {
+                    string qrErr;
+                    if (!m_AutoModeArgs.ValidateQR(out qrErr))
+                    {
+                        Console.Error.WriteLine($"Error: {qrErr}");
+                        ExitCode = 4;
+                        this.Close();
+                        return;
+                    }
                     bool qrOk;
                     if (m_AutoModeArgs.QRWhiteBg)
                         qrOk = BuildWhiteBgQR(m_AutoModeArgs.BoardIndex, MakeWhiteBgParams(m_AutoModeArgs));
@@ -2539,6 +2563,7 @@ namespace GuanDaLaserApp
             if (a.QRWidthExplicit) p.QrWidth = a.QRWidth;
             if (a.QRHeightExplicit) p.QrHeight = a.QRHeight;
             if (a.QRBorderExplicit) p.Border = a.QRBorder;
+            p.OuterSize = a.QRSizeMode == "outer";
             // QR 資料層：--qr-* 優先，未帶則 fallback 到通用 --power/--speed（向後相容）
             if (a.QRPower.HasValue) p.QrPower = a.QRPower.Value;
             else if (a.Power.HasValue) p.QrPower = a.Power.Value;
@@ -2620,15 +2645,18 @@ namespace GuanDaLaserApp
             // 脈衝寬度
             m_MMMark[boardIndex].SetPulseWidth(qrName, p.QrPulseWidth);
 
-            // 反推 cellSize，讓 QR 資料區渲染 = UI 長寬
+            // 反推 cellSize：
+            //   module 模式：資料區渲染 = 指定長寬（外框另加）→ cell = 長寬 / modules
+            //   outer  模式：含外框總尺寸 = 指定長寬          → cell = 長寬 / (modules + 2 × border)
             m_MMMark[boardIndex].Redraw();
             Application.DoEvents();
             Thread.Sleep(300);
             long qrVersion = m_MMEdit[boardIndex].Get2DBarcodeQRVersion(qrName);
             if (qrVersion < 1) qrVersion = 1;
             int modules = 17 + 4 * (int)qrVersion;
-            double cellW = p.QrWidth / modules;
-            double cellH = p.QrHeight / modules;
+            int cellsAcross = p.OuterSize ? modules + 2 * p.Border : modules;
+            double cellW = p.QrWidth / cellsAcross;
+            double cellH = p.QrHeight / cellsAcross;
             m_MMEdit[boardIndex].Set2DBarcodeFixedCellSize(qrName, cellW, cellH);
             m_MMMark[boardIndex].Redraw();
             Application.DoEvents();
@@ -2636,9 +2664,29 @@ namespace GuanDaLaserApp
 
             double actualW = m_MMEdit[boardIndex].GetWidth(qrName);
             double actualH = m_MMEdit[boardIndex].GetHeight(qrName);
+
+            // outer 模式：SDK 對 cellSize 有內部捨入，依實際渲染尺寸等比修正一次
+            if (p.OuterSize && actualW > 0 && actualH > 0
+                && (Math.Abs(actualW - p.QrWidth) > QR_OUTER_TOLERANCE || Math.Abs(actualH - p.QrHeight) > QR_OUTER_TOLERANCE))
+            {
+                cellW *= p.QrWidth / actualW;
+                cellH *= p.QrHeight / actualH;
+                m_MMEdit[boardIndex].Set2DBarcodeFixedCellSize(qrName, cellW, cellH);
+                m_MMMark[boardIndex].Redraw();
+                Application.DoEvents();
+                Thread.Sleep(300);
+                Console.Error.WriteLine($"[Board {boardIndex + 1}] WhiteBg outer 校正：rendered {actualW}x{actualH} → cell={cellW:F4}x{cellH:F4}");
+                actualW = m_MMEdit[boardIndex].GetWidth(qrName);
+                actualH = m_MMEdit[boardIndex].GetHeight(qrName);
+            }
+
             if (actualW > 0) rectBaseW = actualW;
             if (actualH > 0) rectBaseH = actualH;
-            Console.Error.WriteLine($"[Board {boardIndex + 1}] WhiteBg QR ver={qrVersion} modules={modules} cell={cellW:F4}x{cellH:F4} rendered={actualW}x{actualH}");
+            Console.Error.WriteLine($"[Board {boardIndex + 1}] WhiteBg QR ver={qrVersion} modules={modules} border={p.Border} " +
+                $"mode={(p.OuterSize ? "outer" : "module")} target={p.QrWidth}x{p.QrHeight} cell={cellW:F4}x{cellH:F4} rendered={actualW}x{actualH}");
+            if (Math.Min(cellW, cellH) < QR_MIN_CELL_WARN)
+                Console.Error.WriteLine($"[Board {boardIndex + 1}] Warning: QR 單元 {Math.Min(cellW, cellH):F4} mm 小於 {QR_MIN_CELL_WARN} mm，" +
+                    "可能無法正確雕刻或讀取，請加大長寬或縮短內容");
 
             // ---- 白底矩形（= QR 實際渲染尺寸 + RectExtra）----
             double rectW = rectBaseW + p.RectExtra;

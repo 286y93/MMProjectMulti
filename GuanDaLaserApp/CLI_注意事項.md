@@ -390,7 +390,7 @@ cmd> MarkingMate.exe --board 0 --line 0,0,50,50 --mark
 9a. **`--qr-whitebg` 白底反相 QR（雙圖層）**
    - 旗標型。加上後會建成「白底矩形 + 反相 QR」兩個圖層（矩形先打、QR 後打），等同 GUI「QRCODE_白底」GroupBox。
    - **只需帶 `--qrcode` 內容即可**，其餘由 `WhiteBgQRParams` 預設補齊：
-     - QR 資料區：**25×25mm**（可用 `--qr-width/--qr-height` 覆寫）
+     - QR 資料區：**25×25mm**（可用 `--qr-width/--qr-height` 覆寫；要指定含外框總尺寸請加 `--qr-size-mode outer`）
      - QR 外框：**2 單元**（可用 `--qr-border` 覆寫）
      - QR 圖層：power 90 / speed 1200 / freq 80 / pulse-width 30 / spot-size 0.04 / line-times 4 / step-angle 45
      - 矩形圖層：power 100 / speed 800 / freq 80 / pulse-width 250 / FillStyle 3 / FillTimes 4 / 向內填滿 (InsideOut) / StartAngle 90 / StepAngle 45
@@ -403,7 +403,12 @@ cmd> MarkingMate.exe --board 0 --line 0,0,50,50 --mark
 
      - **QR 層功率/速度的 fallback**：未帶 `--qr-power`/`--qr-speed` 時，會退回通用 `--power`/`--speed`（向後相容），皆無則用預設 90/1200。優先序：`--qr-power` > `--power` > 預設。
      - QR 層頻率/脈寬、以及**矩形層四個參數**都只認自己的 `--qr-freq`/`--qr-pw`/`--rect-*`，**不吃** `--power`/`--speed` fallback。
-   - 尺寸/外框覆寫：`--qr-width` / `--qr-height` / `--qr-border`。
+   - 尺寸/外框覆寫：`--qr-width` / `--qr-height` / `--qr-border`（長寬必須 > 0，否則 exitCode 4）。
+   - **`--qr-size-mode <module|outer>`**（預設 `module`，`outer` 僅支援 `--qr-whitebg`）：
+     - `module`：長寬 = 資料模組區，`cell = 長寬 / modules`，實際總寬 = 長寬 + 2 × border × cell（例：30、border 2、V1 → 約 35.71mm）。
+     - `outer`：長寬 = 含外框的實際總長寬，`cell = 長寬 / (modules + 2 × border)`；建立後讀回 `GetWidth/GetHeight`，誤差 > 0.005mm 時等比修正 cell 一次。白底矩形同尺寸（+ RectExtra，CLI 固定 0）。
+     - `modules = 17 + 4 × version`，version 由 SDK 依內容決定。log 的 `WhiteBg QR ver=… cell=… rendered=…` 可確認實際尺寸；cell < 0.2mm 會印 `Warning`（不中止）。
+     - 範例：`--client --board 0 --qrcode "1234567" --qr-whitebg --qr-width 30 --qr-height 30 --qr-size-mode outer --mark`
    - **CLI 仍無法覆寫的寫死參數**：矩形 FillStyle/FillTimes/InsideOut/StartAngle/StepAngle、QR SpotSize/LineTimes/StepAngle。若需調整需改 `Form1.cs`（`BuildWhiteBgQR` 或 `WhiteBgQRParams`）並重編。
    - 白底模式會**跳過** `ApplyLaserParamsAuto`，避免覆寫各圖層已個別設好的雷射參數。
    - 適用 daemon、模式 A、GUI「命令提示」頁籤（tab 8）與「CLI 編輯器」頁籤（tab 7 的 QRCODE 區塊），四條路徑共用 `BuildWhiteBgQR` 後端。

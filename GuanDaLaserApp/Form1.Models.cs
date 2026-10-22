@@ -36,9 +36,10 @@ namespace GuanDaLaserApp
         private class WhiteBgQRParams
         {
             public string Content = "1234567";
-            public double QrWidth = 25.0;    // QR 資料模組區寬 (mm)
-            public double QrHeight = 25.0;   // QR 資料模組區高 (mm)
+            public double QrWidth = 25.0;    // QR 寬 (mm)；語意依 OuterSize
+            public double QrHeight = 25.0;   // QR 高 (mm)；語意依 OuterSize
             public int Border = 2;           // 外框單元數 (cell)
+            public bool OuterSize = false;   // true = QrWidth/QrHeight 為含外框的實際總長寬
             public double QrSpeed = 1200;    // QR 打標速度
             public double QrPower = 90;      // QR 功率
             public double QrFreq = 80;       // QR 頻率 (kHz)

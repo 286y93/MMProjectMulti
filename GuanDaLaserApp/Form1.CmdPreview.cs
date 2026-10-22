@@ -184,6 +184,14 @@ namespace GuanDaLaserApp
                 return;
             }
 
+            string qrErr;
+            if (spec.Cli != null && !spec.Cli.ValidateQR(out qrErr))
+            {
+                MessageBox.Show($"命令 #{idx + 1} 參數錯誤：{qrErr}", "錯誤",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
             int board = spec.BoardIndex;
             if (board < 0 || board >= m_bBoardInit.Length || !m_bBoardInit[board])
             {

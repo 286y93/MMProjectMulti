@@ -43,7 +43,8 @@ SDK 不允許多個程序同時初始化 OCX。要讓多塊板並行動作，請
 | `--qr-width <mm>` / `--qr-height <mm>` | QR 尺寸，預設 10 |
 | `--qr-invert` | QR 反相 |
 | `--qr-whitebg` | 白底反相 QR（白底矩形 + 反相 QR 雙圖層） |
-| `--qr-border <cells>` | 白底 QR 外框單元數（白底模式預設 2） |
+| `--qr-border <cells>` | 白底 QR 外框單元數（白底模式預設 2；一般 QR 不套用） |
+| `--qr-size-mode <module\|outer>` | 白底 QR 長寬語意：`module`（預設）= 資料區、外框另加；`outer` = 含外框的實際總長寬 |
 
 ### 雷射參數（未指定則使用預設值）
 | 參數 | 說明 |

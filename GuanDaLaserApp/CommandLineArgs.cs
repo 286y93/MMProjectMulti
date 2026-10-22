@@ -43,6 +43,8 @@ namespace GuanDaLaserApp
         public bool QRWidthExplicit { get; private set; }   // 使用者是否有明確帶 --qr-width
         public bool QRHeightExplicit { get; private set; }  // 使用者是否有明確帶 --qr-height
         public bool QRBorderExplicit { get; private set; }  // 使用者是否有明確帶 --qr-border
+        // 白底 QR 長寬語意：module = 資料模組區（外框另加，預設）；outer = 含外框的實際總長寬
+        public string QRSizeMode { get; private set; }
         // 白底反相 QR 各圖層雷射參數（null=不覆寫，沿用 WhiteBgQRParams 內建預設）
         // QR 資料層：未帶 --qr-power/--qr-speed 時，功率/速度會 fallback 到通用 --power/--speed（見 Form1.MakeWhiteBgParams）
         public double? QRPower { get; private set; }
@@ -111,6 +113,7 @@ namespace GuanDaLaserApp
             QRWidthExplicit = false;
             QRHeightExplicit = false;
             QRBorderExplicit = false;
+            QRSizeMode = "module";
             QRPower = null;
             QRSpeed = null;
             QRFreq = null;
@@ -403,6 +406,15 @@ namespace GuanDaLaserApp
                         i++;
                     }
                 }
+                else if (argLower == "--qr-size-mode")
+                {
+                    // 值的合法性交給 Validate 檢查（module / outer）
+                    if (i + 1 < args.Length)
+                    {
+                        result.QRSizeMode = args[i + 1].Trim().ToLowerInvariant();
+                        i++;
+                    }
+                }
                 // ---- 白底反相 QR：QR 資料層雷射參數 ----
                 else if (argLower == "--qr-power")
                 {
@@ -613,8 +625,13 @@ namespace GuanDaLaserApp
                                           （QR 25x25mm、外框 2；QR power90/speed1200/freq80/pw30、
                                           矩形 power100/speed800/freq80/pw250）。尺寸可用
                                           --qr-width / --qr-height / --qr-border 覆寫
-  --qr-border <cells>                   白底 QR 外框單元數（不帶時 --qr-whitebg 走 WhiteBgQRParams 預設 2；
-                                          單獨 QR 模式走 CLI 預設 5）
+  --qr-border <cells>                   白底 QR 外框單元數（不帶時預設 2）；僅 --qr-whitebg 有效，
+                                          一般 QR 不套用外框設定（依 SDK 預設）
+  --qr-size-mode <module|outer>         白底 QR 長寬語意（預設 module）：
+                                          module = --qr-width/--qr-height 為資料模組區，
+                                                   實際總寬 = 寬 + 2 × 外框 × cell（cell = 寬 / 模組數）
+                                          outer  = --qr-width/--qr-height 為含外框的實際總長寬，
+                                                   白底矩形也等於此尺寸。僅支援 --qr-whitebg
   --qr-power <0-100>                    白底 QR 之 QR 資料層功率 %（不帶時 fallback 到 --power，再無則預設 90）
   --qr-speed <mm/s>                     白底 QR 之 QR 資料層速度（不帶時 fallback 到 --speed，再無則預設 1200）
   --qr-freq <kHz>                       白底 QR 之 QR 資料層頻率（預設 80）
@@ -689,6 +706,9 @@ namespace GuanDaLaserApp
 
   # QR Code 反相（黑白互換）
   MarkingMate.exe --board 0 --qrcode ""INV"" --qr-width 15 --qr-height 15 --qr-invert --mark
+
+  # 白底 QR，實際總長寬（含外框）= 30 x 30 mm
+  MarkingMate.exe --client --board 0 --qrcode ""1234567"" --qr-whitebg --qr-width 30 --qr-height 30 --qr-size-mode outer --mark
 
   # AprilTag 5 號、大小 20mm，矩形 + AprilTag
   MarkingMate.exe --board 0 --apriltag 5 --tag-size 20 --mark
@@ -768,7 +788,41 @@ namespace GuanDaLaserApp
                 return false;
             }
 
+            if (!ValidateQR(out errorMessage)) return false;
+
             return ValidateAprilTag(out errorMessage);
+        }
+
+        /// <summary>
+        /// 驗證 QR 尺寸參數（未帶 --qrcode 時直接通過）。
+        /// cell 過小的檢查需要 QR 版本，於 BuildWhiteBgQR 建立後以警告 log 輸出。
+        /// </summary>
+        public bool ValidateQR(out string errorMessage)
+        {
+            errorMessage = null;
+            if (string.IsNullOrEmpty(QRContent)) return true;
+
+            if (QRWidthExplicit && QRWidth <= 0)
+            {
+                errorMessage = "--qr-width 必須大於 0";
+                return false;
+            }
+            if (QRHeightExplicit && QRHeight <= 0)
+            {
+                errorMessage = "--qr-height 必須大於 0";
+                return false;
+            }
+            if (QRSizeMode != "module" && QRSizeMode != "outer")
+            {
+                errorMessage = "--qr-size-mode 必須是 module 或 outer";
+                return false;
+            }
+            if (QRSizeMode == "outer" && !QRWhiteBg)
+            {
+                errorMessage = "--qr-size-mode outer 目前僅支援 --qr-whitebg";
+                return false;
+            }
+            return true;
         }
 
         /// <summary>

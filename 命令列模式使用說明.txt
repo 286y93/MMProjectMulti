@@ -59,13 +59,19 @@ MarkingMate Multi-Board 命令列模式使用說明
   --lines "<清單>"           多條線段，分號分隔："x1,y1,x2,y2;x1,y1,x2,y2;..."
   --dxf <path>, -d <path>    載入 DXF 檔案（手動解析 LINE entity）
   --qrcode <content>, -qr    QR Code 內容
-  --qr-width <mm>            QR 寬 mm。單獨 QR 預設 10；--qr-whitebg 未帶時走 15（與 GUI 同）
-  --qr-height <mm>           QR 高 mm。單獨 QR 預設 10；--qr-whitebg 未帶時走 15（與 GUI 同）
+  --qr-width <mm>            QR 寬 mm。單獨 QR 預設 10；--qr-whitebg 未帶時走 25（WhiteBgQRParams）
+  --qr-height <mm>           QR 高 mm。單獨 QR 預設 10；--qr-whitebg 未帶時走 25（WhiteBgQRParams）
+                             必須大於 0。白底模式的語意見 --qr-size-mode
   --qr-invert                QR 反相（單獨 QR 用；白底反相請改用 --qr-whitebg）
   --qr-whitebg               白底反相 QR：矩形白底 + 反相 QR 雙圖層
                              *** 詳見第三節 QRCODE_白底 ***
   --qr-border <cells>        白底 QR 外框單元數。--qr-whitebg 未帶時走 2（與 GUI 同）；
-                             單獨 QR schema 預設 5
+                             單獨 QR 不套用此參數（外框依 SDK 預設）
+  --qr-size-mode <module|outer>
+                             白底 QR 長寬語意（預設 module，僅 --qr-whitebg 支援 outer）
+                               module：長寬 = 資料模組區，外框另加在外面
+                               outer ：長寬 = 含外框的實際總長寬（白底矩形同尺寸）
+                             *** 詳見 3.7 尺寸計算 ***
 
 --- 雷射參數（不指定 = 用板現行預設）---
   --power <0-100>, -p        功率 % 0-100
@@ -134,8 +140,30 @@ MarkingMate Multi-Board 命令列模式使用說明
 
 3.6 CLI 可覆寫的 QR 圖層參數
     --qr-width / --qr-height / --qr-border  → QR 尺寸與外框
+    --qr-size-mode module|outer             → 長寬是否含外框
     --power / --speed                       → QR 圖層雷射參數
     （矩形圖層的功率/速度不能透過 CLI 覆寫）
+
+3.7 尺寸計算
+    模組數 modules = 17 + 4 × QR 版本（版本依內容長度與容錯等級，由 SDK 決定）
+
+    module 模式（預設）：
+      cell     = 長寬 / modules
+      實際總寬 = 長寬 + 2 × 外框 × cell
+      例：--qr-width 30、外框 2、V1(21) → cell 1.4286，實際約 35.71 mm
+
+    outer 模式（--qr-size-mode outer）：
+      cell     = 長寬 / (modules + 2 × 外框)
+      實際總寬 = 長寬（建立後讀回 SDK 渲染尺寸，誤差 > 0.005 mm 會等比修正一次）
+      例：--qr-width 30、外框 2、V1(21) → cell 1.2，實際 30 mm
+
+      MarkingMate.exe --client --board 0 --qrcode "1234567" --qr-whitebg ^
+        --qr-width 30 --qr-height 30 --qr-size-mode outer --mark
+
+    log 會印出 ver / modules / cell / rendered，可確認實際尺寸。
+    cell < 0.2 mm 時 log 會出現 Warning（不中止），表示可能雕不出或讀不到，
+    請加大長寬或縮短內容。
+    註：以上為軟體尺寸；實際打出的尺寸另受光點大小與振鏡校正影響。
 
 ===========================================
 四、結束代碼 (Exit Code)
