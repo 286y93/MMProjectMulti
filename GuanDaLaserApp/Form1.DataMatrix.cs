@@ -89,6 +89,68 @@ namespace GuanDaLaserApp
         }
 
         /// <summary>
+        /// DM 物件 X 鏡射（左右翻轉）。MirrorObject 文件未載明鏡射基準點與是否保留雷射參數，
+        /// 因此鏡射後移回原中心、重設雷射參數，並把前後狀態寫到 stderr 供排查出光問題。
+        /// </summary>
+        private bool MirrorDataMatrixX(int boardIndex, DataMatrixParams p)
+        {
+            var edit = m_MMEdit[boardIndex];
+            var mark = m_MMMark[boardIndex];
+            string State() =>
+                $"type={mark.GetObjectType(DM_CODE_NAME)} center=({edit.GetCenterX(DM_CODE_NAME):F3},{edit.GetCenterY(DM_CODE_NAME):F3}) " +
+                $"size={edit.GetWidth(DM_CODE_NAME):F3}x{edit.GetHeight(DM_CODE_NAME):F3} " +
+                $"power={mark.GetPower(DM_CODE_NAME)} speed={mark.GetSpeed(DM_CODE_NAME)} " +
+                $"objects=[{string.Join(",", GetAllObjectNames(boardIndex))}]";
+
+            double cx = edit.GetCenterX(DM_CODE_NAME);
+            double cy = edit.GetCenterY(DM_CODE_NAME);
+            Console.Error.WriteLine($"[Board {boardIndex + 1}] DataMatrix 鏡射前 {State()}");
+
+            long rc = edit.MirrorObject(DM_CODE_NAME, 1, 0);
+            mark.Redraw();
+            Application.DoEvents();
+            Thread.Sleep(200);
+            Console.Error.WriteLine($"[Board {boardIndex + 1}] DataMatrix MirrorObject(X) rc={rc}");
+            Console.Error.WriteLine($"[Board {boardIndex + 1}] DataMatrix 鏡射後 {State()}");
+            if (rc != 0)
+            {
+                Console.Error.WriteLine($"[Board {boardIndex + 1}] DataMatrix X 鏡射失敗 rc={rc}");
+                return false;
+            }
+
+            // 鏡射基準點不是物件中心，DM 會被翻到別處 → 依中心差值相對位移移回原中心。
+            // 不用絕對座標：MoveObject 絕對模式的定位點（中心 / 左下角）未載明，相對位移與定位點無關。
+            double dx = cx - edit.GetCenterX(DM_CODE_NAME);
+            double dy = cy - edit.GetCenterY(DM_CODE_NAME);
+            long rcMove = edit.MoveObject(DM_CODE_NAME, dx, dy, 1);
+            mark.Redraw();
+            Application.DoEvents();
+            Thread.Sleep(200);
+            double errX = edit.GetCenterX(DM_CODE_NAME) - cx;
+            double errY = edit.GetCenterY(DM_CODE_NAME) - cy;
+            Console.Error.WriteLine($"[Board {boardIndex + 1}] DataMatrix 移回中心 MoveObject(Δ={dx:F3},{dy:F3}, rel) rc={rcMove} " +
+                $"誤差=({errX:F4},{errY:F4})");
+            if (Math.Abs(errX) > QR_OUTER_TOLERANCE || Math.Abs(errY) > QR_OUTER_TOLERANCE)
+            {
+                // 位置不對寧可不打，避免 DM 偏離底部矩形
+                Console.Error.WriteLine($"[Board {boardIndex + 1}] DataMatrix 鏡射後無法移回原中心 ({cx:F3},{cy:F3})，中止");
+                return false;
+            }
+
+            // 鏡射可能重設物件筆參數 → 重新套用雷射參數
+            mark.SetMarkRepeat(DM_CODE_NAME, 1);
+            mark.SetSpeed(DM_CODE_NAME, p.CodeSpeed);
+            mark.SetPower(DM_CODE_NAME, p.CodePower);
+            mark.SetFrequency(DM_CODE_NAME, p.CodeFreq);
+            mark.SetPulseWidth(DM_CODE_NAME, p.CodePulseWidth);
+            mark.Redraw();
+            Application.DoEvents();
+            Thread.Sleep(200);
+            Console.Error.WriteLine($"[Board {boardIndex + 1}] DataMatrix 鏡射完成 → {State()}");
+            return true;
+        }
+
+        /// <summary>
         /// 建立 Data Matrix 雙圖層物件（不 StartMarking）。中心在 (0,0)。
         /// 前提：呼叫端已 ResetFile + SetDesktopCenter/SetDesktopSize。
         /// 各物件雷射參數在此設定，呼叫端不可再套用通用參數。矩形以 ChangeObjectOrder 排到 DM 前面先打。
@@ -213,6 +275,9 @@ namespace GuanDaLaserApp
                 if (Math.Min(cellW, cellH) < QR_MIN_CELL_WARN)
                     Console.Error.WriteLine($"[Board {boardIndex + 1}] Warning: DataMatrix 單元 {Math.Min(cellW, cellH):F4} mm 小於 {QR_MIN_CELL_WARN} mm，" +
                         "可能無法正確雕刻或讀取，請加大長寬或縮短內容");
+
+                // X 鏡射（左右翻轉）：放在尺寸校正之後，避免後續 Set2DBarcodeFixedCellSize 重建條碼時蓋掉鏡射
+                if (!MirrorDataMatrixX(boardIndex, p)) return false;
             }
 
             // ---- ② 底部矩形（= DM 含外框總尺寸 + RectExtra）----
