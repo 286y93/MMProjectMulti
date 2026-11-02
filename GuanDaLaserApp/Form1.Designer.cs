@@ -472,6 +472,52 @@ namespace GuanDaLaserApp
             this.rdoATMarkRect = new System.Windows.Forms.RadioButton();
             this.rdoATMarkTag = new System.Windows.Forms.RadioButton();
             this.rdoATMarkAll = new System.Windows.Forms.RadioButton();
+            this.tabPageDataMatrix = new System.Windows.Forms.TabPage();
+            this.lblBoardDM = new System.Windows.Forms.Label();
+            this.comboBoardDM = new System.Windows.Forms.ComboBox();
+            this.groupBoxDataMatrix = new System.Windows.Forms.GroupBox();
+            this.lblDMType = new System.Windows.Forms.Label();
+            this.lblDMContent = new System.Windows.Forms.Label();
+            this.txtDMContent = new System.Windows.Forms.TextBox();
+            this.lblDMWidth = new System.Windows.Forms.Label();
+            this.txtDMWidth = new System.Windows.Forms.TextBox();
+            this.lblDMHeight = new System.Windows.Forms.Label();
+            this.txtDMHeight = new System.Windows.Forms.TextBox();
+            this.lblDMSymbol = new System.Windows.Forms.Label();
+            this.comboDMSymbol = new System.Windows.Forms.ComboBox();
+            this.lblDMBorder = new System.Windows.Forms.Label();
+            this.numDMBorder = new System.Windows.Forms.NumericUpDown();
+            this.lblDMRectExtra = new System.Windows.Forms.Label();
+            this.txtDMRectExtra = new System.Windows.Forms.TextBox();
+            this.lblDMInfo = new System.Windows.Forms.Label();
+            this.groupBoxDMCode = new System.Windows.Forms.GroupBox();
+            this.lblDMCodePower = new System.Windows.Forms.Label();
+            this.txtDMCodePower = new System.Windows.Forms.TextBox();
+            this.lblDMCodeSpeed = new System.Windows.Forms.Label();
+            this.txtDMCodeSpeed = new System.Windows.Forms.TextBox();
+            this.lblDMCodeFreq = new System.Windows.Forms.Label();
+            this.txtDMCodeFreq = new System.Windows.Forms.TextBox();
+            this.lblDMCodePW = new System.Windows.Forms.Label();
+            this.txtDMCodePW = new System.Windows.Forms.TextBox();
+            this.groupBoxDMRect = new System.Windows.Forms.GroupBox();
+            this.lblDMRectPower = new System.Windows.Forms.Label();
+            this.txtDMRectPower = new System.Windows.Forms.TextBox();
+            this.lblDMRectSpeed = new System.Windows.Forms.Label();
+            this.txtDMRectSpeed = new System.Windows.Forms.TextBox();
+            this.lblDMRectFreq = new System.Windows.Forms.Label();
+            this.txtDMRectFreq = new System.Windows.Forms.TextBox();
+            this.lblDMRectPW = new System.Windows.Forms.Label();
+            this.txtDMRectPW = new System.Windows.Forms.TextBox();
+            this.lblDMTarget = new System.Windows.Forms.Label();
+            this.rdoDMMarkRect = new System.Windows.Forms.RadioButton();
+            this.rdoDMMarkCode = new System.Windows.Forms.RadioButton();
+            this.rdoDMMarkAll = new System.Windows.Forms.RadioButton();
+            this.pnlDMPreview = new System.Windows.Forms.Panel();
+            this.lblDMNote = new System.Windows.Forms.Label();
+            this.btnDMPreview = new System.Windows.Forms.Button();
+            this.btnDMMark = new System.Windows.Forms.Button();
+            this.btnDMStop = new System.Windows.Forms.Button();
+            this.txtDMStatus = new System.Windows.Forms.TextBox();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
@@ -509,6 +555,11 @@ namespace GuanDaLaserApp
             this.groupBoxATTag.SuspendLayout();
             this.groupBoxATRect.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numATId)).BeginInit();
+            this.tabPageDataMatrix.SuspendLayout();
+            this.groupBoxDataMatrix.SuspendLayout();
+            this.groupBoxDMCode.SuspendLayout();
+            this.groupBoxDMRect.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numDMBorder)).BeginInit();
             this.SuspendLayout();
             // 
             // timerMark
@@ -610,6 +661,7 @@ namespace GuanDaLaserApp
             this.tabControl1.Controls.Add(this.tabPageCLIBuilder);
             this.tabControl1.Controls.Add(this.tabPageCmd);
             this.tabControl1.Controls.Add(this.tabPageAprilTag);
+            this.tabControl1.Controls.Add(this.tabPageDataMatrix);
             this.tabControl1.Location = new System.Drawing.Point(6, 6);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
@@ -5358,6 +5410,487 @@ namespace GuanDaLaserApp
             this.txtATStatus.Size = new System.Drawing.Size(580, 22);
             this.txtATStatus.TabIndex = 39;
             //
+            // tabPageDataMatrix
+            //
+            this.tabPageDataMatrix.Controls.Add(this.lblBoardDM);
+            this.tabPageDataMatrix.Controls.Add(this.comboBoardDM);
+            this.tabPageDataMatrix.Controls.Add(this.groupBoxDataMatrix);
+            this.tabPageDataMatrix.Controls.Add(this.groupBoxDMCode);
+            this.tabPageDataMatrix.Controls.Add(this.groupBoxDMRect);
+            this.tabPageDataMatrix.Controls.Add(this.lblDMTarget);
+            this.tabPageDataMatrix.Controls.Add(this.rdoDMMarkRect);
+            this.tabPageDataMatrix.Controls.Add(this.rdoDMMarkCode);
+            this.tabPageDataMatrix.Controls.Add(this.rdoDMMarkAll);
+            this.tabPageDataMatrix.Controls.Add(this.pnlDMPreview);
+            this.tabPageDataMatrix.Controls.Add(this.lblDMNote);
+            this.tabPageDataMatrix.Controls.Add(this.btnDMPreview);
+            this.tabPageDataMatrix.Controls.Add(this.btnDMMark);
+            this.tabPageDataMatrix.Controls.Add(this.btnDMStop);
+            this.tabPageDataMatrix.Controls.Add(this.txtDMStatus);
+            this.tabPageDataMatrix.Location = new System.Drawing.Point(4, 22);
+            this.tabPageDataMatrix.Name = "tabPageDataMatrix";
+            this.tabPageDataMatrix.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
+            this.tabPageDataMatrix.Size = new System.Drawing.Size(1197, 566);
+            this.tabPageDataMatrix.TabIndex = 11;
+            this.tabPageDataMatrix.Text = "9. DataMatrix";
+            this.tabPageDataMatrix.UseVisualStyleBackColor = true;
+            //
+            // lblBoardDM
+            //
+            this.lblBoardDM.AutoSize = true;
+            this.lblBoardDM.Location = new System.Drawing.Point(15, 14);
+            this.lblBoardDM.Name = "lblBoardDM";
+            this.lblBoardDM.TabIndex = 1;
+            this.lblBoardDM.Text = "選擇板：";
+            //
+            // comboBoardDM
+            //
+            this.comboBoardDM.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboBoardDM.FormattingEnabled = true;
+            this.comboBoardDM.Items.AddRange(new object[] {
+            "晶片板 1",
+            "晶片板 2",
+            "晶片板 3",
+            "晶片板 4"});
+            this.comboBoardDM.Location = new System.Drawing.Point(72, 11);
+            this.comboBoardDM.Name = "comboBoardDM";
+            this.comboBoardDM.Size = new System.Drawing.Size(118, 20);
+            this.comboBoardDM.TabIndex = 2;
+            //
+            // groupBoxDataMatrix
+            //
+            this.groupBoxDataMatrix.Controls.Add(this.lblDMType);
+            this.groupBoxDataMatrix.Controls.Add(this.lblDMContent);
+            this.groupBoxDataMatrix.Controls.Add(this.txtDMContent);
+            this.groupBoxDataMatrix.Controls.Add(this.lblDMWidth);
+            this.groupBoxDataMatrix.Controls.Add(this.txtDMWidth);
+            this.groupBoxDataMatrix.Controls.Add(this.lblDMHeight);
+            this.groupBoxDataMatrix.Controls.Add(this.txtDMHeight);
+            this.groupBoxDataMatrix.Controls.Add(this.lblDMSymbol);
+            this.groupBoxDataMatrix.Controls.Add(this.comboDMSymbol);
+            this.groupBoxDataMatrix.Controls.Add(this.lblDMBorder);
+            this.groupBoxDataMatrix.Controls.Add(this.numDMBorder);
+            this.groupBoxDataMatrix.Controls.Add(this.lblDMRectExtra);
+            this.groupBoxDataMatrix.Controls.Add(this.txtDMRectExtra);
+            this.groupBoxDataMatrix.Controls.Add(this.lblDMInfo);
+            this.groupBoxDataMatrix.Location = new System.Drawing.Point(15, 42);
+            this.groupBoxDataMatrix.Name = "groupBoxDataMatrix";
+            this.groupBoxDataMatrix.Size = new System.Drawing.Size(360, 268);
+            this.groupBoxDataMatrix.TabIndex = 3;
+            this.groupBoxDataMatrix.TabStop = false;
+            this.groupBoxDataMatrix.Text = "Data Matrix 參數";
+            //
+            // lblDMType
+            //
+            this.lblDMType.AutoSize = true;
+            this.lblDMType.Location = new System.Drawing.Point(15, 24);
+            this.lblDMType.Name = "lblDMType";
+            this.lblDMType.TabIndex = 4;
+            this.lblDMType.Text = "類型：Data Matrix ECC200（SDK 產生）";
+            //
+            // lblDMContent
+            //
+            this.lblDMContent.AutoSize = true;
+            this.lblDMContent.Location = new System.Drawing.Point(15, 52);
+            this.lblDMContent.Name = "lblDMContent";
+            this.lblDMContent.TabIndex = 5;
+            this.lblDMContent.Text = "內容：";
+            //
+            // txtDMContent
+            //
+            this.txtDMContent.Location = new System.Drawing.Point(150, 49);
+            this.txtDMContent.Name = "txtDMContent";
+            this.txtDMContent.Size = new System.Drawing.Size(195, 22);
+            this.txtDMContent.TabIndex = 6;
+            this.txtDMContent.Text = "1234567";
+            this.txtDMContent.TextChanged += new System.EventHandler(this.DataMatrixInputs_Changed);
+            //
+            // lblDMWidth
+            //
+            this.lblDMWidth.AutoSize = true;
+            this.lblDMWidth.Location = new System.Drawing.Point(15, 82);
+            this.lblDMWidth.Name = "lblDMWidth";
+            this.lblDMWidth.TabIndex = 7;
+            this.lblDMWidth.Text = "寬 (mm，含外框)：";
+            //
+            // txtDMWidth
+            //
+            this.txtDMWidth.Location = new System.Drawing.Point(150, 79);
+            this.txtDMWidth.Name = "txtDMWidth";
+            this.txtDMWidth.Size = new System.Drawing.Size(100, 22);
+            this.txtDMWidth.TabIndex = 8;
+            this.txtDMWidth.Text = "20";
+            this.txtDMWidth.TextChanged += new System.EventHandler(this.DataMatrixInputs_Changed);
+            //
+            // lblDMHeight
+            //
+            this.lblDMHeight.AutoSize = true;
+            this.lblDMHeight.Location = new System.Drawing.Point(15, 112);
+            this.lblDMHeight.Name = "lblDMHeight";
+            this.lblDMHeight.TabIndex = 9;
+            this.lblDMHeight.Text = "高 (mm，含外框)：";
+            //
+            // txtDMHeight
+            //
+            this.txtDMHeight.Location = new System.Drawing.Point(150, 109);
+            this.txtDMHeight.Name = "txtDMHeight";
+            this.txtDMHeight.Size = new System.Drawing.Size(100, 22);
+            this.txtDMHeight.TabIndex = 10;
+            this.txtDMHeight.Text = "20";
+            this.txtDMHeight.TextChanged += new System.EventHandler(this.DataMatrixInputs_Changed);
+            //
+            // lblDMSymbol
+            //
+            this.lblDMSymbol.AutoSize = true;
+            this.lblDMSymbol.Location = new System.Drawing.Point(15, 142);
+            this.lblDMSymbol.Name = "lblDMSymbol";
+            this.lblDMSymbol.TabIndex = 11;
+            this.lblDMSymbol.Text = "格數：";
+            //
+            // comboDMSymbol
+            //
+            this.comboDMSymbol.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboDMSymbol.FormattingEnabled = true;
+            this.comboDMSymbol.Items.AddRange(new object[] {
+            "自動（依內容）",
+            "10 x 10",
+            "12 x 12",
+            "14 x 14",
+            "16 x 16",
+            "18 x 18",
+            "20 x 20",
+            "22 x 22",
+            "24 x 24",
+            "26 x 26",
+            "32 x 32",
+            "36 x 36",
+            "40 x 40",
+            "44 x 44",
+            "48 x 48",
+            "52 x 52",
+            "64 x 64",
+            "72 x 72",
+            "80 x 80",
+            "88 x 88",
+            "96 x 96",
+            "104 x 104",
+            "120 x 120",
+            "132 x 132",
+            "144 x 144"});
+            this.comboDMSymbol.Location = new System.Drawing.Point(150, 139);
+            this.comboDMSymbol.Name = "comboDMSymbol";
+            this.comboDMSymbol.Size = new System.Drawing.Size(120, 20);
+            this.comboDMSymbol.TabIndex = 12;
+            this.comboDMSymbol.SelectedIndexChanged += new System.EventHandler(this.DataMatrixInputs_Changed);
+            //
+            // lblDMBorder
+            //
+            this.lblDMBorder.AutoSize = true;
+            this.lblDMBorder.Location = new System.Drawing.Point(15, 172);
+            this.lblDMBorder.Name = "lblDMBorder";
+            this.lblDMBorder.TabIndex = 13;
+            this.lblDMBorder.Text = "反相外框 (格)：";
+            //
+            // numDMBorder
+            //
+            this.numDMBorder.Location = new System.Drawing.Point(150, 169);
+            this.numDMBorder.Maximum = new decimal(new int[] {
+            10,
+            0,
+            0,
+            0});
+            this.numDMBorder.Name = "numDMBorder";
+            this.numDMBorder.Size = new System.Drawing.Size(100, 22);
+            this.numDMBorder.TabIndex = 14;
+            this.numDMBorder.Value = new decimal(new int[] {
+            2,
+            0,
+            0,
+            0});
+            this.numDMBorder.ValueChanged += new System.EventHandler(this.DataMatrixInputs_Changed);
+            //
+            // lblDMRectExtra
+            //
+            this.lblDMRectExtra.AutoSize = true;
+            this.lblDMRectExtra.Location = new System.Drawing.Point(15, 202);
+            this.lblDMRectExtra.Name = "lblDMRectExtra";
+            this.lblDMRectExtra.TabIndex = 15;
+            this.lblDMRectExtra.Text = "矩形加大量 (mm)：";
+            //
+            // txtDMRectExtra
+            //
+            this.txtDMRectExtra.Location = new System.Drawing.Point(150, 199);
+            this.txtDMRectExtra.Name = "txtDMRectExtra";
+            this.txtDMRectExtra.Size = new System.Drawing.Size(100, 22);
+            this.txtDMRectExtra.TabIndex = 16;
+            this.txtDMRectExtra.Text = "0";
+            this.txtDMRectExtra.TextChanged += new System.EventHandler(this.DataMatrixInputs_Changed);
+            //
+            // lblDMInfo
+            //
+            this.lblDMInfo.AutoSize = true;
+            this.lblDMInfo.ForeColor = System.Drawing.Color.DimGray;
+            this.lblDMInfo.Location = new System.Drawing.Point(15, 230);
+            this.lblDMInfo.Name = "lblDMInfo";
+            this.lblDMInfo.TabIndex = 17;
+            this.lblDMInfo.Text = "格數由 SDK 依內容決定（預覽 / 打標後顯示）";
+            //
+            // groupBoxDMCode
+            //
+            this.groupBoxDMCode.Controls.Add(this.lblDMCodePower);
+            this.groupBoxDMCode.Controls.Add(this.txtDMCodePower);
+            this.groupBoxDMCode.Controls.Add(this.lblDMCodeSpeed);
+            this.groupBoxDMCode.Controls.Add(this.txtDMCodeSpeed);
+            this.groupBoxDMCode.Controls.Add(this.lblDMCodeFreq);
+            this.groupBoxDMCode.Controls.Add(this.txtDMCodeFreq);
+            this.groupBoxDMCode.Controls.Add(this.lblDMCodePW);
+            this.groupBoxDMCode.Controls.Add(this.txtDMCodePW);
+            this.groupBoxDMCode.Location = new System.Drawing.Point(15, 318);
+            this.groupBoxDMCode.Name = "groupBoxDMCode";
+            this.groupBoxDMCode.Size = new System.Drawing.Size(175, 140);
+            this.groupBoxDMCode.TabIndex = 18;
+            this.groupBoxDMCode.TabStop = false;
+            this.groupBoxDMCode.Text = "Data Matrix 層（反相）";
+            //
+            // lblDMCodePower
+            //
+            this.lblDMCodePower.AutoSize = true;
+            this.lblDMCodePower.Location = new System.Drawing.Point(12, 27);
+            this.lblDMCodePower.Name = "lblDMCodePower";
+            this.lblDMCodePower.TabIndex = 19;
+            this.lblDMCodePower.Text = "功率 (%)：";
+            //
+            // txtDMCodePower
+            //
+            this.txtDMCodePower.Location = new System.Drawing.Point(85, 24);
+            this.txtDMCodePower.Name = "txtDMCodePower";
+            this.txtDMCodePower.Size = new System.Drawing.Size(75, 22);
+            this.txtDMCodePower.TabIndex = 20;
+            this.txtDMCodePower.Text = "90";
+            //
+            // lblDMCodeSpeed
+            //
+            this.lblDMCodeSpeed.AutoSize = true;
+            this.lblDMCodeSpeed.Location = new System.Drawing.Point(12, 55);
+            this.lblDMCodeSpeed.Name = "lblDMCodeSpeed";
+            this.lblDMCodeSpeed.TabIndex = 21;
+            this.lblDMCodeSpeed.Text = "速度：";
+            //
+            // txtDMCodeSpeed
+            //
+            this.txtDMCodeSpeed.Location = new System.Drawing.Point(85, 52);
+            this.txtDMCodeSpeed.Name = "txtDMCodeSpeed";
+            this.txtDMCodeSpeed.Size = new System.Drawing.Size(75, 22);
+            this.txtDMCodeSpeed.TabIndex = 22;
+            this.txtDMCodeSpeed.Text = "1200";
+            //
+            // lblDMCodeFreq
+            //
+            this.lblDMCodeFreq.AutoSize = true;
+            this.lblDMCodeFreq.Location = new System.Drawing.Point(12, 83);
+            this.lblDMCodeFreq.Name = "lblDMCodeFreq";
+            this.lblDMCodeFreq.TabIndex = 23;
+            this.lblDMCodeFreq.Text = "頻率 (kHz)：";
+            //
+            // txtDMCodeFreq
+            //
+            this.txtDMCodeFreq.Location = new System.Drawing.Point(85, 80);
+            this.txtDMCodeFreq.Name = "txtDMCodeFreq";
+            this.txtDMCodeFreq.Size = new System.Drawing.Size(75, 22);
+            this.txtDMCodeFreq.TabIndex = 24;
+            this.txtDMCodeFreq.Text = "80";
+            //
+            // lblDMCodePW
+            //
+            this.lblDMCodePW.AutoSize = true;
+            this.lblDMCodePW.Location = new System.Drawing.Point(12, 111);
+            this.lblDMCodePW.Name = "lblDMCodePW";
+            this.lblDMCodePW.TabIndex = 25;
+            this.lblDMCodePW.Text = "脈寬：";
+            //
+            // txtDMCodePW
+            //
+            this.txtDMCodePW.Location = new System.Drawing.Point(85, 108);
+            this.txtDMCodePW.Name = "txtDMCodePW";
+            this.txtDMCodePW.Size = new System.Drawing.Size(75, 22);
+            this.txtDMCodePW.TabIndex = 26;
+            this.txtDMCodePW.Text = "30";
+            //
+            // groupBoxDMRect
+            //
+            this.groupBoxDMRect.Controls.Add(this.lblDMRectPower);
+            this.groupBoxDMRect.Controls.Add(this.txtDMRectPower);
+            this.groupBoxDMRect.Controls.Add(this.lblDMRectSpeed);
+            this.groupBoxDMRect.Controls.Add(this.txtDMRectSpeed);
+            this.groupBoxDMRect.Controls.Add(this.lblDMRectFreq);
+            this.groupBoxDMRect.Controls.Add(this.txtDMRectFreq);
+            this.groupBoxDMRect.Controls.Add(this.lblDMRectPW);
+            this.groupBoxDMRect.Controls.Add(this.txtDMRectPW);
+            this.groupBoxDMRect.Location = new System.Drawing.Point(200, 318);
+            this.groupBoxDMRect.Name = "groupBoxDMRect";
+            this.groupBoxDMRect.Size = new System.Drawing.Size(175, 140);
+            this.groupBoxDMRect.TabIndex = 27;
+            this.groupBoxDMRect.TabStop = false;
+            this.groupBoxDMRect.Text = "矩形層";
+            //
+            // lblDMRectPower
+            //
+            this.lblDMRectPower.AutoSize = true;
+            this.lblDMRectPower.Location = new System.Drawing.Point(12, 27);
+            this.lblDMRectPower.Name = "lblDMRectPower";
+            this.lblDMRectPower.TabIndex = 28;
+            this.lblDMRectPower.Text = "功率 (%)：";
+            //
+            // txtDMRectPower
+            //
+            this.txtDMRectPower.Location = new System.Drawing.Point(85, 24);
+            this.txtDMRectPower.Name = "txtDMRectPower";
+            this.txtDMRectPower.Size = new System.Drawing.Size(75, 22);
+            this.txtDMRectPower.TabIndex = 29;
+            this.txtDMRectPower.Text = "100";
+            //
+            // lblDMRectSpeed
+            //
+            this.lblDMRectSpeed.AutoSize = true;
+            this.lblDMRectSpeed.Location = new System.Drawing.Point(12, 55);
+            this.lblDMRectSpeed.Name = "lblDMRectSpeed";
+            this.lblDMRectSpeed.TabIndex = 30;
+            this.lblDMRectSpeed.Text = "速度：";
+            //
+            // txtDMRectSpeed
+            //
+            this.txtDMRectSpeed.Location = new System.Drawing.Point(85, 52);
+            this.txtDMRectSpeed.Name = "txtDMRectSpeed";
+            this.txtDMRectSpeed.Size = new System.Drawing.Size(75, 22);
+            this.txtDMRectSpeed.TabIndex = 31;
+            this.txtDMRectSpeed.Text = "800";
+            //
+            // lblDMRectFreq
+            //
+            this.lblDMRectFreq.AutoSize = true;
+            this.lblDMRectFreq.Location = new System.Drawing.Point(12, 83);
+            this.lblDMRectFreq.Name = "lblDMRectFreq";
+            this.lblDMRectFreq.TabIndex = 32;
+            this.lblDMRectFreq.Text = "頻率 (kHz)：";
+            //
+            // txtDMRectFreq
+            //
+            this.txtDMRectFreq.Location = new System.Drawing.Point(85, 80);
+            this.txtDMRectFreq.Name = "txtDMRectFreq";
+            this.txtDMRectFreq.Size = new System.Drawing.Size(75, 22);
+            this.txtDMRectFreq.TabIndex = 33;
+            this.txtDMRectFreq.Text = "80";
+            //
+            // lblDMRectPW
+            //
+            this.lblDMRectPW.AutoSize = true;
+            this.lblDMRectPW.Location = new System.Drawing.Point(12, 111);
+            this.lblDMRectPW.Name = "lblDMRectPW";
+            this.lblDMRectPW.TabIndex = 34;
+            this.lblDMRectPW.Text = "脈寬：";
+            //
+            // txtDMRectPW
+            //
+            this.txtDMRectPW.Location = new System.Drawing.Point(85, 108);
+            this.txtDMRectPW.Name = "txtDMRectPW";
+            this.txtDMRectPW.Size = new System.Drawing.Size(75, 22);
+            this.txtDMRectPW.TabIndex = 35;
+            this.txtDMRectPW.Text = "250";
+            //
+            // lblDMTarget
+            //
+            this.lblDMTarget.AutoSize = true;
+            this.lblDMTarget.Location = new System.Drawing.Point(15, 470);
+            this.lblDMTarget.Name = "lblDMTarget";
+            this.lblDMTarget.TabIndex = 36;
+            this.lblDMTarget.Text = "打標目標：";
+            //
+            // rdoDMMarkRect
+            //
+            this.rdoDMMarkRect.AutoSize = true;
+            this.rdoDMMarkRect.Location = new System.Drawing.Point(85, 468);
+            this.rdoDMMarkRect.Name = "rdoDMMarkRect";
+            this.rdoDMMarkRect.TabIndex = 37;
+            this.rdoDMMarkRect.Text = "1. 只打矩形";
+            this.rdoDMMarkRect.UseVisualStyleBackColor = true;
+            //
+            // rdoDMMarkCode
+            //
+            this.rdoDMMarkCode.AutoSize = true;
+            this.rdoDMMarkCode.Location = new System.Drawing.Point(185, 468);
+            this.rdoDMMarkCode.Name = "rdoDMMarkCode";
+            this.rdoDMMarkCode.TabIndex = 38;
+            this.rdoDMMarkCode.Text = "2. 只打 DataMatrix";
+            this.rdoDMMarkCode.UseVisualStyleBackColor = true;
+            //
+            // rdoDMMarkAll
+            //
+            this.rdoDMMarkAll.AutoSize = true;
+            this.rdoDMMarkAll.Checked = true;
+            this.rdoDMMarkAll.TabStop = true;
+            this.rdoDMMarkAll.Location = new System.Drawing.Point(320, 468);
+            this.rdoDMMarkAll.Name = "rdoDMMarkAll";
+            this.rdoDMMarkAll.TabIndex = 39;
+            this.rdoDMMarkAll.Text = "3. 矩形 + DataMatrix";
+            this.rdoDMMarkAll.UseVisualStyleBackColor = true;
+            //
+            // pnlDMPreview
+            //
+            this.pnlDMPreview.BackColor = System.Drawing.Color.White;
+            this.pnlDMPreview.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pnlDMPreview.Location = new System.Drawing.Point(395, 42);
+            this.pnlDMPreview.Name = "pnlDMPreview";
+            this.pnlDMPreview.Size = new System.Drawing.Size(220, 236);
+            this.pnlDMPreview.TabIndex = 40;
+            this.pnlDMPreview.Paint += new System.Windows.Forms.PaintEventHandler(this.pnlDMPreview_Paint);
+            //
+            // lblDMNote
+            //
+            this.lblDMNote.ForeColor = System.Drawing.Color.DimGray;
+            this.lblDMNote.Location = new System.Drawing.Point(395, 286);
+            this.lblDMNote.Name = "lblDMNote";
+            this.lblDMNote.Size = new System.Drawing.Size(360, 110);
+            this.lblDMNote.TabIndex = 41;
+            this.lblDMNote.Text = "上圖為成品外觀示意（資料區實際圖樣由 SDK 產生）。\r\n寬 / 高 = 含反相外框的實際總長寬，中心位於 (0,0)。\r\n格數由 SDK 依內容自動決定（或指定），\r\n每格 = 長寬 / (格數 + 2 × 外框)。\r\n矩形層蓋住整個 Data Matrix + 加大量，先打。\r\nData Matrix 層為反相：只打白格，黑格保留矩形底色。";
+            //
+            // btnDMPreview
+            //
+            this.btnDMPreview.Location = new System.Drawing.Point(15, 496);
+            this.btnDMPreview.Name = "btnDMPreview";
+            this.btnDMPreview.Size = new System.Drawing.Size(110, 30);
+            this.btnDMPreview.TabIndex = 42;
+            this.btnDMPreview.Text = "紅光預覽";
+            this.btnDMPreview.UseVisualStyleBackColor = true;
+            this.btnDMPreview.Click += new System.EventHandler(this.btnDMPreview_Click);
+            //
+            // btnDMMark
+            //
+            this.btnDMMark.Location = new System.Drawing.Point(135, 496);
+            this.btnDMMark.Name = "btnDMMark";
+            this.btnDMMark.Size = new System.Drawing.Size(110, 30);
+            this.btnDMMark.TabIndex = 43;
+            this.btnDMMark.Text = "雷射打標";
+            this.btnDMMark.UseVisualStyleBackColor = true;
+            this.btnDMMark.Click += new System.EventHandler(this.btnDMMark_Click);
+            //
+            // btnDMStop
+            //
+            this.btnDMStop.Location = new System.Drawing.Point(255, 496);
+            this.btnDMStop.Name = "btnDMStop";
+            this.btnDMStop.Size = new System.Drawing.Size(110, 30);
+            this.btnDMStop.TabIndex = 44;
+            this.btnDMStop.Text = "停止";
+            this.btnDMStop.UseVisualStyleBackColor = true;
+            this.btnDMStop.Click += new System.EventHandler(this.btnDMStop_Click);
+            //
+            // txtDMStatus
+            //
+            this.txtDMStatus.Location = new System.Drawing.Point(15, 536);
+            this.txtDMStatus.Name = "txtDMStatus";
+            this.txtDMStatus.ReadOnly = true;
+            this.txtDMStatus.Size = new System.Drawing.Size(600, 22);
+            this.txtDMStatus.TabIndex = 45;
+            //
             // Form1
             //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
@@ -5437,6 +5970,15 @@ namespace GuanDaLaserApp
             this.groupBoxATRect.PerformLayout();
             this.tabPageAprilTag.ResumeLayout(false);
             this.tabPageAprilTag.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numDMBorder)).EndInit();
+            this.groupBoxDataMatrix.ResumeLayout(false);
+            this.groupBoxDataMatrix.PerformLayout();
+            this.groupBoxDMCode.ResumeLayout(false);
+            this.groupBoxDMCode.PerformLayout();
+            this.groupBoxDMRect.ResumeLayout(false);
+            this.groupBoxDMRect.PerformLayout();
+            this.tabPageDataMatrix.ResumeLayout(false);
+            this.tabPageDataMatrix.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -5780,6 +6322,52 @@ namespace GuanDaLaserApp
         private System.Windows.Forms.RadioButton rdoATMarkRect;
         private System.Windows.Forms.RadioButton rdoATMarkTag;
         private System.Windows.Forms.RadioButton rdoATMarkAll;
+        private System.Windows.Forms.TabPage tabPageDataMatrix;
+        private System.Windows.Forms.Label lblBoardDM;
+        private System.Windows.Forms.ComboBox comboBoardDM;
+        private System.Windows.Forms.GroupBox groupBoxDataMatrix;
+        private System.Windows.Forms.Label lblDMType;
+        private System.Windows.Forms.Label lblDMContent;
+        private System.Windows.Forms.TextBox txtDMContent;
+        private System.Windows.Forms.Label lblDMWidth;
+        private System.Windows.Forms.TextBox txtDMWidth;
+        private System.Windows.Forms.Label lblDMHeight;
+        private System.Windows.Forms.TextBox txtDMHeight;
+        private System.Windows.Forms.Label lblDMSymbol;
+        private System.Windows.Forms.ComboBox comboDMSymbol;
+        private System.Windows.Forms.Label lblDMBorder;
+        private System.Windows.Forms.NumericUpDown numDMBorder;
+        private System.Windows.Forms.Label lblDMRectExtra;
+        private System.Windows.Forms.TextBox txtDMRectExtra;
+        private System.Windows.Forms.Label lblDMInfo;
+        private System.Windows.Forms.GroupBox groupBoxDMCode;
+        private System.Windows.Forms.Label lblDMCodePower;
+        private System.Windows.Forms.TextBox txtDMCodePower;
+        private System.Windows.Forms.Label lblDMCodeSpeed;
+        private System.Windows.Forms.TextBox txtDMCodeSpeed;
+        private System.Windows.Forms.Label lblDMCodeFreq;
+        private System.Windows.Forms.TextBox txtDMCodeFreq;
+        private System.Windows.Forms.Label lblDMCodePW;
+        private System.Windows.Forms.TextBox txtDMCodePW;
+        private System.Windows.Forms.GroupBox groupBoxDMRect;
+        private System.Windows.Forms.Label lblDMRectPower;
+        private System.Windows.Forms.TextBox txtDMRectPower;
+        private System.Windows.Forms.Label lblDMRectSpeed;
+        private System.Windows.Forms.TextBox txtDMRectSpeed;
+        private System.Windows.Forms.Label lblDMRectFreq;
+        private System.Windows.Forms.TextBox txtDMRectFreq;
+        private System.Windows.Forms.Label lblDMRectPW;
+        private System.Windows.Forms.TextBox txtDMRectPW;
+        private System.Windows.Forms.Label lblDMTarget;
+        private System.Windows.Forms.RadioButton rdoDMMarkRect;
+        private System.Windows.Forms.RadioButton rdoDMMarkCode;
+        private System.Windows.Forms.RadioButton rdoDMMarkAll;
+        private System.Windows.Forms.Panel pnlDMPreview;
+        private System.Windows.Forms.Label lblDMNote;
+        private System.Windows.Forms.Button btnDMPreview;
+        private System.Windows.Forms.Button btnDMMark;
+        private System.Windows.Forms.Button btnDMStop;
+        private System.Windows.Forms.TextBox txtDMStatus;
         private System.Windows.Forms.Label lblCmdHeader;
         private System.Windows.Forms.Label lblBoardCmd;
         private System.Windows.Forms.ComboBox comboBoardCmd;

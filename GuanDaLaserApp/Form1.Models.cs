@@ -75,6 +75,34 @@ namespace GuanDaLaserApp
             public double RectWidth => TagTotalWidth + RectExtra;
         }
 
+        // Data Matrix（底部矩形 + 反相 ECC200 雙圖層，條碼由 SDK AddBarcode 產生）可調參數。
+        // 長寬 = 含反相外框的實際總長寬；格數由 SDK 依內容自動決定（或指定 SymbolSize），每格大小自動反推。
+        // 其餘製程常數（填滿間距 / 點大小等）維持寫死於 BuildDataMatrixLayers。
+        private class DataMatrixParams
+        {
+            public string Content = "1234567";
+            public double Width = 20.0;         // 含反相外框的實際總寬 (mm)
+            public double Height = 20.0;        // 含反相外框的實際總高 (mm)
+            public int SymbolSize = 0;          // 格數（10~144 正方形）；0 = SDK 依內容自動決定
+            public int Border = 2;              // 反相外框單元數 (cell)，充當 quiet zone
+            public bool MarkRect = true;        // 打底部矩形
+            public bool MarkCode = true;        // 打 Data Matrix（反相：只打白格）
+            public double RectExtra = 0;        // 矩形額外加大量 (mm)，矩形 = DM 實際總長寬 + RectExtra
+            public double CodeSpeed = 1200;     // Data Matrix 層速度
+            public double CodePower = 90;       // Data Matrix 層功率
+            public double CodeFreq = 80;        // Data Matrix 層頻率 (kHz)
+            public double CodePulseWidth = 30;  // Data Matrix 層脈波寬度
+            public double RectSpeed = 800;      // 矩形層速度
+            public double RectPower = 100;      // 矩形層功率
+            public double RectFreq = 80;        // 矩形層頻率 (kHz)
+            public double RectPulseWidth = 250; // 矩形層脈波寬度
+
+            /// <summary>底部矩形寬 (mm)（建立前的預估值，建立後以 SDK 實際渲染尺寸為準）。</summary>
+            public double RectWidth => Width + RectExtra;
+            /// <summary>底部矩形高 (mm)。</summary>
+            public double RectHeight => Height + RectExtra;
+        }
+
         // 命令提示頁籤：單筆指令規格（隨機產生 / 解析既有命令列共用）
         private class CmdPreviewSpec
         {
@@ -88,7 +116,9 @@ namespace GuanDaLaserApp
             public double? WobbleWidth;         // 線條寬度 mm（雷射加粗），null=不啟動 wobble
             public double? WobbleSpeed;         // 擺動速度 mm/s，null=用 SDK 預設 5026.55
             public bool QRWhiteBg;              // 白底反相 QR（--qr-whitebg）
-            public CommandLineArgs Cli;         // 解析後的原始 CLI 參數（白底 QR 用來組 WhiteBgQRParams）
+            public AprilTagParams AprilTag;     // AprilTag（--apriltag）；null = 非 AprilTag
+            public DataMatrixParams DataMatrix; // Data Matrix（--datamatrix）；null = 非 Data Matrix
+            public CommandLineArgs Cli;       // 解析後的原始 CLI 參數（白底 QR 用來組 WhiteBgQRParams）
             public string DisplayText;          // 顯示在 textbox 內的命令字串
         }
     }

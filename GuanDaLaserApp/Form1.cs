@@ -122,6 +122,8 @@ namespace GuanDaLaserApp
             comboBoardQR2.SelectedIndex = 0;
             comboBoardCmd.SelectedIndex = 0;
             comboBoardAT.SelectedIndex = 0;
+            comboBoardDM.SelectedIndex = 0;
+            comboDMSymbol.SelectedIndex = 0;   // 格數：自動
             // txtPulseWidth 預設值 5 (在 Designer 中設定)
             m_IsAutoMode = false;
 
@@ -388,17 +390,35 @@ namespace GuanDaLaserApp
 
                     if (spec.Lines == null || spec.Lines.Count == 0)
                     {
-                        if (string.IsNullOrEmpty(spec.QRContent) && !spec.AprilTagId.HasValue)
+                        if (string.IsNullOrEmpty(spec.QRContent) && !spec.AprilTagId.HasValue && string.IsNullOrEmpty(spec.DMContent))
                         {
-                            tcs.TrySetResult(new DaemonSpecResult { ExitCode = 4, Logs = "no content (need --line / --lines / --qrcode / --apriltag)" });
+                            tcs.TrySetResult(new DaemonSpecResult { ExitCode = 4, Logs = "no content (need --line / --lines / --qrcode / --apriltag / --datamatrix)" });
                             return;
                         }
                     }
 
                     // AprilTag：參數 / 工作區檢查（不合法回 exitCode 4，不動板子）
                     bool isAprilTag = (spec.Lines == null || spec.Lines.Count == 0) && spec.AprilTagId.HasValue;
+                    // Data Matrix：同上；優先序 線段 > AprilTag > Data Matrix > QR
+                    bool isDataMatrix = (spec.Lines == null || spec.Lines.Count == 0) && !isAprilTag && !string.IsNullOrEmpty(spec.DMContent);
                     AprilTagParams tagParams = null;
-                    if (isAprilTag)
+                    DataMatrixParams dmParams = null;
+                    if (isDataMatrix)
+                    {
+                        string dmErr;
+                        if (!spec.ValidateDataMatrix(out dmErr))
+                        {
+                            tcs.TrySetResult(new DaemonSpecResult { ExitCode = 4, Logs = dmErr });
+                            return;
+                        }
+                        dmParams = MakeDataMatrixParams(spec);
+                        if (!DataMatrixFitsWorkspace(dmParams, m_WorkspaceSize, m_WorkspaceHeight, out dmErr))
+                        {
+                            tcs.TrySetResult(new DaemonSpecResult { ExitCode = 4, Logs = dmErr });
+                            return;
+                        }
+                    }
+                    else if (isAprilTag)
                     {
                         string tagErr;
                         if (!spec.ValidateAprilTag(out tagErr))
@@ -432,7 +452,7 @@ namespace GuanDaLaserApp
                     //   - 非 QR + spec 有明確 --workspace-w/h → 以 spec 為準（line/DXF 需要）
                     //   - 其餘（QR、或沒帶 workspace 參數） → 沿用 UI 讀進來的 m_WorkspaceSize/Height
                     //   QR 物件位置固定 (0,0) 且不做工作範圍平移，這裡 SetDesktopSize 的值對 QR 無實際影響。
-                    bool isQR = !string.IsNullOrEmpty(spec.QRContent) || isAprilTag;
+                    bool isQR = !string.IsNullOrEmpty(spec.QRContent) || isAprilTag || isDataMatrix;
                     double effectiveW = (!isQR && spec.WorkspaceWidthExplicit) ? spec.WorkspaceSize : m_WorkspaceSize;
                     double effectiveH = (!isQR && spec.WorkspaceHeightExplicit) ? spec.WorkspaceHeight : m_WorkspaceHeight;
 
@@ -473,6 +493,17 @@ namespace GuanDaLaserApp
                         }
                         sbLog.AppendLine($"[Board {board + 1}] added AprilTag 41h12 #{tagParams.TagId} size={tagParams.Size}mm target={spec.TagTarget}");
                     }
+                    else if (isDataMatrix)
+                    {
+                        // Data Matrix：底部矩形 + 反相 DM 雙圖層，內含各物件雷射參數，故下方跳過 ApplyLaserParamsAuto。
+                        if (!BuildDataMatrixLayers(board, dmParams))
+                        {
+                            tcs.TrySetResult(new DaemonSpecResult { ExitCode = 2, Logs = sbLog.ToString() + $"[Board {board + 1}] Data Matrix 建立失敗" });
+                            return;
+                        }
+                        sbLog.AppendLine($"[Board {board + 1}] added DataMatrix \"{dmParams.Content}\" {dmParams.Width}x{dmParams.Height}mm " +
+                            $"symbol={(dmParams.MarkCode ? m_DMLastSymbol.ToString() : "-")} target={spec.DMTarget}");
+                    }
                     else if (spec.QRWhiteBg)
                     {
                         // 白底反相 QR：白底矩形 + 反相 QR 雙圖層（參數寫死，可用 CLI 覆寫）。
@@ -507,7 +538,7 @@ namespace GuanDaLaserApp
 
                     // 2. 套用雷射參數（若有指定）— 用臨時換 m_AutoModeArgs 的小 hack 重用既有 method。
                     //    白底 QR 已在 BuildWhiteBgQR 內對各物件個別設好參數，這裡必須跳過，否則會被覆寫。
-                    if (!spec.QRWhiteBg && !isAprilTag && (spec.Power.HasValue || spec.Speed.HasValue || spec.Frequency.HasValue
+                    if (!spec.QRWhiteBg && !isAprilTag && !isDataMatrix && (spec.Power.HasValue || spec.Speed.HasValue || spec.Frequency.HasValue
                         || spec.PulseWidth.HasValue || spec.MarkRepeat.HasValue || spec.WobbleWidth.HasValue))
                     {
                         var savedArgs = m_AutoModeArgs;
@@ -604,7 +635,7 @@ namespace GuanDaLaserApp
                     // 而被砍在半途（QR 只打了上半、下半空白）。上限拉到 570 秒（< 外層 10 分鐘），
                     // 與動態估算的 MaxMs 一致。其物件參數在 BuildWhiteBgQR 內設定，不走這裡估算。
                     int markTimeoutMs;
-                    if (spec.QRWhiteBg || isAprilTag)
+                    if (spec.QRWhiteBg || isAprilTag || isDataMatrix)
                     {
                         markTimeoutMs = 570000;
                     }
@@ -1282,6 +1313,9 @@ namespace GuanDaLaserApp
                 // AprilTag 頁籤按鈕
                 btnATMark.Enabled = true;
                 btnATPreview.Enabled = true;
+                // DataMatrix 頁籤按鈕
+                btnDMMark.Enabled = true;
+                btnDMPreview.Enabled = true;
 
                 MessageBox.Show($"晶片板 {boardIndex + 1} 完成！", "完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
@@ -1931,6 +1965,32 @@ namespace GuanDaLaserApp
                     }
                     hasContent = true;
                 }
+                else if (!string.IsNullOrEmpty(m_AutoModeArgs.DMContent))
+                {
+                    string dmErr;
+                    DataMatrixParams dmParams = null;
+                    bool dmValid = m_AutoModeArgs.ValidateDataMatrix(out dmErr);
+                    if (dmValid)
+                    {
+                        dmParams = MakeDataMatrixParams(m_AutoModeArgs);
+                        dmValid = DataMatrixFitsWorkspace(dmParams, m_WorkspaceSize, m_WorkspaceHeight, out dmErr);
+                    }
+                    if (!dmValid)
+                    {
+                        Console.Error.WriteLine($"Error: {dmErr}");
+                        ExitCode = 4;
+                        this.Close();
+                        return;
+                    }
+                    if (!BuildDataMatrixLayers(m_AutoModeArgs.BoardIndex, dmParams))
+                    {
+                        Console.Error.WriteLine("Error: Failed to draw Data Matrix.");
+                        ExitCode = 2;
+                        this.Close();
+                        return;
+                    }
+                    hasContent = true;
+                }
                 else if (!string.IsNullOrEmpty(m_AutoModeArgs.QRContent))
                 {
                     string qrErr;
@@ -1965,8 +2025,9 @@ namespace GuanDaLaserApp
                 }
 
                 // 步驟 2.5: 套用雷射參數（如有指定）。
-                // 白底 QR / AprilTag 已在建構時對各物件個別設好參數，這裡跳過以免覆寫。
-                if (hasContent && !m_AutoModeArgs.QRWhiteBg && !m_AutoModeArgs.AprilTagId.HasValue && (m_AutoModeArgs.Power.HasValue || m_AutoModeArgs.Speed.HasValue ||
+                // 白底 QR / AprilTag / Data Matrix 已在建構時對各物件個別設好參數，這裡跳過以免覆寫。
+                if (hasContent && !m_AutoModeArgs.QRWhiteBg && !m_AutoModeArgs.AprilTagId.HasValue
+                    && string.IsNullOrEmpty(m_AutoModeArgs.DMContent) && (m_AutoModeArgs.Power.HasValue || m_AutoModeArgs.Speed.HasValue ||
                     m_AutoModeArgs.Frequency.HasValue || m_AutoModeArgs.PulseWidth.HasValue ||
                     m_AutoModeArgs.MarkRepeat.HasValue || m_AutoModeArgs.WobbleWidth.HasValue))
                 {
@@ -3158,6 +3219,9 @@ namespace GuanDaLaserApp
             // AprilTag 頁籤
             btnATPreview.Enabled = true;
             btnATMark.Enabled = true;
+            // DataMatrix 頁籤
+            btnDMPreview.Enabled = true;
+            btnDMMark.Enabled = true;
             // 命令預覽會臨時調整 timerPreview.Interval，恢復成預設 15 秒
             timerPreview.Interval = 15000;
         }

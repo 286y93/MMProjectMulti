@@ -66,6 +66,20 @@ namespace GuanDaLaserApp
         public double? TagSpeed { get; private set; }
         public double? TagFreq { get; private set; }
         public double? TagPulseWidth { get; private set; }
+        // Data Matrix（ECC200，底部矩形 + 反相 DM 雙圖層，SDK AddBarcode 產生）。矩形層雷射參數共用 --rect-*
+        public string DMContent { get; private set; }       // null = 非 Data Matrix
+        public double DMWidth { get; private set; }         // 含反相外框的實際總寬 mm
+        public double DMHeight { get; private set; }        // 含反相外框的實際總高 mm
+        public int DMSymbol { get; private set; }           // 格數（10~144 正方形）；0 = auto
+        public string DMSymbolText { get; private set; }    // 原始 --dm-symbol 字串（驗證錯誤訊息用）
+        public int DMBorder { get; private set; }           // 反相外框單元數
+        public string DMTarget { get; private set; }        // rect / dm / all
+        public double DMRectExtra { get; private set; }     // 矩形額外加大量 mm
+        // Data Matrix 層雷射參數：未帶 --dm-power/--dm-speed 時 fallback 到通用 --power/--speed
+        public double? DMPower { get; private set; }
+        public double? DMSpeed { get; private set; }
+        public double? DMFreq { get; private set; }
+        public double? DMPulseWidth { get; private set; }
         // 預覽模式：0=不預覽, 1=外框預覽, 2=全路徑預覽
         public int PreviewMode { get; private set; }
         public double? PreviewSpeed { get; private set; }
@@ -130,6 +144,18 @@ namespace GuanDaLaserApp
             TagSpeed = null;
             TagFreq = null;
             TagPulseWidth = null;
+            DMContent = null;
+            DMWidth = 20.0;
+            DMHeight = 20.0;
+            DMSymbol = 0;
+            DMSymbolText = "auto";
+            DMBorder = 2;
+            DMTarget = "all";
+            DMRectExtra = 0;
+            DMPower = null;
+            DMSpeed = null;
+            DMFreq = null;
+            DMPulseWidth = null;
             PreviewMode = 0;
             PreviewSpeed = null;
             PreviewTime = 15;
@@ -547,6 +573,103 @@ namespace GuanDaLaserApp
                         i++;
                     }
                 }
+                // ---- Data Matrix ----
+                else if (argLower == "--datamatrix" || argLower == "-dm")
+                {
+                    if (i + 1 < args.Length)
+                    {
+                        result.DMContent = args[i + 1];
+                        i++;
+                        result.IsAutoMode = true;
+                    }
+                }
+                else if (argLower == "--dm-width")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double v))
+                    {
+                        result.DMWidth = v;
+                        i++;
+                    }
+                }
+                else if (argLower == "--dm-height")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double v))
+                    {
+                        result.DMHeight = v;
+                        i++;
+                    }
+                }
+                else if (argLower == "--dm-symbol")
+                {
+                    if (i + 1 < args.Length)
+                    {
+                        // auto 或格數（10 / 10x10 皆可）；不合法時 DMSymbol = -1，由 ValidateDataMatrix 回報
+                        string s = args[i + 1].Trim().ToLowerInvariant();
+                        result.DMSymbolText = s;
+                        int x = s.IndexOf('x');
+                        if (x > 0) s = s.Substring(0, x);
+                        if (s == "auto") result.DMSymbol = 0;
+                        else if (int.TryParse(s, out int n)) result.DMSymbol = n;
+                        else result.DMSymbol = -1;
+                        i++;
+                    }
+                }
+                else if (argLower == "--dm-border")
+                {
+                    if (i + 1 < args.Length && int.TryParse(args[i + 1], out int v))
+                    {
+                        result.DMBorder = v;
+                        i++;
+                    }
+                }
+                else if (argLower == "--dm-target")
+                {
+                    if (i + 1 < args.Length)
+                    {
+                        result.DMTarget = args[i + 1].ToLower();
+                        i++;
+                    }
+                }
+                else if (argLower == "--dm-rect-extra")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double v))
+                    {
+                        result.DMRectExtra = v;
+                        i++;
+                    }
+                }
+                else if (argLower == "--dm-power")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double v))
+                    {
+                        result.DMPower = v;
+                        i++;
+                    }
+                }
+                else if (argLower == "--dm-speed")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double v))
+                    {
+                        result.DMSpeed = v;
+                        i++;
+                    }
+                }
+                else if (argLower == "--dm-freq")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double v))
+                    {
+                        result.DMFreq = v;
+                        i++;
+                    }
+                }
+                else if (argLower == "--dm-pw" || argLower == "--dm-pulse-width")
+                {
+                    if (i + 1 < args.Length && double.TryParse(args[i + 1], out double v))
+                    {
+                        result.DMPulseWidth = v;
+                        i++;
+                    }
+                }
                 else if (argLower == "--mark" || argLower == "-m")
                 {
                     result.AutoMark = true;
@@ -652,7 +775,23 @@ namespace GuanDaLaserApp
   --tag-freq <kHz>                      AprilTag 層頻率（預設 80）
   --tag-pw <val>, --tag-pulse-width     AprilTag 層脈波寬度（預設 30）
                                         矩形層雷射參數共用 --rect-power/--rect-speed/--rect-freq/--rect-pw
-  --mark, -m                            自動執行打標
+  --datamatrix <content>, -dm <content> Data Matrix (ECC200) 內容；底部矩形 + 反相 DM 雙圖層，
+                                          中心固定於 (0,0)
+  --dm-width <mm>                       DM 實際總寬（含反相外框）(預設: 20)
+  --dm-height <mm>                      DM 實際總高（含反相外框）(預設: 20)；每格大小依格數自動反推
+  --dm-symbol <auto|N>                  格數：auto=SDK 依內容自動決定 (預設)，或指定正方形
+                                          10/12/14/16/18/20/22/24/26/32/36/40/44/48/52/
+                                          64/72/80/88/96/104/120/132/144（可寫 N 或 NxN）
+  --dm-border <cells>                   反相外框單元數，充當 quiet zone (預設: 2)
+  --dm-target <rect|dm|all>             打標目標：rect=只打矩形、dm=只打 Data Matrix、all=矩形+DM
+                                          （先打矩形）(預設: all)
+  --dm-rect-extra <mm>                  矩形額外加大量（矩形 = DM 實際總長寬 + 此值，預設 0）
+  --dm-power <0-100>                    DM 層功率 %（不帶時 fallback 到 --power，再無則預設 90）
+  --dm-speed <mm/s>                     DM 層速度（不帶時 fallback 到 --speed，再無則預設 1200）
+  --dm-freq <kHz>                       DM 層頻率（預設 80）
+  --dm-pw <val>, --dm-pulse-width       DM 層脈波寬度（預設 30）
+                                        矩形層雷射參數共用 --rect-power/--rect-speed/--rect-freq/--rect-pw
+  --mark, -m                           自動執行打標
   --preview <outline|full>               紅光預覽模式（不打雷射，需搭配 --mark）
                                           outline = 外框預覽, full = 全路徑預覽 (預設: full)
   --preview-speed <mm/s>                預覽速度 mm/s (不指定則使用預設值)
@@ -716,6 +855,12 @@ namespace GuanDaLaserApp
   # 只打矩形 / 只打 AprilTag
   MarkingMate.exe --board 0 --apriltag 5 --tag-size 20 --tag-target rect --mark
   MarkingMate.exe --board 0 --apriltag 5 --tag-size 20 --tag-target tag --mark
+
+  # Data Matrix，實際總長寬 15 x 15 mm（格數自動），矩形 + DM
+  MarkingMate.exe --client --board 0 --datamatrix ""ABC123"" --dm-width 15 --dm-height 15 --mark
+
+  # Data Matrix 指定 18x18 格、只打 DM
+  MarkingMate.exe --client --board 0 --datamatrix ""ABC123"" --dm-symbol 18 --dm-target dm --mark
 
   # 使用自訂配置
   MarkingMate.exe --board 2 --config /cfg_config_MM3 --line 0,0,100,100
@@ -782,15 +927,58 @@ namespace GuanDaLaserApp
             }
 
             if (Lines.Count == 0 && string.IsNullOrEmpty(DxfPath) && string.IsNullOrEmpty(QRContent)
-                && !AprilTagId.HasValue && AutoMark)
+                && !AprilTagId.HasValue && string.IsNullOrEmpty(DMContent) && AutoMark)
             {
-                errorMessage = "自動打標模式至少需要一條線段、DXF 檔案、QR Code 內容或 AprilTag";
+                errorMessage = "自動打標模式至少需要一條線段、DXF 檔案、QR Code 內容、AprilTag 或 Data Matrix";
                 return false;
             }
 
             if (!ValidateQR(out errorMessage)) return false;
+            if (!ValidateDataMatrix(out errorMessage)) return false;
 
             return ValidateAprilTag(out errorMessage);
+        }
+
+        /// <summary>
+        /// 驗證 Data Matrix 參數（未帶 --datamatrix 時直接通過）。
+        /// 內容能否放進指定格數由 SDK AddBarcode 決定，建立失敗時回 exitCode 2。
+        /// </summary>
+        public bool ValidateDataMatrix(out string errorMessage)
+        {
+            errorMessage = null;
+            if (string.IsNullOrEmpty(DMContent)) return true;
+
+            if (DMWidth <= 0)
+            {
+                errorMessage = "--dm-width 必須大於 0";
+                return false;
+            }
+            if (DMHeight <= 0)
+            {
+                errorMessage = "--dm-height 必須大於 0";
+                return false;
+            }
+            if (DMSymbol != 0 && DataMatrixSizes.ToSdkCode(DMSymbol) < 0)
+            {
+                errorMessage = $"--dm-symbol \"{DMSymbolText}\" 不合法，須為 auto 或 {string.Join("/", DataMatrixSizes.Square)}";
+                return false;
+            }
+            if (DMBorder < 0)
+            {
+                errorMessage = "--dm-border 不可為負數";
+                return false;
+            }
+            if (DMRectExtra < 0)
+            {
+                errorMessage = "--dm-rect-extra 不可為負數";
+                return false;
+            }
+            if (DMTarget != "rect" && DMTarget != "dm" && DMTarget != "all")
+            {
+                errorMessage = "--dm-target 必須是 rect、dm 或 all";
+                return false;
+            }
+            return true;
         }
 
         /// <summary>

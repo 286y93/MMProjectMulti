@@ -132,6 +132,10 @@
       <DependentUpon>Form1.cs</DependentUpon>
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Form1.DataMatrix.cs">
+      <DependentUpon>Form1.cs</DependentUpon>
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="AprilTagFamily.cs" />
     <Compile Include="DXFLine.cs" />
     <Compile Include="Program.cs" />

@@ -55,8 +55,9 @@ namespace GuanDaLaserApp
             sb.Append($" --board {spec.BoardIndex}");
             sb.Append($" --config /cfg_config_MM{spec.BoardIndex + 1}");
 
-            // 隨機選一種內容：多線段 / QR（取消單線範例，命令提示一律用 --lines 多段示範）
-            int contentType = m_CmdRandom.Next(0, 2);
+            // 隨機選一種內容：多線段 / QR / AprilTag / Data Matrix（取消單線範例，命令提示一律用 --lines 多段示範）
+            string[] samples = { "DEMO-001", "TEST", "ABC-123", "QR-XYZ", "Hello", "MarkingMate" };
+            int contentType = m_CmdRandom.Next(0, 4);
             if (contentType == 0)
             {
                 int n = m_CmdRandom.Next(2, 5);
@@ -78,9 +79,22 @@ namespace GuanDaLaserApp
                 spec.WobbleWidth = wobbleWidth;
                 sb.Append($" --wobble-width {wobbleWidth:0.0}");
             }
+            else if (contentType == 2)
+            {
+                // AprilTag：只帶編號，大小 / 打標目標 / 雷射參數走 AprilTagParams 預設
+                int tagId = m_CmdRandom.Next(AprilTagFamily.Count);
+                spec.AprilTag = new AprilTagParams { TagId = tagId };
+                sb.Append($" --apriltag {tagId}");
+            }
+            else if (contentType == 3)
+            {
+                // Data Matrix：只帶內容，長寬 / 格數 / 雷射參數走 DataMatrixParams 預設
+                string content = samples[m_CmdRandom.Next(samples.Length)];
+                spec.DataMatrix = new DataMatrixParams { Content = content };
+                sb.Append($" --datamatrix \"{content}\"");
+            }
             else
             {
-                string[] samples = { "DEMO-001", "TEST", "ABC-123", "QR-XYZ", "Hello", "MarkingMate" };
                 spec.QRContent = samples[m_CmdRandom.Next(samples.Length)];
                 spec.QRWhiteBg = true;
                 // 白底反相 QR：只帶內容 + --qr-whitebg，長寬 / 外框 / 雷射參數等
@@ -142,9 +156,18 @@ namespace GuanDaLaserApp
                 DisplayText = cmdLine
             };
 
+            // 內容優先序與 daemon（RunDaemonSpec）一致：線段 > AprilTag > Data Matrix > QR
             if (cli.Lines != null && cli.Lines.Count > 0)
             {
                 spec.Lines = cli.Lines;
+            }
+            else if (cli.AprilTagId.HasValue)
+            {
+                spec.AprilTag = MakeAprilTagParams(cli);
+            }
+            else if (!string.IsNullOrEmpty(cli.DMContent))
+            {
+                spec.DataMatrix = MakeDataMatrixParams(cli);
             }
             else if (!string.IsNullOrEmpty(cli.QRContent))
             {
@@ -177,17 +200,28 @@ namespace GuanDaLaserApp
                 return;
             }
 
-            if (spec == null || (spec.Lines == null && string.IsNullOrEmpty(spec.QRContent)))
+            if (spec == null || (spec.Lines == null && string.IsNullOrEmpty(spec.QRContent)
+                && spec.AprilTag == null && spec.DataMatrix == null))
             {
-                MessageBox.Show($"命令 #{idx + 1} 缺少內容：需要 --line / --lines / --qrcode 至少其中一項。", "錯誤",
+                MessageBox.Show($"命令 #{idx + 1} 缺少內容：需要 --line / --lines / --qrcode / --apriltag / --datamatrix 至少其中一項。", "錯誤",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            string qrErr;
-            if (spec.Cli != null && !spec.Cli.ValidateQR(out qrErr))
+            // 參數 / 工作區檢查（與 daemon 相同規則，不合法不動板子）
+            string paramErr = null;
+            bool paramOk = true;
+            if (spec.AprilTag != null)
+                paramOk = spec.Cli.ValidateAprilTag(out paramErr)
+                    && AprilTagFitsWorkspace(spec.AprilTag, m_WorkspaceSize, m_WorkspaceHeight, out paramErr);
+            else if (spec.DataMatrix != null)
+                paramOk = spec.Cli.ValidateDataMatrix(out paramErr)
+                    && DataMatrixFitsWorkspace(spec.DataMatrix, m_WorkspaceSize, m_WorkspaceHeight, out paramErr);
+            else if (spec.Cli != null)
+                paramOk = spec.Cli.ValidateQR(out paramErr);
+            if (!paramOk)
             {
-                MessageBox.Show($"命令 #{idx + 1} 參數錯誤：{qrErr}", "錯誤",
+                MessageBox.Show($"命令 #{idx + 1} 參數錯誤：{paramErr}", "錯誤",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
@@ -238,6 +272,26 @@ namespace GuanDaLaserApp
                         m_MMEdit[board].AddLine(x1, y1, x2, y2, "", "");
                     }
                 }
+                else if (spec.AprilTag != null)
+                {
+                    // AprilTag：與 daemon / 模式 A / 8. AprilTag 頁共用後端，各物件雷射參數已在內部設定
+                    if (!BuildAprilTagLayers(board, spec.AprilTag))
+                    {
+                        MessageBox.Show($"晶片板 {board + 1} AprilTag 建立失敗！詳細原因請看 log。", "錯誤",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+                }
+                else if (spec.DataMatrix != null)
+                {
+                    // Data Matrix：與 daemon / 模式 A / 9. DataMatrix 頁共用後端，各物件雷射參數已在內部設定
+                    if (!BuildDataMatrixLayers(board, spec.DataMatrix))
+                    {
+                        MessageBox.Show($"晶片板 {board + 1} Data Matrix 建立失敗！詳細原因請看 log。", "錯誤",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+                }
                 else if (!string.IsNullOrEmpty(spec.QRContent))
                 {
                     if (spec.QRWhiteBg)
@@ -273,9 +327,10 @@ namespace GuanDaLaserApp
                 Thread.Sleep(100);
 
                 // 套用線條寬度（wobble）到所有物件 — 同 ApplyLaserParamsAuto 流程
-                // QR 物件跳過：EMC6 對 QR 套擺動會回 Unknown Commands
+                // QR / Data Matrix 物件跳過：EMC6 對條碼套擺動會回 Unknown Commands；
+                // AprilTag 是填滿矩形，與 daemon 一致不套 wobble（套了格子邊緣會變寬）
                 if (spec.WobbleWidth.HasValue && spec.WobbleWidth.Value > 0
-                    && string.IsNullOrEmpty(spec.QRContent))
+                    && spec.Lines != null && spec.Lines.Count > 0)
                 {
                     double wobSpeed = spec.WobbleSpeed ?? 5026.55;
                     double wobWidth = spec.WobbleWidth.Value;
@@ -328,16 +383,19 @@ namespace GuanDaLaserApp
                     }
 
                     m_bCmdPreviewing[board] = true;
+                    // 安全超時：一般 300 秒（白底 QR 密填可能較久）；AprilTag / Data Matrix 雙圖層密填
+                    // 比照 daemon 放寬到 570 秒
+                    int timeoutSec = (spec.AprilTag != null || spec.DataMatrix != null) ? 570 : 300;
                     int loopCount = 0;
                     while (m_MMMark[board].IsMarking() != 0)
                     {
                         Application.DoEvents();
                         Thread.Sleep(100);
                         loopCount++;
-                        if (loopCount > 3000) // 300 秒安全超時（白底 QR 密填可能較久）
+                        if (loopCount > timeoutSec * 10)
                         {
                             m_MMMark[board].StopMarking();
-                            MessageBox.Show($"晶片板 {board + 1} 打標超時 300s，已強制停止。",
+                            MessageBox.Show($"晶片板 {board + 1} 打標超時 {timeoutSec}s，已強制停止。",
                                 "超時", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                             break;
                         }

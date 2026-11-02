@@ -427,6 +427,29 @@ cmd> MarkingMate.exe --board 0 --line 0,0,50,50 --mark
      - 顯式帶兩層雷射參數（slm-api `whiteBgQrLaserArgs()` 產生的形式）：`--client --board 0 --qrcode "1234567" --qr-whitebg --qr-width 20 --qr-height 20 --qr-border 2 --qr-power 90 --qr-speed 1200 --qr-freq 80 --qr-pw 30 --rect-power 100 --rect-speed 800 --rect-freq 80 --rect-pw 250 --mark`
      - 只調 QR 層功率（矩形不動）：`--client --board 0 --qrcode "ABC123" --qr-whitebg --qr-power 60 --qr-speed 1500 --mark`
 
+9b. **`--datamatrix` Data Matrix（ECC200，底部矩形 + 反相 DM 雙圖層）**
+   - 等同 GUI「9. DataMatrix」頁籤，共用 `BuildDataMatrixLayers` 後端（[Form1.DataMatrix.cs](Form1.DataMatrix.cs)）。條碼由 SDK `AddBarcode(21 = ECC 200)` 產生，反相（`SetBarcodeInvert`）+ 反相外框（`Set2DBarcodeBorder`，充當 quiet zone）。
+   - **長寬 = 含反相外框的實際總長寬**；格數由 SDK 依內容自動決定（或 `--dm-symbol` 指定），每格 = 長寬 / (格數 + 2 × 外框)。程式先以 1mm 暫定單元渲染、由實際寬度反推格數，再設定真正的單元大小並依實際渲染尺寸校正一次（同白底 QR outer 模式）。
+   - 中心固定 (0,0)；矩形 = DM 實際總長寬 + `--dm-rect-extra`，先打（`ChangeObjectOrder`）。
+   - 參數：
+
+     | 參數 | 預設 | 說明 |
+     |---|---|---|
+     | `--datamatrix <內容>` / `-dm` | — | 內容 |
+     | `--dm-width` / `--dm-height` | 20 / 20 | 實際總長寬 mm（含外框） |
+     | `--dm-symbol <auto\|N>` | auto | 正方形格數 10~26、32~52（間隔 4）、64~96（間隔 8）、104/120/132/144；可寫 `18` 或 `18x18` |
+     | `--dm-border <cells>` | 2 | 反相外框單元數 |
+     | `--dm-target <rect\|dm\|all>` | all | 只打矩形 / 只打 DM / 兩者 |
+     | `--dm-rect-extra <mm>` | 0 | 矩形加大量 |
+     | `--dm-power/-speed/-freq/-pw` | 90/1200/80/30 | DM 層；功率、速度未帶時 fallback 到 `--power/--speed` |
+     | `--rect-power/-speed/-freq/-pw` | 100/800/80/250 | 矩形層（與白底 QR、AprilTag 共用，不吃 fallback） |
+
+   - 長寬 ≤ 0、`--dm-symbol` 不合法、外框 / 加大量為負、`--dm-target` 不合法、矩形超出工作區 → exitCode 4（不動板子）；`AddBarcode` 失敗或無法判定格數 → exitCode 2。
+   - 指定格數放不下內容時 SDK 可能自動放大，log 會印 `Warning: 指定 N×N，SDK 實際為 M×M`；每格 < 0.2mm 印 `Warning`（不中止）。log 的 `DataMatrix symbol=… cell=… rendered=… total=…` 可確認實際尺寸。
+   - 不套用通用雷射參數與 wobble；daemon 打標逾時上限同白底 QR（570 秒）。
+   - 內容優先序：線段 > AprilTag > Data Matrix > QR。
+   - 範例：`--client --board 0 --datamatrix "ABC123" --dm-width 15 --dm-height 15 --mark`
+
 10. **Daemon 目前不支援 `--dxf`（MVP 階段）**
     要打 DXF 請用模式 A，或之後擴充 `RunDaemonSpec` 加入 `LoadDxfAuto` 呼叫
 
@@ -434,11 +457,15 @@ cmd> MarkingMate.exe --board 0 --line 0,0,50,50 --mark
     含空格的值（如 `--qrcode "Hello World"`）一定要在外層 shell 加引號，client 會自動 re-quote 傳給 daemon
 
 12. **命令提示頁籤（tab 8）產生的範例**
-    - 5 個 slot 各自隨機 50/50 選 Lines 或 QR 內容（可能全 Lines / 全 QR / 混合）
+    - 5 個 slot 各自隨機（各 1/4）選 Lines / QR / AprilTag / Data Matrix 內容
     - 線段：多線段 `--lines "x1,y1,x2,y2;..."`（2-4 段隨機），且會自動加 `--wobble-width 0.5`
     - QR：從 `{DEMO-001, TEST, ABC-123, QR-XYZ, Hello, MarkingMate}` 隨機取一個，只帶 `--qrcode "X" --qr-whitebg --mark`（其餘走 `WhiteBgQRParams` 預設）
+    - AprilTag：隨機編號，只帶 `--apriltag N --mark`（其餘走 `AprilTagParams` 預設）
+    - Data Matrix：同 QR 的範例字串，只帶 `--datamatrix "X" --mark`（其餘走 `DataMatrixParams` 預設）
+    - 手動編輯時 `--tag-*` / `--dm-*` / `--rect-*` 參數都有效；內容優先序同 daemon（線段 > AprilTag > Data Matrix > QR），參數錯誤跳 MessageBox、不動板子
+    - wobble 只套用到線段；AprilTag / Data Matrix 打標安全超時 570 秒（其餘 300 秒）
     - 按鈕文字「執行預覽」實際是 `PreviewMode=0`（正式打標），與文字不符
-    - 按鈕按下走 in-process 執行（不繞 daemon HTTP），共用 `BuildWhiteBgQR` / `DrawLineAuto`
+    - 按鈕按下走 in-process 執行（不繞 daemon HTTP），共用 `BuildWhiteBgQR` / `BuildAprilTagLayers` / `BuildDataMatrixLayers` / `DrawLineAuto`
     - 不再產生單線段 `--line` 範例
 
 13. **CLI 編輯器頁籤（tab 7）產生的範例**
